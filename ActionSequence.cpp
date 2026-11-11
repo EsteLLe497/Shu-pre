@@ -33,12 +33,12 @@ float sampleExpression(float time, float start, float peak, float end, float str
     return strength * (smooth ? phase * phase * (3.0f - 2.0f * phase) : phase);
 }
 
-void ActionPlayback::start()
+void ActionPlayback::start(float time)
 {
     if (m_active)
         return;
 
-    m_time = 0.0f;
+    m_time = time;
     m_effectFired = false;
     m_active = true;
 }
@@ -54,12 +54,17 @@ bool ActionPlayback::takeEffect(const ActionSequence& action)
 
 void ActionPlayback::advance(const ActionSequence& action, float dt)
 {
+    advanceTo(action.duration, dt, false);
+}
+
+void ActionPlayback::advanceTo(float endTime, float dt, bool holdAtEnd)
+{
     if (!m_active)
         return;
 
     // 終端にあるイベントも、最後のサンプルで一度処理する。
-    if (m_time >= action.duration)
-        m_active = false;
+    if (m_time >= endTime)
+        m_active = holdAtEnd;
     else
-        m_time = std::min(action.duration, m_time + dt);
+        m_time = std::min(endTime, m_time + dt);
 }

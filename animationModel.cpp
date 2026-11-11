@@ -214,6 +214,13 @@ bool AnimationModel::tryLoad(const char* fileName)
     m_IndexBuffer = new ID3D11Buffer*[meshCount]{};
     m_DeformVertex = new std::vector<DEFORM_VERTEX>[meshCount];
     CreateBone(m_AiScene->mRootNode);
+    // 着地時にだけ使う支点と、基準姿勢での足元を覚えておく。
+    const auto* root = m_AiScene->mRootNode;
+    m_landingArmature = root->FindNode(aiString("Armature"));
+    m_landingLeftFoot = root->FindNode(aiString("J_Bip_L_Foot"));
+    m_landingRightFoot = root->FindNode(aiString("J_Bip_R_Foot"));
+    if (m_landingLeftFoot && m_landingRightFoot)
+        m_landingFootCenterZ = landingFootCenterZ();
 
     for (unsigned int m = 0; m < meshCount; ++m)
     {
@@ -361,14 +368,77 @@ bool AnimationModel::hasAnimation(const char* name) const
 // =========================================================
 bool AnimationModel::sampleClip(const char* name, double seconds, RootTravel rootTravel)
 {
+    return samplePose(name, seconds, rootTravel, 0.0f, false, true);
+}
+
+bool AnimationModel::sampleBlendedClip(const char* name, double seconds, float dt, RootTravel rootTravel, bool restart, bool loop)
+{
+    return samplePose(name, seconds, rootTravel, dt, restart, loop);
+}
+
+bool AnimationModel::samplePose(const char* name, double seconds, RootTravel rootTravel, float dt, bool restart, bool loop)
+{
     const auto clip = m_Animation.find(name);
     if (clip == m_Animation.end())
         return false;
 
     const auto& animation = *clip->second->mAnimations[0];
     const double rate = animation.mTicksPerSecond > 0.0 ? animation.mTicksPerSecond : 60.0;
-    applyPose(animation, wrapAnimationTime(seconds * rate, &animation), rootTravel);
+    const float weight = dt > 0.0f ? updatePoseTransition(name, rootTravel, dt, restart) : 1.0f;
+    // 単発再生は終端で止め、最後のフレームで先頭へ戻さない。
+    const double time = seconds * rate;
+    const double tick = loop ? wrapAnimationTime(time, &animation) : std::min(time, animation.mDuration);
+    applyPose(animation, tick, rootTravel, weight);
     return true;
+}
+
+// 表示中のポーズを保存し、短時間で次の姿勢へつなぐ。
+float AnimationModel::updatePoseTransition(const char* name, RootTravel rootTravel, float dt, bool restart)
+{
+    constexpr float duration = 0.10f;
+    if (restart || m_sampledClip != name || m_sampledRootTravel != rootTravel)
+    {
+        if (!m_sampledClip.empty())
+        {
+            m_transitionPose.clear();
+            m_transitionPose.reserve(m_Bone.size());
+            for (auto& pair : m_Bone)
+            {
+                TransitionBone source{};
+                source.bone = &pair.second;
+                source.bone->AnimationMatrix.Decompose(source.scale, source.rotation, source.position);
+                source.rotation.Normalize();
+                m_transitionPose.push_back(source);
+            }
+            m_transitionElapsed = 0.0f;
+        }
+
+        m_sampledClip = name;
+        m_sampledRootTravel = rootTravel;
+    }
+
+    if (m_transitionPose.empty() || m_transitionElapsed >= duration)
+        return 1.0f;
+
+    const float phase = m_transitionElapsed / duration;
+    m_transitionElapsed += dt;
+    return phase * phase * (3.0f - 2.0f * phase);
+}
+
+// 保存した姿勢と次のクリップの姿勢を、ボーンごとに補間する。
+void AnimationModel::blendTransitionPose(float weight)
+{
+    for (const auto& source : m_transitionPose)
+    {
+        auto& matrix = source.bone->AnimationMatrix;
+        aiVector3D scale, position;
+        aiQuaternion rotation, blendedRotation;
+        matrix.Decompose(scale, rotation, position);
+        aiQuaternion::Interpolate(blendedRotation, source.rotation, rotation.Normalize(), weight);
+        const float sourceWeight = 1.0f - weight;
+        matrix = aiMatrix4x4(source.scale * sourceWeight + scale * weight, blendedRotation.Normalize(),
+            source.position * sourceWeight + position * weight);
+    }
 }
 
 // =========================================================
@@ -503,7 +573,12 @@ void AnimationModel::CreateBone(aiNode* node)
 		}
 
         m_Animation.clear();
+        m_transitionPose.clear();
+        m_sampledClip.clear();
         m_Bone.clear();
+        m_landingArmature = nullptr;
+        m_landingLeftFoot = nullptr;
+        m_landingRightFoot = nullptr;
         m_morphNames.clear();
         m_morphLayers.clear();
         m_activeMorphLayerCount = 0;
@@ -523,7 +598,38 @@ void AnimationModel::CreateBone(aiNode* node)
 // =========================================================
 // 二つのモーションを補間してスキニング頂点を更新
 // =========================================================
-void AnimationModel::applyPose(const aiAnimation& animation, double tick, RootTravel rootTravel)
+// ボーンのオフセットを掛ける前の姿勢を、モデル座標で求める。
+aiMatrix4x4 AnimationModel::poseMatrix(const aiNode* node) const
+{
+    if (!node)
+        return aiMatrix4x4();
+
+    return poseMatrix(node->mParent) * m_Bone.at(node->mName.C_Str()).AnimationMatrix;
+}
+
+float AnimationModel::landingFootCenterZ() const
+{
+    return (poseMatrix(m_landingLeftFoot).c4 + poseMatrix(m_landingRightFoot).c4) * 0.5f;
+}
+
+// 足元の前後位置を揃える。ボーンの回転と高さは変更しない。
+void AnimationModel::anchorLandingFeet()
+{
+    if (!m_landingArmature || !m_landingLeftFoot || !m_landingRightFoot)
+        return;
+
+    const float correction = m_landingFootCenterZ - landingFootCenterZ();
+    auto parentInverse = poseMatrix(m_landingArmature->mParent);
+    parentInverse.Inverse();
+
+    auto& root = m_Bone.at(m_landingArmature->mName.C_Str()).AnimationMatrix;
+    root.a4 += parentInverse.a3 * correction;
+    root.b4 += parentInverse.b3 * correction;
+    root.c4 += parentInverse.c3 * correction;
+}
+
+// FBXのキーから対象のボーン姿勢を求める。
+void AnimationModel::sampleBones(const aiAnimation& animation, double tick, RootTravel rootTravel)
 {
     for (auto& pair : m_Bone)
         pair.second.AnimationMatrix = pair.second.BindMatrix;
@@ -540,11 +646,34 @@ void AnimationModel::applyPose(const aiAnimation& animation, double tick, RootTr
         auto rotation = sampleRotation(channel->mRotationKeys, channel->mNumRotationKeys, tick);
         const bool removeTravel = rootTravel == RootTravel::removeHorizontalCycle && animation.mDuration > 0.0
             && channel->mNodeName == aiString("Armature");
-        const auto position = removeTravel
+        auto position = removeTravel
             ? removeHorizontalCycleTravel(*channel, tick, animation.mDuration)
             : sampleVector(channel->mPositionKeys, channel->mNumPositionKeys, tick);
+        // ジャンプと着地の位置はゲーム側の移動・接地で制御する。
+        if ((rootTravel == RootTravel::anchorLandingFeet || rootTravel == RootTravel::lockTranslation)
+            && channel->mNodeName == aiString("Armature"))
+        {
+            const auto& bind = bone->second.BindMatrix;
+            position.x = bind.a4;
+            position.z = bind.c4;
+            if (rootTravel == RootTravel::lockTranslation)
+                position.y = bind.b4;
+        }
         const auto scale = sampleVector(channel->mScalingKeys, channel->mNumScalingKeys, tick);
         bone->second.AnimationMatrix = aiMatrix4x4(scale, rotation.Normalize(), position);
+    }
+}
+
+void AnimationModel::applyPose(const aiAnimation& animation, double tick, RootTravel rootTravel, float weight)
+{
+    // 切り替え直後は表示中の姿勢をそのまま描く。
+    if (weight > 0.0f)
+    {
+        sampleBones(animation, tick, rootTravel);
+        if (rootTravel == RootTravel::anchorLandingFeet)
+            anchorLandingFeet();
+        if (weight < 1.0f)
+            blendTransitionPose(weight);
     }
 
     // FBXのボーンオフセットを使ってスキニング行列を求める。

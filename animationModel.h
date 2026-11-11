@@ -39,7 +39,7 @@ struct BONE
 class AnimationModel : public Component
 {
 public:
-    enum class RootTravel { authored, removeHorizontalCycle };
+    enum class RootTravel { authored, removeHorizontalCycle, anchorLandingFeet, lockTranslation };
 
 private:
 	const aiScene* m_AiScene = nullptr;
@@ -77,9 +77,34 @@ private:
 	std::vector<DEFORM_VERTEX>* m_DeformVertex = nullptr;
 	std::unordered_map<std::string, BONE> m_Bone;//ボーンデータ（名前で参照）
 
+    struct TransitionBone
+    {
+        BONE* bone;
+        aiVector3D scale;
+        aiQuaternion rotation;
+        aiVector3D position;
+    };
+
+    std::vector<TransitionBone> m_transitionPose;
+    std::string m_sampledClip;
+    RootTravel m_sampledRootTravel = RootTravel::authored;
+    float m_transitionElapsed = 0.0f;
+
+    const aiNode* m_landingArmature = nullptr;
+    const aiNode* m_landingLeftFoot = nullptr;
+    const aiNode* m_landingRightFoot = nullptr;
+    float m_landingFootCenterZ = 0.0f;
+
 	void CreateBone(aiNode* node);
 	void UpdateBoneMatrix(aiNode* Node, aiMatrix4x4 Matrix);
-    void applyPose(const aiAnimation& animation, double tick, RootTravel rootTravel);
+    bool samplePose(const char* name, double seconds, RootTravel rootTravel, float dt, bool restart, bool loop);
+    float updatePoseTransition(const char* name, RootTravel rootTravel, float dt, bool restart);
+    void blendTransitionPose(float weight);
+    aiMatrix4x4 poseMatrix(const aiNode* node) const;
+    float landingFootCenterZ() const;
+    void anchorLandingFeet();
+    void sampleBones(const aiAnimation& animation, double tick, RootTravel rootTravel);
+    void applyPose(const aiAnimation& animation, double tick, RootTravel rootTravel, float weight);
     void loadDrawParts();
     void setMorphLayer(MorphLayer& layer, const std::string& name, float weight);
     ID3D11ShaderResourceView* loadTexture(const aiTexture* embedded);
@@ -94,6 +119,7 @@ public:
     bool LoadAnimation(const char* fileName, const char* name);
     bool tryLoad(const char* fileName);
     bool sampleClip(const char* name, double seconds, RootTravel rootTravel = RootTravel::authored);
+    bool sampleBlendedClip(const char* name, double seconds, float dt, RootTravel rootTravel, bool restart = false, bool loop = true);
     bool hasAnimation(const char* name) const;
     void unloadAnimation(const char* name);
     void setMorph(const std::string& name, float weight);
