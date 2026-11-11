@@ -19,6 +19,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM,
 namespace
 {
     bool panelOpen = false;
+    bool previewWorkspace = false;
     const char* presetStatus = nullptr;
     constexpr ImGuiSliderFlags sliderFlags = ImGuiSliderFlags_AlwaysClamp;
 
@@ -68,14 +69,19 @@ namespace
         ImGui::ColorEdit3("Rim color", settings.rimColor, ImGuiColorEditFlags_Float);
     }
 
+    void editLighting(ToonSettings& settings)
+    {
+        editAngle("Light yaw", settings.lightYaw, -XM_PI, XM_PI);
+        editAngle("Light pitch", settings.lightPitch, -XM_PIDIV2, XM_PIDIV2);
+        editAngle("Model yaw", settings.modelYaw, -XM_PI, XM_PI);
+    }
+
     void editCamera(ToonSettings& settings, CameraOrbit& orbit)
     {
         if (!ImGui::CollapsingHeader("Light & camera", ImGuiTreeNodeFlags_DefaultOpen))
             return;
 
-        editAngle("Light yaw", settings.lightYaw, -XM_PI, XM_PI);
-        editAngle("Light pitch", settings.lightPitch, -XM_PIDIV2, XM_PIDIV2);
-        editAngle("Model yaw", settings.modelYaw, -XM_PI, XM_PI);
+        editLighting(settings);
         editAngle("Orbit yaw", orbit.yaw, -XM_PI, XM_PI);
         editAngle("Orbit pitch", orbit.pitch, CameraOrbit::minPitch, CameraOrbit::maxPitch);
         ImGui::SliderFloat("Zoom", &orbit.distance, CameraOrbit::minDistance, CameraOrbit::maxDistance,
@@ -123,8 +129,9 @@ namespace
 // =========================================================
 // Win32・DirectX 11 の ImGui バックエンドを初期化
 // =========================================================
-void ToonPanel::init(HWND window)
+void ToonPanel::init(HWND window, bool previewMode)
 {
+    previewWorkspace = previewMode;
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
@@ -156,7 +163,7 @@ void ToonPanel::uninit()
 
 bool ToonPanel::isOpen()
 {
-    return panelOpen;
+    return panelOpen || previewWorkspace;
 }
 
 // =========================================================
@@ -167,7 +174,10 @@ LRESULT ToonPanel::handleMessage(HWND window, UINT message, WPARAM wParam, LPARA
     if (!ImGui::GetCurrentContext())
         return 0;
 
-    if (message == WM_KEYDOWN && wParam == VK_F1)
+    if (previewWorkspace && message == WM_SYSCOMMAND && (wParam & 0xfff0) == SC_KEYMENU)
+        return 1;
+
+    if (!previewWorkspace && message == WM_KEYDOWN && wParam == VK_F1)
     {
         constexpr LPARAM previousKeyState = 1L << 30;
         if ((lParam & previousKeyState) == 0)
@@ -192,7 +202,7 @@ LRESULT ToonPanel::handleMessage(HWND window, UINT message, WPARAM wParam, LPARA
         return 1;
     }
 
-    if (panelOpen)
+    if (isOpen())
         return ImGui_ImplWin32_WndProcHandler(window, message, wParam, lParam);
 
     return 0;
@@ -201,7 +211,7 @@ LRESULT ToonPanel::handleMessage(HWND window, UINT message, WPARAM wParam, LPARA
 // =========================================================
 // 描画前に調整値を更新し、そのフレームのモデルに反映
 // =========================================================
-void ToonPanel::beginFrame(ToonSettings* settings, CameraOrbit* orbit)
+void ToonPanel::beginFrame()
 {
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
@@ -212,6 +222,11 @@ void ToonPanel::beginFrame(ToonSettings* settings, CameraOrbit* orbit)
         io.DisplayFramebufferScale = ImVec2(SCREEN_WIDTH / io.DisplaySize.x, SCREEN_HEIGHT / io.DisplaySize.y);
 
     ImGui::NewFrame();
+}
+
+void ToonPanel::beginFrame(ToonSettings* settings, CameraOrbit* orbit)
+{
+    beginFrame();
     ImGui::SetNextWindowPos(ImVec2(16.0f, 16.0f), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(365.0f, 640.0f), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Player / Toon Lab"))
@@ -236,6 +251,14 @@ void ToonPanel::beginFrame(ToonSettings* settings, CameraOrbit* orbit)
 // =========================================================
 // 3D 描画が完了した後、Present の前にパネルを描画
 // =========================================================
+void ToonPanel::editAppearance(ToonSettings& settings)
+{
+    editShading(settings);
+    editOutline(settings);
+    if (ImGui::CollapsingHeader("Light & model", ImGuiTreeNodeFlags_DefaultOpen))
+        editLighting(settings);
+}
+
 void ToonPanel::draw()
 {
     ImGui::Render();

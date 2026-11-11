@@ -5,6 +5,9 @@
 #include "input.h"
 #include "ToonPanel.h"
 #include <thread>
+#include <shellapi.h>
+#include <cstdio>
+#pragma comment(lib, "shell32.lib")
 
 
 const char* CLASS_NAME = "AppClass";
@@ -54,7 +57,21 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	CoInitializeEx(nullptr, COINITBASE_MULTITHREADED);
 
 
-	Manager::Init();
+    // コマンドラインでプレビューを選ぶ。
+    int argumentCount = 0;
+    wchar_t** arguments = CommandLineToArgvW(GetCommandLineW(), &argumentCount);
+    bool previewMode = false;
+    if (arguments)
+    {
+        for (int i = 1; i < argumentCount; ++i)
+            previewMode = previewMode || wcscmp(arguments[i], L"--preview") == 0;
+        LocalFree(arguments);
+    }
+
+	Manager::Init(previewMode);
+
+    const char* windowTitle = previewMode ? "GM31 Asset Preview" : WINDOW_NAME;
+    SetWindowTextA(g_Window, windowTitle);
 
 
 
@@ -69,6 +86,12 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	timeBeginPeriod(1);
 	dwExecLastTime = timeGetTime();
 	dwCurrentTime = 0;
+
+#ifdef _DEBUG
+    constexpr DWORD fpsIntervalMs = 500;
+    DWORD fpsStart = dwExecLastTime;
+    unsigned int frameCount = 0;
+#endif
 
 
 
@@ -91,11 +114,28 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
         }
 
         dwCurrentTime = timeGetTime();
-        if ((dwCurrentTime - dwExecLastTime) >= (1000 / 60))
+        const DWORD elapsedMs = dwCurrentTime - dwExecLastTime;
+        if (elapsedMs >= (1000 / 60))
         {
             dwExecLastTime = dwCurrentTime;
-            Manager::Update();
+            Manager::Update(static_cast<float>(elapsedMs) * 0.001f);
             Manager::Draw();
+
+#ifdef _DEBUG
+            // 描画を終えたフレームを数え、0.5秒ごとに平均FPSを表示する。
+            ++frameCount;
+            const DWORD now = timeGetTime();
+            const DWORD sampleMs = now - fpsStart;
+            if (sampleMs >= fpsIntervalMs)
+            {
+                const double fps = 1000.0 * frameCount / sampleMs;
+                char title[128];
+                std::snprintf(title, sizeof(title), "%s | %.1f FPS", windowTitle, fps);
+                SetWindowTextA(g_Window, title);
+                frameCount = 0;
+                fpsStart = now;
+            }
+#endif
         }
 	}
 

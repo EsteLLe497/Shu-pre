@@ -71,6 +71,30 @@ void Input::Update(bool acceptGameplayInput)
     m_pendingCursorX = m_pendingCursorY = m_pendingCursorWheel = 0;
 }
 
+// =========================================================
+// 本編にフォーカスがあるときだけ待機時間を数える
+// =========================================================
+bool Input::isGameplayActive()
+{
+    return m_acceptGameplayInput && GetFocus() == GetWindow();
+}
+
+bool Input::hasGameplayActivity()
+{
+    if (!isGameplayActive())
+        return false;
+
+    constexpr BYTE keys[] = { 'W', 'A', 'S', 'D', 'J', VK_SPACE, VK_SHIFT,
+        VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, VK_LBUTTON, VK_RBUTTON, VK_MBUTTON };
+    for (const BYTE key : keys)
+    {
+        if (GetKeyPress(key))
+            return true;
+    }
+
+    return m_mouseX != 0 || m_mouseY != 0 || m_mouseWheel != 0;
+}
+
 bool Input::GetKeyPress(BYTE keyCode)
 {
     return m_acceptGameplayInput && (m_keyState[keyCode] & 0x80) != 0;

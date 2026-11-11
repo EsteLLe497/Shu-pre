@@ -1,0 +1,1 @@
+{"version":1,"duration":10,"motion":{"enabled":true,"clip":"Idle"},"expression":{"enabled":true,"base":"","target":"Fcl_EYE_Close","start":0.64999997615814209,"peak":0.72000002861022949,"end":0.8399999737739563,"weight":1,"smooth":true},"effect":{"enabled":false,"start":1,"offsetX":0.75,"height":0.20000000298023224}}

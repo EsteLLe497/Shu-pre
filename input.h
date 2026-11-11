@@ -27,6 +27,8 @@ public:
 
     static bool GetKeyPress(BYTE keyCode);
     static bool GetKeyTrigger(BYTE keyCode);
+    static bool isGameplayActive();
+    static bool hasGameplayActivity();
     static int GetMouseDeltaX() { return m_mouseX; }
     static int GetMouseDeltaY() { return m_mouseY; }
     static int GetMouseWheel() { return m_mouseWheel; }

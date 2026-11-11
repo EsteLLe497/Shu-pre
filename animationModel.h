@@ -5,6 +5,7 @@
 #pragma once
 
 #include <unordered_map>
+#include "MorphTarget.h"
 
 #include "assimp/cimport.h"
 #include "assimp/scene.h"
@@ -29,7 +30,7 @@ struct DEFORM_VERTEX
 struct BONE
 {
 	aiMatrix4x4 Matrix;
-	aiMatrix4x4 worldMatrix; // World pose before the mesh bone offset.
+    bool isSkinBone = false;
 	aiMatrix4x4 AnimationMatrix;
 	aiMatrix4x4 BindMatrix; // Local transform when the animation has no channel.
 	aiMatrix4x4 OffsetMatrix;
@@ -37,6 +38,9 @@ struct BONE
 
 class AnimationModel : public Component
 {
+public:
+    enum class RootTravel { authored, removeHorizontalCycle };
+
 private:
 	const aiScene* m_AiScene = nullptr;
 	std::string m_ModelPath; // Reuse embedded animation when the source FBX is the model.
@@ -44,8 +48,19 @@ private:
 	float m_modelYawOffset = 0.0f; // Visual-only facing correction in radians.
 	std::unordered_map<std::string, const aiScene*> m_Animation;
 
-	ID3D11Buffer**	m_VertexBuffer;
-	ID3D11Buffer**	m_IndexBuffer;
+	ID3D11Buffer** m_VertexBuffer = nullptr;
+	ID3D11Buffer** m_IndexBuffer = nullptr;
+    std::vector<std::string> m_morphNames;
+    struct MorphLayer
+    {
+        std::vector<const aiAnimMesh*> meshes;
+        std::string name;
+        float weight = 0.0f;
+    };
+
+    std::vector<MorphLayer> m_morphLayers;
+    std::size_t m_activeMorphLayerCount = 0;
+    unsigned int m_missingTextures = 0;
 
     // マテリアルを読み込み時に解決し、不透明と透過の描画順を分ける。
     struct DrawPart
@@ -59,13 +74,14 @@ private:
     std::vector<DrawPart> m_opaqueParts;
     std::vector<DrawPart> m_transparentParts;
 
-	std::vector<DEFORM_VERTEX>* m_DeformVertex;//変形後頂点データ
+	std::vector<DEFORM_VERTEX>* m_DeformVertex = nullptr;
 	std::unordered_map<std::string, BONE> m_Bone;//ボーンデータ（名前で参照）
 
 	void CreateBone(aiNode* node);
 	void UpdateBoneMatrix(aiNode* Node, aiMatrix4x4 Matrix);
-	void stabilizeTorso(float weight);
+    void applyPose(const aiAnimation& animation, double tick, RootTravel rootTravel);
     void loadDrawParts();
+    void setMorphLayer(MorphLayer& layer, const std::string& name, float weight);
     ID3D11ShaderResourceView* loadTexture(const aiTexture* embedded);
     void drawParts(const std::vector<DrawPart>& parts, bool alphaBlend);
 
@@ -75,11 +91,17 @@ public:
 	void setSkeletonUnitScale(float unitScale) { m_skeletonUnitScale = unitScale; }
 	void setModelYawOffset(float yaw) { m_modelYawOffset = yaw; }
 	void Load( const char *FileName );
-	void LoadAnimation( const char *FileName, const char *Name );
-    float getRootMotionSpeed(const char* animationName, float playbackRate) const;
+    bool LoadAnimation(const char* fileName, const char* name);
+    bool tryLoad(const char* fileName);
+    bool sampleClip(const char* name, double seconds, RootTravel rootTravel = RootTravel::authored);
+    bool hasAnimation(const char* name) const;
+    void unloadAnimation(const char* name);
+    void setMorph(const std::string& name, float weight);
+    void setMorphBlend(const std::string& base, const std::string& target, float blend,
+        const std::vector<MorphTarget>& extraMorphs = {}, float time = 0.0f);
+    const std::vector<std::string>& morphNames() const { return m_morphNames; }
+    unsigned int missingTextures() const { return m_missingTextures; }
 	void Uninit() override;
-	void Update(const char* animationName1, double time1,
-				const char* animationName2, double time2, float blend);
 	void Draw() override;
     void drawOutline();
 };

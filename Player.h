@@ -7,6 +7,7 @@
 #include "GameObject.h"
 #include "animationModel.h"
 #include "ToonShader.h"
+#include "PlayerActionSet.h"
 
 class Player : public GameObject
 {
@@ -23,16 +24,25 @@ private:
     GameObject* m_Child;
     GameObject* m_Shadow;
 
-    class AnimationModel* m_AnimationModel;
-    double m_animationTime = 0.0;
-    std::string m_animationName;
+    AnimationModel* m_AnimationModel = nullptr;
+    float m_walkSpeed = 1.43f; // 歩行の移動速度
+    float m_runSpeed = 4.47f;  // ダッシュの移動速度
+    PlayerActionSet m_actions;
+    PlayerActionKind m_locomotionKind = PlayerActionKind::idle;
+    ActionSequence m_playingAction;
+    ActionPlayback m_actionPlayback;
+    float m_locomotionTime = 0.0f;
+    double m_locomotionMotionTime = 0.0;
+    bool m_locomotionEffectFired = false;
+    bool m_faceApplied = false;
+    bool m_yawning = false;
 
-    double m_nextAnimationTime = 0.0;
-    std::string m_nextAnimationName;
-
-    float m_blend = 0.0f;
-    float m_walkSpeed = 1.5f; // Fallback when a clip has no root travel.
-    float m_runSpeed = 7.5f;
+    void loadPlayerActions();
+    void bindPlayerActions(AnimationModel& model);
+    void updateLocomotion(float dt, PlayerActionKind kind);
+    void updateActionPose(float dt);
+    void spawnActionEffect(const ActionSequence& action);
+    bool prepareAction(const ActionSequence& action);
 
 public:
     void Init() override;
@@ -40,7 +50,10 @@ public:
     void Update() override;
     void Draw() override;
 
-    void SetAnimation(const char* animationName);
+    bool loadAction(const char* path, ActionSequence& action);
+    // 登録済みの単発アクションか、先読みした任意のアクションを再生する。
+    bool playAction(PlayerActionKind kind);
+    bool playAction(const ActionSequence& action);
     ToonSettings& toonSettings() { return m_toonShader.settings(); }
 };
 

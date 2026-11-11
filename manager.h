@@ -9,11 +9,13 @@ private:
 	static Scene* m_Scene;
 	static Scene* m_NextScene;
 	static float m_ChangeTime;
+	static float m_animationDeltaSeconds;
 
 public:
-	static void Init();
+	static void Init(bool previewMode);
 	static void Uninit();
-	static void Update();
+	static void Update(float frameSeconds);
+	static float animationDeltaSeconds() { return m_animationDeltaSeconds; }
 	static void Draw();
 
 	template<typename T>

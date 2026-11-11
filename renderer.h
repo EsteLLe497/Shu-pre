@@ -68,7 +68,7 @@ private:
 public:
 	static void Init();
 	static void Uninit();
-	static void Begin();
+	static void Begin(const float* clearColor = nullptr);
 	static void End();
 
 	static void SetDepthEnable(bool Enable);

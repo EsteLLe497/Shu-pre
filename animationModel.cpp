@@ -7,6 +7,7 @@
 	#include "animationModel.h"
 	#include "GameObject.h"
 #include <wrl/client.h>
+#include "ActionSequence.h"
 
 // =========================================================
 // キー時刻の前後を二分探索し、途中の姿勢を補間
@@ -51,16 +52,19 @@ namespace
         return rotation.Normalize();
     }
 
-    // Keep forward lean, but lock the root's sideways tilt and heading.
-    aiQuaternion keepRootPitch(const aiQuaternion& rotation, const aiQuaternion& bindRotation)
+    // 1周分の水平移動を均等に引き、歩幅の中の揺れや上下動は残す。
+    aiVector3D removeHorizontalCycleTravel(const aiNodeAnim& channel, double tick, double duration)
     {
-        aiQuaternion bindInverse = bindRotation;
-        bindInverse.Conjugate();
-        const aiQuaternion relativeRotation = rotation * bindInverse;
-        aiQuaternion pitch(relativeRotation.w, relativeRotation.x, 0.0f, 0.0f);
-        if (pitch.w * pitch.w + pitch.x * pitch.x < 0.0001f) return bindRotation;
-        return pitch.Normalize() * bindRotation;
+        const auto* keys = channel.mPositionKeys;
+        const auto count = channel.mNumPositionKeys;
+        auto position = sampleVector(keys, count, tick);
+        const auto travel = sampleVector(keys, count, duration) - sampleVector(keys, count, 0.0);
+        const float phase = static_cast<float>(tick / duration);
+        position.x -= travel.x * phase;
+        position.z -= travel.z * phase;
+        return position;
     }
+
     double wrapAnimationTime(double time, const aiAnimation* animation)
     {
         if (animation->mDuration <= 0.0) return 0.0;
@@ -142,7 +146,11 @@ void AnimationModel::loadDrawParts()
 
         ID3D11ShaderResourceView* texture = nullptr;
         if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS)
+        {
             texture = loadTexture(m_AiScene->GetEmbeddedTexture(texturePath.C_Str()));
+            if (!texture)
+                ++m_missingTextures;
+        }
 
         const bool transparent = material->GetTextureCount(aiTextureType_OPACITY) > 0 || opacity < 1.0f;
         auto& parts = transparent ? m_transparentParts : m_opaqueParts;
@@ -175,175 +183,273 @@ ID3D11ShaderResourceView* AnimationModel::loadTexture(const aiTexture* embedded)
     return texture;
 }
 
-	void AnimationModel::Load(const char* FileName)
-	{
-		m_ModelPath = FileName;
-
-		m_AiScene = aiImportFile(FileName, aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded);
-		assert(m_AiScene);
-
-		m_VertexBuffer = new ID3D11Buffer * [m_AiScene->mNumMeshes];
-		m_IndexBuffer = new ID3D11Buffer * [m_AiScene->mNumMeshes];
-
-
-		//変形後頂点配列生成
-		m_DeformVertex = new std::vector<DEFORM_VERTEX>[m_AiScene->mNumMeshes];
-
-		//再帰的にボーン生成
-		CreateBone(m_AiScene->mRootNode);
-		for (unsigned int m = 0; m < m_AiScene->mNumMeshes; m++)
-		{
-			aiMesh* mesh = m_AiScene->mMeshes[m];
-
-			// 頂点バッファ生成
-			{
-				VERTEX_3D* vertex = new VERTEX_3D[mesh->mNumVertices];
-
-				for (unsigned int v = 0; v < mesh->mNumVertices; v++)
-				{
-					vertex[v].Position = XMFLOAT3(mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z);
-					vertex[v].Normal = XMFLOAT3(mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z);
-					vertex[v].TexCoord = XMFLOAT2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y);
-					vertex[v].Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-				}
-
-				D3D11_BUFFER_DESC bd;
-				ZeroMemory(&bd, sizeof(bd));
-				bd.Usage = D3D11_USAGE_DYNAMIC;
-				bd.ByteWidth = sizeof(VERTEX_3D) * mesh->mNumVertices;
-				bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-				bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-
-				D3D11_SUBRESOURCE_DATA sd;
-				ZeroMemory(&sd, sizeof(sd));
-				sd.pSysMem = vertex;
-
-				Renderer::GetDevice()->CreateBuffer(&bd, &sd,
-					&m_VertexBuffer[m]);
-
-				delete[] vertex;
-			}
-
-
-			// インデックスバッファ生成
-			{
-				unsigned int* index = new unsigned int[mesh->mNumFaces * 3];
-
-				for (unsigned int f = 0; f < mesh->mNumFaces; f++)
-				{
-					const aiFace* face = &mesh->mFaces[f];
-
-					assert(face->mNumIndices == 3);
-
-					index[f * 3 + 0] = face->mIndices[0];
-					index[f * 3 + 1] = face->mIndices[1];
-					index[f * 3 + 2] = face->mIndices[2];
-				}
-
-				D3D11_BUFFER_DESC bd;
-				ZeroMemory(&bd, sizeof(bd));
-				bd.Usage = D3D11_USAGE_DEFAULT;
-				bd.ByteWidth = sizeof(unsigned int) * mesh->mNumFaces * 3;
-				bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-				bd.CPUAccessFlags = 0;
-
-				D3D11_SUBRESOURCE_DATA sd;
-				ZeroMemory(&sd, sizeof(sd));
-				sd.pSysMem = index;
-
-				Renderer::GetDevice()->CreateBuffer(&bd, &sd, &m_IndexBuffer[m]);
-
-				delete[] index;
-			}
-
-
-
-			//変形後頂点データ初期化
-			for (unsigned int v = 0; v < mesh->mNumVertices; v++)
-			{
-				DEFORM_VERTEX deformVertex;
-				deformVertex.Position = mesh->mVertices[v];
-				deformVertex.Normal = mesh->mNormals[v];
-				deformVertex.BoneNum = 0;
-
-				for (unsigned int b = 0; b < 4; b++)
-				{
-					deformVertex.BoneName[b] = "";
-					deformVertex.BoneWeight[b] = 0.0f;
-				}
-
-				m_DeformVertex[m].push_back(deformVertex);
-			}
-
-
-			//ボーンデータ初期化
-			for (unsigned int b = 0; b < mesh->mNumBones; b++)
-			{
-				aiBone* bone = mesh->mBones[b];
-
-				m_Bone[bone->mName.C_Str()].OffsetMatrix = bone->mOffsetMatrix;
-
-				//変形後頂点にボーンデータ格納
-				for (unsigned int w = 0; w < bone->mNumWeights; w++)
-				{
-					aiVertexWeight weight = bone->mWeights[w];
-
-					int num = m_DeformVertex[m][weight.mVertexId].BoneNum;
-
-					m_DeformVertex[m][weight.mVertexId].BoneWeight[num] = weight.mWeight;
-					m_DeformVertex[m][weight.mVertexId].BoneName[num] = bone->mName.C_Str();
-					m_DeformVertex[m][weight.mVertexId].BoneNum++;
-
-					assert(m_DeformVertex[m][weight.mVertexId].BoneNum <= 4);
-				}
-			}
-		}
-		loadDrawParts();
-
-
-
-	}
-
-
-
-	void AnimationModel::LoadAnimation(const char* fileName, const char* name)
+// =========================================================
+// モデル本体を読み込み、描画用のバッファとモーフ一覧を作る
+// =========================================================
+void AnimationModel::Load(const char* fileName)
 {
-    // Reuse the model scene when the requested animation is embedded in it.
-    if (m_ModelPath == fileName && m_AiScene->HasAnimations())
+    const bool loaded = tryLoad(fileName);
+    assert(loaded);
+    (void)loaded;
+}
+
+bool AnimationModel::tryLoad(const char* fileName)
+{
+    if (m_AiScene)
+        return false;
+
+    m_ModelPath = fileName;
+    m_AiScene = aiImportFile(fileName, aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded);
+    if (!m_AiScene)
+        return false;
+
+    if (!m_AiScene->mRootNode || m_AiScene->mNumMeshes == 0)
     {
-        m_Animation[name] = m_AiScene;
-        return;
+        Uninit();
+        return false;
     }
 
-    m_Animation[name] = aiImportFile(fileName,
-        aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded);
-    assert(m_Animation[name]);
+    const unsigned int meshCount = m_AiScene->mNumMeshes;
+    m_VertexBuffer = new ID3D11Buffer*[meshCount]{};
+    m_IndexBuffer = new ID3D11Buffer*[meshCount]{};
+    m_DeformVertex = new std::vector<DEFORM_VERTEX>[meshCount];
+    CreateBone(m_AiScene->mRootNode);
+
+    for (unsigned int m = 0; m < meshCount; ++m)
+    {
+        const aiMesh* mesh = m_AiScene->mMeshes[m];
+        if (!mesh->HasPositions() || !mesh->HasNormals() || !mesh->HasFaces())
+        {
+            Uninit();
+            return false;
+        }
+
+        std::vector<VERTEX_3D> vertices(mesh->mNumVertices);
+        m_DeformVertex[m].resize(mesh->mNumVertices);
+        for (unsigned int v = 0; v < mesh->mNumVertices; ++v)
+        {
+            const auto& position = mesh->mVertices[v];
+            const auto& normal = mesh->mNormals[v];
+            vertices[v] = { { position.x, position.y, position.z }, { normal.x, normal.y, normal.z },
+                { 1.0f, 1.0f, 1.0f, 1.0f }, mesh->HasTextureCoords(0)
+                    ? XMFLOAT2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y)
+                    : XMFLOAT2(0.0f, 0.0f) };
+        }
+
+        std::vector<unsigned int> indices;
+        indices.reserve(static_cast<size_t>(mesh->mNumFaces) * 3);
+        for (unsigned int f = 0; f < mesh->mNumFaces; ++f)
+        {
+            const auto& face = mesh->mFaces[f];
+            if (face.mNumIndices != 3)
+            {
+                Uninit();
+                return false;
+            }
+
+            indices.insert(indices.end(), face.mIndices, face.mIndices + 3);
+        }
+
+        auto* device = Renderer::GetDevice();
+        D3D11_BUFFER_DESC desc{};
+        D3D11_SUBRESOURCE_DATA data{};
+        desc.Usage = D3D11_USAGE_DYNAMIC;
+        desc.ByteWidth = static_cast<UINT>(sizeof(VERTEX_3D) * vertices.size());
+        desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        data.pSysMem = vertices.data();
+        const HRESULT vertexResult = device->CreateBuffer(&desc, &data, &m_VertexBuffer[m]);
+
+        desc.Usage = D3D11_USAGE_DEFAULT;
+        desc.ByteWidth = static_cast<UINT>(sizeof(unsigned int) * indices.size());
+        desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        desc.CPUAccessFlags = 0;
+        data.pSysMem = indices.data();
+        if (FAILED(vertexResult) || FAILED(device->CreateBuffer(&desc, &data, &m_IndexBuffer[m])))
+        {
+            Uninit();
+            return false;
+        }
+
+        for (unsigned int b = 0; b < mesh->mNumBones; ++b)
+        {
+            const aiBone* bone = mesh->mBones[b];
+            const auto boneEntry = m_Bone.find(bone->mName.C_Str());
+            if (boneEntry == m_Bone.end())
+            {
+                Uninit();
+                return false;
+            }
+            boneEntry->second.OffsetMatrix = bone->mOffsetMatrix;
+            boneEntry->second.isSkinBone = true;
+
+            for (unsigned int w = 0; w < bone->mNumWeights; ++w)
+            {
+                const auto& weight = bone->mWeights[w];
+                if (weight.mVertexId >= mesh->mNumVertices || m_DeformVertex[m][weight.mVertexId].BoneNum >= 4)
+                {
+                    Uninit();
+                    return false;
+                }
+
+                auto& vertex = m_DeformVertex[m][weight.mVertexId];
+                const int slot = vertex.BoneNum++;
+                vertex.BoneName[slot] = bone->mName.C_Str();
+                vertex.BoneWeight[slot] = weight.mWeight;
+            }
+        }
+
+        for (unsigned int i = 0; i < mesh->mNumAnimMeshes; ++i)
+        {
+            const aiAnimMesh* morph = mesh->mAnimMeshes[i];
+            if (!morph->mVertices || morph->mNumVertices != mesh->mNumVertices || !morph->mName.length)
+                continue;
+
+            const char* name = morph->mName.C_Str();
+            if (std::find(m_morphNames.begin(), m_morphNames.end(), name) == m_morphNames.end())
+                m_morphNames.emplace_back(name);
+        }
+    }
+
+    loadDrawParts();
+    return true;
 }
+
+// =========================================================
+// 体のモーションを登録し、プレビューでは秒をティックに変換する
+// =========================================================
+bool AnimationModel::LoadAnimation(const char* fileName, const char* name)
+{
+    if (!m_AiScene)
+        return false;
+
+    if (m_Animation.find(name) != m_Animation.end())
+        return true;
+
+    const aiScene* clip = m_ModelPath == fileName ? m_AiScene : aiImportFile(fileName,
+        aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded);
+    if (!clip || !clip->HasAnimations())
+    {
+        if (clip && clip != m_AiScene)
+            aiReleaseImport(clip);
+        return false;
+    }
+
+    const auto* animation = clip->mAnimations[0];
+    for (unsigned int i = 0; i < animation->mNumChannels; ++i)
+    {
+        const auto bone = m_Bone.find(animation->mChannels[i]->mNodeName.C_Str());
+        if (bone != m_Bone.end() && bone->second.isSkinBone)
+        {
+            m_Animation.emplace(name, clip);
+            return true;
+        }
+    }
+
+    if (clip != m_AiScene)
+        aiReleaseImport(clip);
+    return false;
+}
+
+bool AnimationModel::hasAnimation(const char* name) const
+{
+    return m_Animation.find(name) != m_Animation.end();
+}
+
+// =========================================================
+// FBXの時刻に対応する単一クリップの姿勢を適用する
+// =========================================================
+bool AnimationModel::sampleClip(const char* name, double seconds, RootTravel rootTravel)
+{
+    const auto clip = m_Animation.find(name);
+    if (clip == m_Animation.end())
+        return false;
+
+    const auto& animation = *clip->second->mAnimations[0];
+    const double rate = animation.mTicksPerSecond > 0.0 ? animation.mTicksPerSecond : 60.0;
+    applyPose(animation, wrapAnimationTime(seconds * rate, &animation), rootTravel);
+    return true;
+}
+
+// =========================================================
+// プレビューで使い終えた追加クリップのメモリを解放する
+// =========================================================
+void AnimationModel::unloadAnimation(const char* name)
+{
+    const auto clip = m_Animation.find(name);
+    if (clip == m_Animation.end())
+        return;
+
+    if (clip->second != m_AiScene)
+        aiReleaseImport(clip->second);
+    m_Animation.erase(clip);
+}
+
+// =========================================================
+// モーフの検索は名前を切り替えたときにだけ行う
+// =========================================================
+void AnimationModel::setMorph(const std::string& name, float weight)
+{
+    m_activeMorphLayerCount = name.empty() || weight <= 0.0f ? 0 : 1;
+    if (!m_activeMorphLayerCount)
+        return;
+
+    if (m_morphLayers.empty())
+        m_morphLayers.resize(1);
+    setMorphLayer(m_morphLayers[0], name, weight);
+}
+
+void AnimationModel::setMorphBlend(const std::string& base, const std::string& target, float blend,
+    const std::vector<MorphTarget>& extraMorphs, float time)
+{
+    const auto extraCount = extraMorphs.size() > MorphTarget::maxExtraTargets
+        ? MorphTarget::maxExtraTargets : extraMorphs.size();
+    m_activeMorphLayerCount = extraCount + 2;
+    if (m_morphLayers.size() < m_activeMorphLayerCount)
+        m_morphLayers.resize(m_activeMorphLayerCount);
+
+    setMorphLayer(m_morphLayers[0], base, 1.0f - blend);
+    setMorphLayer(m_morphLayers[1], target, blend);
+    for (std::size_t i = 0; i < extraCount; ++i)
+    {
+        const auto& morph = extraMorphs[i];
+        const float weight = sampleExpression(time, morph.start, morph.peak, morph.end, morph.weight, morph.smooth);
+        setMorphLayer(m_morphLayers[i + 2], morph.name, weight);
+    }
+}
+
+void AnimationModel::setMorphLayer(MorphLayer& layer, const std::string& name, float weight)
+{
+    layer.weight = fmaxf(0.0f, fminf(1.0f, weight));
+    if (!m_AiScene || name == layer.name)
+        return;
+
+    layer.name = name;
+    layer.meshes.resize(m_AiScene->mNumMeshes, nullptr);
+    if (name.empty())
+    {
+        std::fill(layer.meshes.begin(), layer.meshes.end(), nullptr);
+        return;
+    }
+    for (unsigned int m = 0; m < m_AiScene->mNumMeshes; ++m)
+    {
+        const aiMesh* mesh = m_AiScene->mMeshes[m];
+        layer.meshes[m] = nullptr;
+        for (unsigned int i = 0; i < mesh->mNumAnimMeshes; ++i)
+        {
+            const aiAnimMesh* morph = mesh->mAnimMeshes[i];
+            if (morph->mVertices && morph->mNumVertices == mesh->mNumVertices && name == morph->mName.C_Str())
+            {
+                layer.meshes[m] = morph;
+                break;
+            }
+        }
+    }
+}
+
 // =========================================================
 // Read the authored stride once so gameplay speed matches foot motion.
 // =========================================================
-float AnimationModel::getRootMotionSpeed(const char* animationName, float playbackRate) const
-{
-    const auto clip = m_Animation.find(animationName);
-    if (clip == m_Animation.end() || !clip->second->HasAnimations()) return 0.0f;
-
-    const aiAnimation* animation = clip->second->mAnimations[0];
-    if (animation->mDuration <= 0.0) return 0.0f;
-
-    for (unsigned int channelIndex = 0; channelIndex < animation->mNumChannels; channelIndex++)
-    {
-        const aiNodeAnim* channel = animation->mChannels[channelIndex];
-        if (channel->mNodeName != aiString("Armature") || channel->mNumPositionKeys < 2) continue;
-
-        const aiVector3D travel = channel->mPositionKeys[channel->mNumPositionKeys - 1].mValue
-            - channel->mPositionKeys[0].mValue;
-        const float distance = sqrtf(travel.x * travel.x + travel.z * travel.z) * m_skeletonUnitScale;
-        const double tickRate = animation->mTicksPerSecond > 0.0 ? animation->mTicksPerSecond : 60.0;
-        return distance * static_cast<float>(tickRate / animation->mDuration) * playbackRate;
-    }
-    return 0.0f;
-}
-
 void AnimationModel::CreateBone(aiNode* node)
 	{
 		BONE bone;
@@ -363,10 +469,14 @@ void AnimationModel::CreateBone(aiNode* node)
 
 	void AnimationModel::Uninit()
 	{
+        if (!m_AiScene)
+            return;
 		for (unsigned int m = 0; m < m_AiScene->mNumMeshes; m++)
 		{
-			m_VertexBuffer[m]->Release();
-			m_IndexBuffer[m]->Release();
+            if (m_VertexBuffer && m_VertexBuffer[m])
+                m_VertexBuffer[m]->Release();
+            if (m_IndexBuffer && m_IndexBuffer[m])
+                m_IndexBuffer[m]->Release();
 		}
 
 		delete[] m_VertexBuffer;
@@ -392,7 +502,17 @@ void AnimationModel::CreateBone(aiNode* node)
 				aiReleaseImport(pair.second);
 		}
 
-		aiReleaseImport(m_AiScene);
+        m_Animation.clear();
+        m_Bone.clear();
+        m_morphNames.clear();
+        m_morphLayers.clear();
+        m_activeMorphLayerCount = 0;
+        m_missingTextures = 0;
+        m_VertexBuffer = nullptr;
+        m_IndexBuffer = nullptr;
+        m_DeformVertex = nullptr;
+        aiReleaseImport(m_AiScene);
+        m_AiScene = nullptr;
 
 	}
 
@@ -403,96 +523,33 @@ void AnimationModel::CreateBone(aiNode* node)
 // =========================================================
 // 二つのモーションを補間してスキニング頂点を更新
 // =========================================================
-void AnimationModel::Update(const char* animationName1, double time1,
-    const char* animationName2, double time2, float blend)
+void AnimationModel::applyPose(const aiAnimation& animation, double tick, RootTravel rootTravel)
 {
-    const auto firstClip = m_Animation.find(animationName1);
-    const auto secondClip = m_Animation.find(animationName2);
-    if (firstClip == m_Animation.end() || secondClip == m_Animation.end() ||
-        !firstClip->second->HasAnimations() || !secondClip->second->HasAnimations())
-    {
-        return;
-    }
-
-    const aiAnimation* animation1 = firstClip->second->mAnimations[0];
-    const aiAnimation* animation2 = secondClip->second->mAnimations[0];
-    const double tick1 = wrapAnimationTime(time1, animation1);
-    const double tick2 = wrapAnimationTime(time2, animation2);
-    const bool inPlace1 = strcmp(animationName1, "Walk") == 0 || strcmp(animationName1, "Run") == 0;
-    const bool inPlace2 = strcmp(animationName2, "Walk") == 0 || strcmp(animationName2, "Run") == 0;
-
-    // All channels of a clip share one loop time; each key stream is interpolated.
     for (auto& pair : m_Bone)
+        pair.second.AnimationMatrix = pair.second.BindMatrix;
+
+    // FBXにあるボーンだけを動かし、キーがないボーンは基準姿勢で描く。
+    for (unsigned int i = 0; i < animation.mNumChannels; ++i)
     {
-        BONE& bone = pair.second;
-        bone.AnimationMatrix = bone.BindMatrix;
-
-        const aiNodeAnim* nodeAnim1 = nullptr;
-        const aiNodeAnim* nodeAnim2 = nullptr;
-        const aiString nodeName(pair.first);
-        for (unsigned int c = 0; c < animation1->mNumChannels; c++)
-        {
-            if (animation1->mChannels[c]->mNodeName == nodeName)
-            {
-                nodeAnim1 = animation1->mChannels[c];
-                break;
-            }
-        }
-        for (unsigned int c = 0; c < animation2->mNumChannels; c++)
-        {
-            if (animation2->mChannels[c]->mNodeName == nodeName)
-            {
-                nodeAnim2 = animation2->mChannels[c];
-                break;
-            }
-        }
-        if (!nodeAnim1 || !nodeAnim2 ||
-            !nodeAnim1->mNumRotationKeys || !nodeAnim1->mNumPositionKeys || !nodeAnim1->mNumScalingKeys ||
-            !nodeAnim2->mNumRotationKeys || !nodeAnim2->mNumPositionKeys || !nodeAnim2->mNumScalingKeys)
-        {
+        const auto* channel = animation.mChannels[i];
+        const auto bone = m_Bone.find(channel->mNodeName.C_Str());
+        if (bone == m_Bone.end() || !channel->mNumRotationKeys ||
+            !channel->mNumPositionKeys || !channel->mNumScalingKeys)
             continue;
-        }
 
-        aiQuaternion rotation1 = sampleRotation(nodeAnim1->mRotationKeys, nodeAnim1->mNumRotationKeys, tick1);
-        aiQuaternion rotation2 = sampleRotation(nodeAnim2->mRotationKeys, nodeAnim2->mNumRotationKeys, tick2);
-        aiVector3D position1 = sampleVector(nodeAnim1->mPositionKeys, nodeAnim1->mNumPositionKeys, tick1);
-        aiVector3D position2 = sampleVector(nodeAnim2->mPositionKeys, nodeAnim2->mNumPositionKeys, tick2);
-        const aiVector3D scale1 = sampleVector(nodeAnim1->mScalingKeys, nodeAnim1->mNumScalingKeys, tick1);
-        const aiVector3D scale2 = sampleVector(nodeAnim2->mScalingKeys, nodeAnim2->mNumScalingKeys, tick2);
-
-        // Keep the gait forward lean while the gameplay direction controls heading.
-        // Pin horizontal root motion while keeping vertical foot contact.
-        if (pair.first == "Armature" && (inPlace1 || inPlace2))
-        {
-            aiVector3D bindScale, bindPosition;
-            aiQuaternion bindRotation;
-            bone.BindMatrix.Decompose(bindScale, bindRotation, bindPosition);
-            if (inPlace1)
-            {
-                position1.x = bindPosition.x;
-                position1.z = bindPosition.z;
-                rotation1 = keepRootPitch(rotation1, bindRotation);
-            }
-            if (inPlace2)
-            {
-                position2.x = bindPosition.x;
-                position2.z = bindPosition.z;
-                rotation2 = keepRootPitch(rotation2, bindRotation);
-            }
-        }
-
-        const aiVector3D position = position1 * (1.0f - blend) + position2 * blend;
-        const aiVector3D scale = scale1 * (1.0f - blend) + scale2 * blend;
-        aiQuaternion rotation;
-        aiQuaternion::Interpolate(rotation, rotation1, rotation2, blend);
-        bone.AnimationMatrix = aiMatrix4x4(scale, rotation.Normalize(), position);
+        auto rotation = sampleRotation(channel->mRotationKeys, channel->mNumRotationKeys, tick);
+        const bool removeTravel = rootTravel == RootTravel::removeHorizontalCycle && animation.mDuration > 0.0
+            && channel->mNodeName == aiString("Armature");
+        const auto position = removeTravel
+            ? removeHorizontalCycleTravel(*channel, tick, animation.mDuration)
+            : sampleVector(channel->mPositionKeys, channel->mNumPositionKeys, tick);
+        const auto scale = sampleVector(channel->mScalingKeys, channel->mNumScalingKeys, tick);
+        bone->second.AnimationMatrix = aiMatrix4x4(scale, rotation.Normalize(), position);
     }
 
-    // Bone offsets already describe the imported FBX coordinate system.
+    // FBXのボーンオフセットを使ってスキニング行列を求める。
     aiMatrix4x4 rootMatrix;
     UpdateBoneMatrix(m_AiScene->mRootNode, rootMatrix);
-    const float uprightWeight = (inPlace1 ? 1.0f - blend : 0.0f) + (inPlace2 ? blend : 0.0f);
-    stabilizeTorso(uprightWeight);
     for (unsigned int meshIndex = 0; meshIndex < m_AiScene->mNumMeshes; meshIndex++)
     {
         aiMesh* mesh = m_AiScene->mMeshes[meshIndex];
@@ -503,87 +560,66 @@ void AnimationModel::Update(const char* animationName1, double time1,
             continue;
         }
 
+        // このメッシュで実際に変形するキーだけを頂点ループの前に集める。
+        struct ActiveMorph
+        {
+            const aiAnimMesh* mesh;
+            float weight;
+        };
+
+        ActiveMorph morphs[MorphTarget::maxExtraTargets + 2];
+        std::size_t morphCount = 0;
+        for (std::size_t i = 0; i < m_activeMorphLayerCount; ++i)
+        {
+            const auto& layer = m_morphLayers[i];
+            if (layer.weight > 0.0f && !layer.name.empty() && layer.meshes[meshIndex])
+                morphs[morphCount++] = { layer.meshes[meshIndex], layer.weight };
+        }
         VERTEX_3D* vertex = static_cast<VERTEX_3D*>(mapped.pData);
         for (unsigned int v = 0; v < mesh->mNumVertices; v++)
         {
             DEFORM_VERTEX& deformVertex = m_DeformVertex[meshIndex][v];
-            aiMatrix4x4 matrices[4];
-            for (unsigned int b = 0; b < 4; b++)
-            {
-                matrices[b] = m_Bone[deformVertex.BoneName[b]].Matrix;
-            }
-            aiMatrix4x4 skinMatrix = matrices[0] * deformVertex.BoneWeight[0]
-                + matrices[1] * deformVertex.BoneWeight[1]
-                + matrices[2] * deformVertex.BoneWeight[2]
-                + matrices[3] * deformVertex.BoneWeight[3];
-
             deformVertex.Position = mesh->mVertices[v];
-            deformVertex.Position *= skinMatrix;
-            skinMatrix.a4 = skinMatrix.b4 = skinMatrix.c4 = 0.0f;
             deformVertex.Normal = mesh->mNormals[v];
-            deformVertex.Normal *= skinMatrix;
+
+            // 表情はボーンで動かす前の頂点と法線に合成する。
+            for (std::size_t i = 0; i < morphCount; ++i)
+            {
+                const aiAnimMesh* morph = morphs[i].mesh;
+                const float weight = morphs[i].weight;
+                deformVertex.Position += (morph->mVertices[v] - mesh->mVertices[v]) * weight;
+                if (morph->mNormals)
+                    deformVertex.Normal += (morph->mNormals[v] - mesh->mNormals[v]) * weight;
+            }
+
+            if (deformVertex.BoneNum > 0)
+            {
+                aiMatrix4x4 skinMatrix = m_Bone.at(deformVertex.BoneName[0]).Matrix * deformVertex.BoneWeight[0];
+                for (int b = 1; b < deformVertex.BoneNum; ++b)
+                    skinMatrix = skinMatrix + m_Bone.at(deformVertex.BoneName[b]).Matrix * deformVertex.BoneWeight[b];
+
+                deformVertex.Position *= skinMatrix;
+                skinMatrix.a4 = skinMatrix.b4 = skinMatrix.c4 = 0.0f;
+                deformVertex.Normal *= skinMatrix;
+            }
 
             vertex[v].Position = XMFLOAT3(deformVertex.Position.x, deformVertex.Position.y, deformVertex.Position.z);
             vertex[v].Normal = XMFLOAT3(deformVertex.Normal.x, deformVertex.Normal.y, deformVertex.Normal.z);
-            vertex[v].TexCoord = XMFLOAT2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y);
+            vertex[v].TexCoord = mesh->HasTextureCoords(0)
+                ? XMFLOAT2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y)
+                : XMFLOAT2(0.0f, 0.0f);
             vertex[v].Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
         }
         Renderer::GetDeviceContext()->Unmap(m_VertexBuffer[meshIndex], 0);
     }
 }
 
-// =========================================================
-// 移動中は背骨から上を垂直に保ち、足とスカートの動きは残す
-// =========================================================
-void AnimationModel::stabilizeTorso(float weight)
-{
-    if (weight <= 0.0f) return;
-
-    const auto spineIt = m_Bone.find("J_Bip_C_Spine");
-    const auto hipsIt = m_Bone.find("J_Bip_C_Hips");
-    const auto headIt = m_Bone.find("J_Bip_C_Head");
-    if (spineIt == m_Bone.end() || hipsIt == m_Bone.end() || headIt == m_Bone.end()) return;
-
-    BONE& spine = spineIt->second;
-    const aiMatrix4x4& spineWorld = spine.worldMatrix;
-    const aiMatrix4x4& headWorld = headIt->second.worldMatrix;
-    const aiVector3D spinePosition(spineWorld.a4, spineWorld.b4, spineWorld.c4);
-    const aiVector3D headPosition(headWorld.a4, headWorld.b4, headWorld.c4);
-    aiVector3D torsoAxis = headPosition - spinePosition;
-    if (torsoAxis.SquareLength() < 0.0001f) return;
-    torsoAxis.Normalize();
-
-    // Rotate in world space, then convert that correction into the spine's local space.
-    const aiVector3D worldUp(0.0f, 1.0f, 0.0f);
-    aiVector3D correctionAxis = torsoAxis ^ worldUp;
-    const float axisLength = correctionAxis.Length();
-    if (axisLength < 0.0001f) return;
-    correctionAxis /= axisLength;
-    const float dot = fmaxf(-1.0f, fminf(1.0f, torsoAxis * worldUp));
-    const aiQuaternion worldCorrection(correctionAxis, atan2f(axisLength, dot) * weight);
-
-    aiVector3D parentScale, parentPosition, spineScale, spineLocalPosition;
-    aiQuaternion parentRotation, spineRotation;
-    hipsIt->second.worldMatrix.Decompose(parentScale, parentRotation, parentPosition);
-    spine.AnimationMatrix.Decompose(spineScale, spineRotation, spineLocalPosition);
-    parentRotation.Normalize();
-    aiQuaternion parentInverse = parentRotation;
-    parentInverse.Conjugate();
-    const aiQuaternion localCorrection = parentInverse * worldCorrection * parentRotation;
-    spineRotation = localCorrection * spineRotation;
-    spine.AnimationMatrix = aiMatrix4x4(spineScale, spineRotation.Normalize(), spineLocalPosition);
-
-    // Rebuild matrices once after correcting the torso pose.
-    aiMatrix4x4 rootMatrix;
-    UpdateBoneMatrix(m_AiScene->mRootNode, rootMatrix);
-}
 void AnimationModel::UpdateBoneMatrix(aiNode* node, aiMatrix4x4 matrix)
 	{
 		BONE* bone = &m_Bone[node->mName.C_Str()];
 
 		aiMatrix4x4 worldMatrix;
 		worldMatrix = matrix * bone->AnimationMatrix;
-		bone->worldMatrix = worldMatrix;
 		// Convert the FBX skeleton units before applying each mesh bone offset.
 		aiMatrix4x4 unitMatrix;
 		unitMatrix.a1 = m_skeletonUnitScale;

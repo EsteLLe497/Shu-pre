@@ -19,5 +19,9 @@ public:
 	void Init();
 	void Uninit();
 	void Update();
-	void Draw();
+    void Draw();
+
+    static constexpr int frameCount = 16;
+    static constexpr float frameDuration = 3.0f / 60.0f;
+    void drawFrame(int frame, const XMMATRIX& view);
 };

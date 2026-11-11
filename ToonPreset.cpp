@@ -119,3 +119,20 @@ bool ToonPreset::load(ToonSettings& toon, CameraOrbit& orbit)
     orbit = loadedOrbit;
     return true;
 }
+
+// =========================================================
+// プレビューと本編で外観を共有し、本編のカメラ設定を保持する
+// =========================================================
+bool ToonPreset::saveAppearance(const ToonSettings& toon)
+{
+    ToonSettings previous;
+    CameraOrbit orbit;
+    load(previous, orbit);
+    return save(toon, orbit);
+}
+
+bool ToonPreset::loadAppearance(ToonSettings& toon)
+{
+    CameraOrbit orbit;
+    return load(toon, orbit);
+}

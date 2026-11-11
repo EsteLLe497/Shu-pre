@@ -6,7 +6,6 @@
 
 #define SPRITE_ROW (4)
 #define SPRITE_COLUMNS (4)
-#define NUM_SPRTIE (SPRITE_ROW * SPRITE_COLUMNS)
 
 
 void Explosion::Init()
@@ -70,6 +69,7 @@ void Explosion::Uninit()
     m_VertexLayout->Release();
     m_VertexShader->Release();
     m_PixelShader->Release();
+    m_Texture->Release();
 }
 void  Explosion::Update()
 {
@@ -80,7 +80,7 @@ void  Explosion::Update()
         m_Frame++;
     }
 
-    if (m_Frame >= NUM_SPRTIE)
+    if (m_Frame >= frameCount)
     {
         SetDestory();
         return;
@@ -90,15 +90,25 @@ void  Explosion::Update()
 }
 void Explosion::Draw()
 {
+    Camera* camera = Manager::GetGameObj<Camera>();
+    if (camera)
+        drawFrame(m_Frame, camera->GetViewMatrix());
+}
+
+// =========================================================
+// 指定フレームを直接描き、巻き戻し時も同じ絵を表示する
+// =========================================================
+void Explosion::drawFrame(int frame, const XMMATRIX& view)
+{
+    if (frame < 0 || frame >= frameCount)
+        return;
+
     Renderer::GetDeviceContext()->IASetInputLayout(m_VertexLayout);
 
     Renderer::GetDeviceContext()->VSSetShader(m_VertexShader, NULL, 0);
     Renderer::GetDeviceContext()->PSSetShader(m_PixelShader, NULL, 0);
 
-    Camera* camera = Manager::GetGameObj<Camera>();
-
-    XMMATRIX view = camera->GetViewMatrix();
-    XMMATRIX invView = XMMatrixInverse(NULL, view);
+    XMMATRIX invView = XMMatrixInverse(nullptr, view);
 
     // Billboard
     invView.r[3].m128_f32[0] = 0.0f;
@@ -141,8 +151,8 @@ void Explosion::Draw()
     float w = 1.0f / (float)wc;
     float h = 1.0f / (float)hc;
 
-    float x = (float)(m_Frame % wc) * w;
-    float y = (float)(m_Frame / wc) * h;
+    float x = (float)(frame % wc) * w;
+    float y = (float)(frame / wc) * h;
 
     D3D11_MAPPED_SUBRESOURCE msr{};
 

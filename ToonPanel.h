@@ -12,10 +12,12 @@ struct CameraOrbit;
 
 namespace ToonPanel
 {
-    void init(HWND window);
+    void init(HWND window, bool previewMode);
     void uninit();
     bool isOpen();
     LRESULT handleMessage(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
+    void beginFrame();
     void beginFrame(ToonSettings* settings, CameraOrbit* orbit);
+    void editAppearance(ToonSettings& settings);
     void draw();
 }
