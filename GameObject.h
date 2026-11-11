@@ -16,6 +16,8 @@ protected:
 	std::list<Component*> m_Components;
 	GameObject* m_Parent = nullptr;
 public:
+    virtual ~GameObject() = default;
+
 	const int GetLayer() const { return m_Layer; }
 
 	float GetCameraZ() const { return m_CameraZ; }

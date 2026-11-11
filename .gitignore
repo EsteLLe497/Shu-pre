@@ -1,0 +1,30 @@
+# Visual Studio のローカル設定
+/.vs/
+*.suo
+*.vcxproj.user
+*.VC.db
+*.VC.opendb
+
+# ゲームのビルド出力
+/x64/
+/Debug/
+/Release/
+/GM31_Game/x64/
+/GM31_Game/Debug/
+/GM31_Game/Release/
+
+# ビルドで生成するシェーダー
+/*.cso
+/shader/*.cso
+# 実行時に参照する既存のシェーダー
+!/shader/unlitTextureVS.cso
+!/shader/unlitTexturePS.cso
+
+# Blender のバックアップと Python キャッシュ
+*.blend[0-9]*
+__pycache__/
+*.pyc
+
+# Windows のフォルダー情報
+Thumbs.db
+Desktop.ini

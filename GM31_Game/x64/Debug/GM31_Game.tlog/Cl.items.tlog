@@ -1,3 +1,5 @@
+C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\ActionFile.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\ActionFile.obj
+C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\ActionSequence.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\ActionSequence.obj
 C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\animationModel.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\animationModel.obj
 C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\audio.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\audio.obj
 C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Box.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Box.obj
@@ -16,6 +18,12 @@ C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\MeshField.cpp;C:\Users\PC_U
 C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\modelRenderer.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\modelRenderer.obj
 C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Particle.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Particle.obj
 C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Player.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Player.obj
+C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\PlayerActions.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\PlayerActions.obj
+C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\PlayerAnimationAssets.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\PlayerAnimationAssets.obj
+C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\PreviewCamera.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\PreviewCamera.obj
+C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\PreviewPanel.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\PreviewPanel.obj
+C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\PreviewScene.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\PreviewScene.obj
+C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\PreviewTimeline.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\PreviewTimeline.obj
 C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Polygon2D.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Polygon2D.obj
 C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\renderer.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\renderer.obj
 C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Result.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Result.obj

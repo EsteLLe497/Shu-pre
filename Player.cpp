@@ -24,8 +24,6 @@
 
 namespace
 {
-    constexpr float walkPlaybackRate = 1.0f;
-    constexpr float runPlaybackRate = 1.5f;
     constexpr float groundTolerance = 0.001f;
     constexpr float shadowOffset = 0.01f;
     constexpr float shadowSize = 1.5f;
@@ -45,19 +43,8 @@ void Player::Init()
     //ModelRenderer* m_ModelRenderer = AddGameComponent<ModelRenderer>(this);
     //m_ModelRenderer->Load("asset\\model\\player.obj");
     m_AnimationModel = AddGameComponent<AnimationModel>(this);
-    m_AnimationModel->Load("asset\\model\\Player_Movement\\Player.fbx");
-   
-    m_AnimationModel->setSkeletonUnitScale(0.01f);
-    m_AnimationModel->LoadAnimation("asset\\model\\Player_Movement\\Standing_Idle2.fbx", "Idle");
-	m_AnimationModel->LoadAnimation("asset\\model\\Player_Movement\\Walking.fbx", "Walk");
-	m_AnimationModel->LoadAnimation("asset\\model\\Player_Movement\\Running2.fbx", "Run");
-    // Use the source clip's root travel to keep planted feet from sliding.
-    const float walkMotionSpeed = m_AnimationModel->getRootMotionSpeed("Walk", walkPlaybackRate);
-    const float runMotionSpeed = m_AnimationModel->getRootMotionSpeed("Run", runPlaybackRate);
-    if (walkMotionSpeed > 0.0f) m_walkSpeed = walkMotionSpeed;
-    if (runMotionSpeed > 0.0f) m_runSpeed = runMotionSpeed;
-    m_animationName = "Idle";
-    m_nextAnimationName = "Idle";
+    loadPlayerActions();
+    updateLocomotion(0.0f, PlayerActionKind::idle);
 
     // シェーダー読込
     m_toonShader.init();
@@ -136,7 +123,6 @@ void Player::Update()
         m_Velocity.z = 0.0f;
     }
     // Match the locomotion clip to the current input state.
-    SetAnimation(isMoving ? (isDashing ? "Run" : "Walk") : "Idle");
 
     // Face the travel direction while preserving the last facing when stopped.
     if (m_Velocity.x * m_Velocity.x + m_Velocity.z * m_Velocity.z > 0.0001f)
@@ -302,11 +288,22 @@ void Player::Update()
         m_Ground = m_Velocity.y == 0.0f;
     }
 
+    // 地上で操作がなければ、10秒後にあくびを1回再生する。
+    const bool isIdle = m_Ground && !isMoving && Input::isGameplayActive() && !Input::hasGameplayActivity();
+    if (m_yawning && !isIdle)
+        m_actionPlayback.stop();
+    if (!m_actionPlayback.active())
+        m_yawning = false;
+
+    if (m_actions.updateIdleTimer(isIdle && (!m_actionPlayback.active() || m_yawning), dt))
+        m_yawning = playAction(PlayerActionKind::yawn);
+
     if (Input::GetKeyTrigger('J'))
     {
         Bullet* bullet = Manager::AddGameObj<Bullet>();
         bullet->SetPosition(m_Position);
         bullet->SetVelocity(GetFoward() * 20.0f);
+        playAction(PlayerActionKind::attack);
     }
     
     if (m_Ground)
@@ -320,12 +317,12 @@ void Player::Update()
     m_Shadow->SetScale({ visibleShadowSize, visibleShadowSize, visibleShadowSize });
     m_Shadow->SetPosition({ m_Position.x, groundHeight + shadowOffset, m_Position.z });
 
-    // Advance each clip independently; the run cycle plays faster.
-    m_animationTime += m_animationName == "Run" ? runPlaybackRate : walkPlaybackRate;
-    m_nextAnimationTime += m_nextAnimationName == "Run" ? runPlaybackRate : walkPlaybackRate;
-    m_blend = fminf(1.0f, m_blend + 0.1f);
-    m_AnimationModel->Update(m_animationName.c_str(), m_animationTime,
-        m_nextAnimationName.c_str(), m_nextAnimationTime, m_blend);
+    const auto kind = isMoving ? (isDashing ? PlayerActionKind::run : PlayerActionKind::walk)
+        : PlayerActionKind::idle;
+    // モーションと表情は実時間で進め、移動や衝突判定は固定間隔で更新する。
+    const float animationDt = Manager::animationDeltaSeconds();
+    updateLocomotion(animationDt, kind);
+    updateActionPose(animationDt);
     GameObject::Update();
 }
 
@@ -336,19 +333,4 @@ void Player::Draw()
     m_toonShader.bindSurface();
     GameObject::Draw();
     m_toonShader.drawOutline(*m_AnimationModel);
-}
-
-// =========================================================
-// モーションを切り替え、前の姿勢との補間を開始
-// =========================================================
-void Player::SetAnimation(const char* animationName)
-{
-    if (m_nextAnimationName != animationName)
-    {
-        m_animationName = m_nextAnimationName;
-        m_animationTime = m_nextAnimationTime;
-        m_nextAnimationName = animationName;
-        m_nextAnimationTime = 0.0;
-        m_blend = 0.0f;
-    }
 }

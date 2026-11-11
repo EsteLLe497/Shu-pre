@@ -19,6 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ActionFile.cpp">
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(WindowsSDKVersion)cppwinrt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="ActionSequence.cpp" />
     <ClCompile Include="animationModel.cpp" />
     <ClCompile Include="audio.cpp" />
     <ClCompile Include="Box.cpp" />
@@ -37,6 +42,12 @@
     <ClCompile Include="modelRenderer.cpp" />
     <ClCompile Include="Particle.cpp" />
     <ClCompile Include="Player.cpp" />
+    <ClCompile Include="PlayerActions.cpp" />
+    <ClCompile Include="PlayerAnimationAssets.cpp" />
+    <ClCompile Include="PreviewCamera.cpp" />
+    <ClCompile Include="PreviewPanel.cpp" />
+    <ClCompile Include="PreviewScene.cpp" />
+    <ClCompile Include="PreviewTimeline.cpp" />
     <ClCompile Include="Polygon2D.cpp" />
     <ClCompile Include="renderer.cpp" />
     <ClCompile Include="Result.cpp" />
@@ -58,6 +69,8 @@
     <ClCompile Include="Wave.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ActionFile.h" />
+    <ClInclude Include="ActionSequence.h" />
     <ClInclude Include="animationModel.h" />
     <ClInclude Include="audio.h" />
     <ClInclude Include="Box.h" />
@@ -76,9 +89,16 @@
     <ClInclude Include="main.h" />
     <ClInclude Include="manager.h" />
     <ClInclude Include="MeshField.h" />
+    <ClInclude Include="MorphTarget.h" />
     <ClInclude Include="modelRenderer.h" />
     <ClInclude Include="Particle.h" />
     <ClInclude Include="Player.h" />
+    <ClInclude Include="PlayerActionSet.h" />
+    <ClInclude Include="PlayerAnimationAssets.h" />
+    <ClInclude Include="PreviewCamera.h" />
+    <ClInclude Include="PreviewPanel.h" />
+    <ClInclude Include="PreviewScene.h" />
+    <ClInclude Include="PreviewTimeline.h" />
     <ClInclude Include="Polygon2D.h" />
     <ClInclude Include="renderer.h" />
     <ClInclude Include="Result.h" />

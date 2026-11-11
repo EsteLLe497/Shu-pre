@@ -61,7 +61,7 @@ void Game::Init()
 
 	Manager::AddGameObj<Grass>()->SetPosition({ 10.0f,0.0f,-5.0f });
 
-	for (int i = 0; i < 300; i++)
+	/*for (int i = 0; i < 300; i++)
 	{
 		Tree* tree = Manager::AddGameObj<Tree>();
 
@@ -85,7 +85,7 @@ void Game::Init()
 			-0.1f + 0.2f * ((float)rand() / RAND_MAX)
 		};
 		tree->SetRotation(rot);
-	}
+	}*/
 
 
 	Manager::AddGameObj<Particle>()->SetPosition({ -2.0f,1.0f,-1.0f });
