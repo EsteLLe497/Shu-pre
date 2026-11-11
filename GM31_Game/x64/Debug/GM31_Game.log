@@ -1,0 +1,14 @@
+﻿  Camera.cpp
+C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。
+  (ソース ファイル 'Camera.cpp' をコンパイルしています)
+  
+C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。
+  (ソース ファイル 'Camera.cpp' をコンパイルしています)
+  
+C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。
+  (ソース ファイル 'Camera.cpp' をコンパイルしています)
+  
+C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。
+  (ソース ファイル 'Camera.cpp' をコンパイルしています)
+  
+  GM31_Game.vcxproj -> C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\x64\Debug\GM31_Game.exe

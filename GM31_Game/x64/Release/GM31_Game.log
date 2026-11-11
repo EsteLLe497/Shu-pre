@@ -1,0 +1,29 @@
+﻿  Player.cpp
+C:\Users\pro19\Desktop\GM31\GM31_Game_ 3\Vector3.h(63,21): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+  (compiling source file 'Player.cpp')
+  
+C:\Users\pro19\Desktop\GM31\GM31_Game_ 3\Vector3.h(87,14): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
+  (compiling source file 'Player.cpp')
+  
+C:\Users\pro19\Desktop\GM31\GM31_Game_ 3\Vector3.h(92,13): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
+  (compiling source file 'Player.cpp')
+  
+C:\Users\pro19\Desktop\GM31\GM31_Game_ 3\Vector3.h(110,13): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
+  (compiling source file 'Player.cpp')
+  
+C:\Users\pro19\Desktop\GM31\GM31_Game_ 3\Player.cpp(66,14): warning C4305: 'initializing': truncation from 'double' to 'float'
+  Generating code
+  Previous IPDB not found, fall back to full compilation.
+  All 1373 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+DirectXTex_Debug.lib(DirectXTexD3D11.obj) : warning LNK4099: PDB 'DirectXTex.pdb' was not found with 'DirectXTex_Debug.lib(DirectXTexD3D11.obj)' or at 'C:\Users\pro19\Desktop\GM31\GM31_Game_ 3\x64\Release\DirectXTex.pdb'; linking object as if no debug info
+DirectXTex_Debug.lib(DirectXTexWIC.obj) : warning LNK4099: PDB 'DirectXTex.pdb' was not found with 'DirectXTex_Debug.lib(DirectXTexWIC.obj)' or at 'C:\Users\pro19\Desktop\GM31\GM31_Game_ 3\x64\Release\DirectXTex.pdb'; linking object as if no debug info
+DirectXTex_Debug.lib(DirectXTexImage.obj) : warning LNK4099: PDB 'DirectXTex.pdb' was not found with 'DirectXTex_Debug.lib(DirectXTexImage.obj)' or at 'C:\Users\pro19\Desktop\GM31\GM31_Game_ 3\x64\Release\DirectXTex.pdb'; linking object as if no debug info
+DirectXTex_Debug.lib(DirectXTexUtil.obj) : warning LNK4099: PDB 'DirectXTex.pdb' was not found with 'DirectXTex_Debug.lib(DirectXTexUtil.obj)' or at 'C:\Users\pro19\Desktop\GM31\GM31_Game_ 3\x64\Release\DirectXTex.pdb'; linking object as if no debug info
+DirectXTex_Debug.lib(DirectXTexConvert.obj) : warning LNK4099: PDB 'DirectXTex.pdb' was not found with 'DirectXTex_Debug.lib(DirectXTexConvert.obj)' or at 'C:\Users\pro19\Desktop\GM31\GM31_Game_ 3\x64\Release\DirectXTex.pdb'; linking object as if no debug info
+DirectXTex_Debug.lib(DirectXTexCompress.obj) : warning LNK4099: PDB 'DirectXTex.pdb' was not found with 'DirectXTex_Debug.lib(DirectXTexCompress.obj)' or at 'C:\Users\pro19\Desktop\GM31\GM31_Game_ 3\x64\Release\DirectXTex.pdb'; linking object as if no debug info
+DirectXTex_Debug.lib(DirectXTexMipMaps.obj) : warning LNK4099: PDB 'DirectXTex.pdb' was not found with 'DirectXTex_Debug.lib(DirectXTexMipMaps.obj)' or at 'C:\Users\pro19\Desktop\GM31\GM31_Game_ 3\x64\Release\DirectXTex.pdb'; linking object as if no debug info
+DirectXTex_Debug.lib(BC.obj) : warning LNK4099: PDB 'DirectXTex.pdb' was not found with 'DirectXTex_Debug.lib(BC.obj)' or at 'C:\Users\pro19\Desktop\GM31\GM31_Game_ 3\x64\Release\DirectXTex.pdb'; linking object as if no debug info
+DirectXTex_Debug.lib(BC4BC5.obj) : warning LNK4099: PDB 'DirectXTex.pdb' was not found with 'DirectXTex_Debug.lib(BC4BC5.obj)' or at 'C:\Users\pro19\Desktop\GM31\GM31_Game_ 3\x64\Release\DirectXTex.pdb'; linking object as if no debug info
+DirectXTex_Debug.lib(BC6HBC7.obj) : warning LNK4099: PDB 'DirectXTex.pdb' was not found with 'DirectXTex_Debug.lib(BC6HBC7.obj)' or at 'C:\Users\pro19\Desktop\GM31\GM31_Game_ 3\x64\Release\DirectXTex.pdb'; linking object as if no debug info
+  GM31_Game.vcxproj -> C:\Users\pro19\Desktop\GM31\GM31_Game_ 3\x64\Release\GM31_Game.exe

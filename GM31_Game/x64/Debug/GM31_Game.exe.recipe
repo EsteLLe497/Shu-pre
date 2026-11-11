@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <ProjectOutputs>
+    <ProjectOutput>
+      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\x64\Debug\GM31_Game.exe</FullPath>
+    </ProjectOutput>
+  </ProjectOutputs>
+  <ContentFiles>
+    <ContentFile>
+      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\FieldPS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\FieldVS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\grassPS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\grassVS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\litTexturePS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\litTextureVS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\unlitTexturePS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\unlitTextureVS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\toonVS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\toonPS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\WavePS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\WaveVS.cso</FullPath>
+    </ContentFile>
+  </ContentFiles>
+  <SatelliteDlls />
+  <NonRecipeFileRefs />
+</Project>
