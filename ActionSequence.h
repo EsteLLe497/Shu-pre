@@ -42,10 +42,11 @@ private:
     float m_time = 0.0f;
 
 public:
-    void start();
+    void start(float time = 0.0f);
     void stop() { m_active = false; }
     bool takeEffect(const ActionSequence& action);
     void advance(const ActionSequence& action, float dt);
+    void advanceTo(float endTime, float dt, bool holdAtEnd);
     bool active() const { return m_active; }
     float time() const { return m_time; }
 };

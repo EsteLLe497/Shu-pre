@@ -17,7 +17,11 @@ private:
 
     ToonShader m_toonShader;
 
-    bool m_Ground = true;
+    bool m_Ground = false;
+    bool m_jumpedFromGround = false;
+    float m_airborneTime = 0.0f;
+    static constexpr float jumpSpeed = 15.0f;
+    static constexpr float gravity = 35.0f;
     float m_MoveAnimation = 0.0f;
     class Audio* m_JumpSE;
 
@@ -30,17 +34,24 @@ private:
     PlayerActionSet m_actions;
     PlayerActionKind m_locomotionKind = PlayerActionKind::idle;
     ActionSequence m_playingAction;
+    PlayerActionKind m_playingActionKind = PlayerActionKind::count;
     ActionPlayback m_actionPlayback;
     float m_locomotionTime = 0.0f;
     double m_locomotionMotionTime = 0.0;
     bool m_locomotionEffectFired = false;
     bool m_faceApplied = false;
+    bool m_actionMotionApplied = false;
+    bool m_actionMotionRestart = false;
     bool m_yawning = false;
 
     void loadPlayerActions();
     void bindPlayerActions(AnimationModel& model);
+    bool isLanding() const
+    {
+        return m_actionPlayback.active() && m_playingActionKind == PlayerActionKind::land;
+    }
     void updateLocomotion(float dt, PlayerActionKind kind);
-    void updateActionPose(float dt);
+    void updateActionPose(float dt, float physicsDt);
     void spawnActionEffect(const ActionSequence& action);
     bool prepareAction(const ActionSequence& action);
 

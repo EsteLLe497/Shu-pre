@@ -25,6 +25,8 @@
 namespace
 {
     constexpr float groundTolerance = 0.001f;
+    constexpr float maxGroundDrop = 0.15f;
+    constexpr float minLandingAirTime = 0.08f;
     constexpr float shadowOffset = 0.01f;
     constexpr float shadowSize = 1.5f;
 }
@@ -106,18 +108,21 @@ void Player::Update()
     const bool isMoving = VectorMag(moveDirection) > 0.0f;
     const bool isDashing = isMoving && Input::GetKeyPress(VK_SHIFT);
 
+    // 踏ん張り中は移動入力で加速しない。
+    const bool canMove = isMoving && !isLanding();
+
     // Explicit target speeds keep walk and dash distinct from the first steps.
     if (isMoving) moveDirection.normalize();
 
-    const float targetSpeed = isMoving ? (isDashing ? m_runSpeed : m_walkSpeed) : 0.0f;
+    const float targetSpeed = canMove ? (isDashing ? m_runSpeed : m_walkSpeed) : 0.0f;
     const Vector3 targetVelocity = moveDirection * targetSpeed;
-    const float response = isMoving ? 16.0f : 35.0f;
+    const float response = canMove ? 16.0f : 35.0f;
     const float velocityBlend = 1.0f - expf(-response * dt);
 
     m_Velocity.x += (targetVelocity.x - m_Velocity.x) * velocityBlend;
     m_Velocity.z += (targetVelocity.z - m_Velocity.z) * velocityBlend;
 
-    if (!isMoving && m_Velocity.x * m_Velocity.x + m_Velocity.z * m_Velocity.z < 0.0025f)
+    if (!canMove && m_Velocity.x * m_Velocity.x + m_Velocity.z * m_Velocity.z < 0.0025f)
     {
         m_Velocity.x = 0.0f;
         m_Velocity.z = 0.0f;
@@ -129,24 +134,17 @@ void Player::Update()
     {
         m_Rotation.y = atan2f(m_Velocity.x, m_Velocity.z);
     }
-    if (Input::GetKeyTrigger(VK_SPACE))
+    // 接地中の新しい入力だけで踏み切り、空中での押し直しは受け付けない。
+    if (oldGround && !isLanding() && Input::GetKeyTrigger(VK_SPACE))
     {
-        m_Velocity.y += 20.0f;
-
-        //m_Scale.y = 2.0f;
-        //m_Scale.x = 0.5f;
-        //m_Scale.z = 0.5f;
-
+        m_Velocity.y = jumpSpeed;
+        m_jumpedFromGround = true;
+        playAction(isDashing ? PlayerActionKind::runJump : PlayerActionKind::jump);
         m_JumpSE->Play();
     }
 
-    //return scale to original
-    //m_Scale.x += (1.0f - m_Scale.x) * 0.1f;
-    //m_Scale.y += (1.0f - m_Scale.y) * 0.1f;
-    //m_Scale.z += (1.0f - m_Scale.z) * 0.1f;
+    m_Velocity.y -= gravity * dt;
 
-    m_Velocity.y += -98.0f * dt;
-    
     m_Position += m_Velocity * dt;
    
     auto trees = Manager::GetGameObjs<Tree>();
@@ -216,12 +214,12 @@ void Player::Update()
          if(-boxScale.x < dotX && dotX < boxScale.x &&
             -boxScale.z < dotZ && dotZ < boxScale.z)
          {
-             if (boxPosition.y + boxScale.y < m_Position.y &&
-                 m_Position.y < boxPosition.y + boxScale.y * 2.0f &&
-                 m_Velocity.y < 0.0f)
+             const float boxTop = boxPosition.y + boxScale.y * 2.0f;
+             if (oldPosition.y >= boxTop - groundTolerance && m_Position.y <= boxTop &&
+                 m_Velocity.y <= 0.0f)
              {
                  //上面に衝突 top of the box
-                 m_Position.y = boxPosition.y + boxScale.y * 2.0f;
+                 m_Position.y = boxTop;
                  m_Velocity.y = 0.0f;
                  m_Ground = true;
              }
@@ -277,7 +275,8 @@ void Player::Update()
     {
         float oldHeight;
         followSlope = meshField->tryGetHeight(oldPosition.x, oldPosition.z, oldHeight)
-            && fabsf(oldPosition.y - oldHeight) <= groundTolerance;
+            && fabsf(oldPosition.y - oldHeight) <= groundTolerance
+            && oldHeight - groundHeight <= maxGroundDrop;
     }
 
     // 下り坂は接地中だけ追従し、ジャンプの上昇速度は維持する。
@@ -286,6 +285,28 @@ void Player::Update()
         m_Position.y = groundHeight;
         m_Velocity.y = fmaxf(0.0f, m_Velocity.y);
         m_Ground = m_Velocity.y == 0.0f;
+    }
+
+    // ジャンプの着地は移動姿勢へ直接つなぎ、段差からの落下だけ踏ん張る。
+    if (m_Ground)
+    {
+        if (m_jumpedFromGround)
+        {
+            if (m_playingActionKind == PlayerActionKind::jump || m_playingActionKind == PlayerActionKind::runJump)
+                m_actionPlayback.stop();
+        }
+        else if (!oldGround && m_airborneTime >= minLandingAirTime && playAction(PlayerActionKind::land))
+        {
+            // 踏ん張りに入る瞬間に水平速度を止め、接地点から滑らないようにする。
+            m_Velocity.x = 0.0f;
+            m_Velocity.z = 0.0f;
+        }
+        m_jumpedFromGround = false;
+        m_airborneTime = 0.0f;
+    }
+    else
+    {
+        m_airborneTime += dt;
     }
 
     // 地上で操作がなければ、10秒後にあくびを1回再生する。
@@ -303,7 +324,9 @@ void Player::Update()
         Bullet* bullet = Manager::AddGameObj<Bullet>();
         bullet->SetPosition(m_Position);
         bullet->SetVelocity(GetFoward() * 20.0f);
-        playAction(PlayerActionKind::attack);
+        // 発射はできるが、着地の姿勢は最後まで再生する。
+        if (m_Ground && !isLanding())
+            playAction(PlayerActionKind::attack);
     }
     
     if (m_Ground)
@@ -322,7 +345,7 @@ void Player::Update()
     // モーションと表情は実時間で進め、移動や衝突判定は固定間隔で更新する。
     const float animationDt = Manager::animationDeltaSeconds();
     updateLocomotion(animationDt, kind);
-    updateActionPose(animationDt);
+    updateActionPose(animationDt, dt);
     GameObject::Update();
 }
 

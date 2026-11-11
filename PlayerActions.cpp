@@ -21,6 +21,8 @@ namespace
         Kind kind;
         const char* path;
         const char* fallbackClip;
+        float motionStart = 0.0f;
+        float motionEnd = 0.0f;
     };
 
     // 状態とアセットの対応はここで管理する。
@@ -29,7 +31,11 @@ namespace
         { Kind::walk, "asset/actions/Walk.json", "Walk" },
         { Kind::run, "asset/actions/Run.json", "Run" },
         { Kind::yawn, "asset/actions/akubi.json", nullptr },
-        { Kind::attack, ActionFile::attackPath, nullptr }
+        { Kind::attack, ActionFile::attackPath, nullptr },
+        // FBXで踏み切り・空中、接地・踏ん張りに相当する区間。
+        { Kind::jump, "asset/actions/Jump.json", nullptr, 0.59f, 1.17f },
+        { Kind::runJump, "asset/actions/RunJump.json", nullptr, 0.04f, 0.64f },
+        { Kind::land, "asset/actions/Land.json", nullptr, 0.36f }
     };
     static_assert(_countof(definitions) == static_cast<std::size_t>(Kind::count),
         "Player action definitions and states must match.");
@@ -98,7 +104,7 @@ void Player::bindPlayerActions(AnimationModel& model)
 // 読み込めたレイヤーで再生し、元の設定は保持する。
 bool Player::playAction(PlayerActionKind kind)
 {
-    if (kind != Kind::yawn && kind != Kind::attack)
+    if (kind < Kind::yawn || kind >= Kind::count)
         return false;
 
     const auto& slot = m_actions.get(kind);
@@ -109,7 +115,16 @@ bool Player::playAction(PlayerActionKind kind)
     auto action = slot.sequence;
     action.motionEnabled = slot.motionReady;
     action.faceEnabled = slot.faceReady;
-    return playAction(action);
+    if (!playAction(action))
+        return false;
+
+    m_playingActionKind = kind;
+    if (definition(kind).motionStart > 0.0f)
+    {
+        m_actionPlayback.stop();
+        m_actionPlayback.start(definition(kind).motionStart);
+    }
+    return true;
 }
 
 // =========================================================
@@ -159,6 +174,8 @@ bool Player::playAction(const ActionSequence& action)
         return false;
 
     m_playingAction = action;
+    m_playingActionKind = Kind::count;
+    m_actionMotionRestart = action.motionEnabled;
     m_playingAction.clip = PlayerAnimationAssets::canonicalMotionName(action.clip);
     // 呼び出し側が選んだ時点で、前のアクションを切り替えて先頭から再生する。
     m_yawning = false;
@@ -206,12 +223,14 @@ bool Player::prepareAction(const ActionSequence& action)
 // =========================================================
 // 単発アクションを優先し、終わったら移動状態の姿勢へ戻す
 // =========================================================
-void Player::updateActionPose(float dt)
+void Player::updateActionPose(float dt, float physicsDt)
 {
     const auto& slot = m_actions.get(m_locomotionKind);
     const auto& gait = slot.sequence;
     const auto& action = m_playingAction;
     const bool active = m_actionPlayback.active();
+    const bool jumping = m_playingActionKind == Kind::jump || m_playingActionKind == Kind::runJump;
+    const bool landing = m_playingActionKind == Kind::land;
     const bool useActionFace = active && action.faceEnabled;
     const auto& expression = useActionFace ? action : gait;
     const float faceTime = useActionFace ? m_actionPlayback.time() : m_locomotionTime;
@@ -229,16 +248,26 @@ void Player::updateActionPose(float dt)
         m_faceApplied = false;
     }
 
-    if (active && action.motionEnabled)
-        m_AnimationModel->sampleClip(action.clip.c_str(), m_actionPlayback.time());
+    const bool useActionMotion = active && action.motionEnabled;
+    const bool actionChanged = useActionMotion != m_actionMotionApplied;
+    if (useActionMotion)
+    {
+        using Travel = AnimationModel::RootTravel;
+        const auto rootTravel = jumping ? Travel::lockTranslation : (landing ? Travel::anchorLandingFeet : Travel::authored);
+        m_AnimationModel->sampleBlendedClip(action.clip.c_str(), m_actionPlayback.time(), dt,
+            rootTravel, actionChanged || m_actionMotionRestart, !jumping && !landing);
+    }
     else
     {
         // 歩き・走りの移動は入力側が担当するため、描画では周回ごとの前進量を差し引く。
         const bool isGait = m_locomotionKind == Kind::walk || m_locomotionKind == Kind::run;
         const auto rootTravel = isGait ? AnimationModel::RootTravel::removeHorizontalCycle
             : AnimationModel::RootTravel::authored;
-        m_AnimationModel->sampleClip(locomotionClip(slot, m_locomotionKind), m_locomotionMotionTime, rootTravel);
+        m_AnimationModel->sampleBlendedClip(locomotionClip(slot, m_locomotionKind), m_locomotionMotionTime,
+            dt, rootTravel, actionChanged);
     }
+    m_actionMotionApplied = useActionMotion;
+    m_actionMotionRestart = false;
 
     if (m_actionPlayback.takeEffect(action))
         spawnActionEffect(action);
@@ -250,7 +279,18 @@ void Player::updateActionPose(float dt)
             spawnActionEffect(gait);
     }
 
-    m_actionPlayback.advance(action, dt);
+    if (jumping && !m_Ground)
+    {
+        // 空中姿勢をジャンプの物理時間に合わせ、長い落下では最後の姿勢を保つ。
+        const auto& window = definition(m_playingActionKind);
+        constexpr float flightTime = 2.0f * jumpSpeed / gravity;
+        m_actionPlayback.advanceTo(window.motionEnd,
+            physicsDt * (window.motionEnd - window.motionStart) / flightTime, true);
+    }
+    else
+    {
+        m_actionPlayback.advance(action, dt);
+    }
 }
 
 void Player::spawnActionEffect(const ActionSequence& action)

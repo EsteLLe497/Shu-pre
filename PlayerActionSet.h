@@ -8,7 +8,7 @@
 #include "ActionSequence.h"
 #include <array>
 
-enum class PlayerActionKind { idle, walk, run, yawn, attack, count };
+enum class PlayerActionKind { idle, walk, run, yawn, attack, jump, runJump, land, count };
 
 class PlayerActionSet
 {
