@@ -22,22 +22,26 @@ namespace
 // =========================================================
 // ビュー上で開始したドラッグだけをカメラ操作として受け付ける
 // =========================================================
-void PreviewCamera::handleMouse()
+bool PreviewCamera::mouseOverViewport()
 {
     const auto& io = ImGui::GetIO();
-    const bool overViewport = ImGui::IsMousePosValid()
+    return ImGui::IsMousePosValid()
         && io.MousePos.x >= 0.0f && io.MousePos.x < io.DisplaySize.x
         && io.MousePos.y >= 0.0f && io.MousePos.y < io.DisplaySize.y
         && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)
         && !io.WantCaptureMouse;
+}
 
+void PreviewCamera::handleMouse()
+{
+    const auto& io = ImGui::GetIO();
     if (m_drag != Drag::none && !ImGui::IsMouseDown(m_dragButton))
     {
         m_drag = Drag::none;
         m_dragButton = -1;
     }
 
-    if (m_drag == Drag::none && overViewport)
+    if (m_drag == Drag::none && mouseOverViewport())
     {
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Middle))
         {
@@ -49,9 +53,9 @@ void PreviewCamera::handleMouse()
             m_drag = Drag::orbit;
             m_dragButton = ImGuiMouseButton_Left;
         }
-        else if (io.KeyAlt && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+        else if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
         {
-            m_drag = Drag::dolly;
+            m_drag = io.KeyAlt ? Drag::dolly : Drag::orbit;
             m_dragButton = ImGuiMouseButton_Right;
         }
 
@@ -103,14 +107,21 @@ void PreviewCamera::reset()
 // =========================================================
 // 注視点と距離からビュー・投影を設定する
 // =========================================================
-XMMATRIX PreviewCamera::bind() const
+XMMATRIX PreviewCamera::projection()
+{
+    return XMMatrixPerspectiveFovLH(verticalFov,
+        static_cast<float>(SCREEN_WIDTH) / SCREEN_HEIGHT, 0.1f, 100.0f);
+}
+
+XMMATRIX PreviewCamera::bind(const XMFLOAT3& targetOffset) const
 {
     const XMVECTOR target = XMVectorSet(m_panX, lookHeight + m_panY, m_panZ, 1.0f);
     const XMVECTOR eye = target + orbitDirection(yaw, pitch) * distance;
-    const auto view = XMMatrixLookAtLH(eye, target, XMVectorSet(0, 1, 0, 0));
+    const XMVECTOR offset = XMVector3ClampLength(XMLoadFloat3(&targetOffset), 0.0f, distance * 0.8f);
+    const XMVECTOR aimedTarget = target + offset;
+    const auto view = XMMatrixLookAtLH(eye, aimedTarget, XMVectorSet(0, 1, 0, 0));
     Renderer::SetViewMatrix(view);
-    Renderer::SetProjectionMatrix(XMMatrixPerspectiveFovLH(verticalFov,
-        static_cast<float>(SCREEN_WIDTH) / SCREEN_HEIGHT, 0.1f, 100.0f));
+    Renderer::SetProjectionMatrix(projection());
     Renderer::SetCameraPosition({ XMVectorGetX(eye), XMVectorGetY(eye), XMVectorGetZ(eye) });
     return view;
 }

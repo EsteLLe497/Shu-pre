@@ -29,7 +29,10 @@ public:
     float distance = 4.2f;
     float lookHeight = 0.62f;
 
+    static bool mouseOverViewport();
     void handleMouse();
+    bool dragging() const { return m_drag != Drag::none; }
     void reset();
-    DirectX::XMMATRIX bind() const;
+    static DirectX::XMMATRIX projection();
+    DirectX::XMMATRIX bind(const DirectX::XMFLOAT3& targetOffset) const;
 };

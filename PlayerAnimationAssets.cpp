@@ -57,27 +57,31 @@ std::vector<std::string> PlayerAnimationAssets::listMotions()
         names.emplace_back(clip.name);
 
     const auto customStart = names.size();
-    WIN32_FIND_DATAA data{};
-    const std::string pattern = std::string(motionsDirectory) + "/*.fbx";
-    const HANDLE search = FindFirstFileA(pattern.c_str(), &data);
-    if (search == INVALID_HANDLE_VALUE)
-        return names;
-
-    do
+    for (const char* directory : { motionsDirectory, attackMotionsDirectory })
     {
-        if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+        WIN32_FIND_DATAA data{};
+        const std::string pattern = std::string(directory) + "/*.fbx";
+        const HANDLE search = FindFirstFileA(pattern.c_str(), &data);
+        if (search == INVALID_HANDLE_VALUE)
             continue;
 
-        const std::string file = data.cFileName;
-        if (file.size() <= 4 || _stricmp(file.c_str() + file.size() - 4, ".fbx") != 0)
-            continue;
+        do
+        {
+            if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+                continue;
 
-        const auto name = file.substr(0, file.size() - 4);
-        if (isMotionName(name) && !isBuiltInMotion(name))
-            names.push_back(name);
-    } while (FindNextFileA(search, &data));
+            const std::string file = data.cFileName;
+            if (file.size() <= 4 || _stricmp(file.c_str() + file.size() - 4, ".fbx") != 0)
+                continue;
 
-    FindClose(search);
+            const auto name = file.substr(0, file.size() - 4);
+            if (isMotionName(name) && std::none_of(names.begin(), names.end(), [&](const auto& existing) {
+                return _stricmp(existing.c_str(), name.c_str()) == 0; }))
+                names.push_back(name);
+        } while (FindNextFileA(search, &data));
+
+        FindClose(search);
+    }
     std::sort(names.begin() + customStart, names.end());
     return names;
 }
@@ -98,7 +102,11 @@ bool PlayerAnimationAssets::loadMotion(AnimationModel& model, const std::string&
         return true;
 
     // 同名の差し替えが使えなければ、新しい標準モーションを使う。
-    return builtIn && path != builtIn->path && model.LoadAnimation(builtIn->path, key);
+    if (builtIn)
+        return path != builtIn->path && model.LoadAnimation(builtIn->path, key);
+
+    const std::string attackPath = std::string(attackMotionsDirectory) + "/" + key + ".fbx";
+    return model.LoadAnimation(attackPath.c_str(), key);
 }
 
 // =========================================================

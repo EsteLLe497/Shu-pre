@@ -19,6 +19,8 @@ private:
     static int m_mouseWheel;
     static bool m_mouseCaptured;
     static bool m_acceptGameplayInput;
+    static bool m_pendingAttackPress;
+    static bool m_attackPress;
 
 public:
     static void Init();
@@ -35,6 +37,7 @@ public:
     static bool IsMouseCaptured() { return m_mouseCaptured; }
 
     // Window messages feed raw input; Camera reads the accumulated frame delta.
+    static void OnAttackPress() { m_pendingAttackPress = true; }
     static void OnRawInput(LPARAM lParam);
     static void OnMouseMove(LPARAM lParam);
     static void OnMouseWheel(WPARAM wParam);

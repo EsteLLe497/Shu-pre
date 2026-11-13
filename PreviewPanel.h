@@ -8,7 +8,7 @@
 #include <functional>
 #include <string>
 #include <vector>
-#include "MorphTarget.h"
+#include "ActionSequence.h"
 
 struct PreviewTimeline;
 struct ToonSettings;
@@ -24,6 +24,12 @@ struct PreviewControls
     std::vector<MorphTarget> extraMorphs;
     float effectX = 0.75f;
     float effectHeight = 0.20f;
+    WeaponTrack weapon;
+    bool showWorldAxes = true;
+    bool moveWholePath = true;
+    char characterPath[512]{};
+    char weaponPath[241]{};
+    std::string weaponStatus;
     std::string assetStatus;
     const char* shaderStatus = nullptr;
     char actionName[70] = "Attack01";
@@ -35,5 +41,7 @@ namespace PreviewPanel
 {
     bool draw(PreviewTimeline& timeline, PreviewControls& controls, PreviewCamera& camera,
         ToonSettings& shader, const std::vector<std::string>& morphs,
-        const std::function<bool(const std::string&)>& selectMotion);
+        const std::function<bool(const std::string&)>& selectMotion,
+        const std::function<bool(const std::string&)>& loadWeapon,
+        const std::function<double()>& clipDuration);
 }

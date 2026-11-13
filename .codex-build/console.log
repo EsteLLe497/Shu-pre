@@ -1,0 +1,15 @@
+MSBuild のバージョン 17.14.23+b0019275e (.NET Framework)
+
+  Camera.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Camera.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Game.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Game.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  manager.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\manager.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Player.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Player.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  PlayerActions.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\PlayerActions.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  PreviewPanel.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\PreviewPanel.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  コードを生成中...

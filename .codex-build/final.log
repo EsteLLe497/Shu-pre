@@ -1,0 +1,264 @@
+2026/11/13 15:41:25 にビルドを開始しました。
+ログの詳細度は次のように設定されています: Normal。
+ノード 1 上のプロジェクト "C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.sln" (既定のターゲット)。
+ValidateSolutionConfiguration:
+  ソリューション構成 "Debug|x64" をビルドしています。
+プロジェクト "C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.sln" (1) は、ノード 1 上に "C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj" (2) をビルドしています (既定のターゲット)。
+PrepareForBuild:
+  ディレクトリ ".codex-build/final-obj/" を作成しています。
+  構造化出力が有効になっています。コンパイラ診断の書式設定にはエラー階層が反映されます。詳細については、https://aka.ms/cpp/structured-output を参照してください。
+  ディレクトリ ".codex-build/final-obj/GM31_Game.tlog\" を作成しています。
+InitializeBuildStatus:
+  "AlwaysCreate" が指定されたため ".codex-build/final-obj/GM31_Game.tlog\unsuccessfulbuild" を作成しています。
+  ".codex-build/final-obj/GM31_Game.tlog\unsuccessfulbuild" のタッチ タスクを実行しています。
+FxCompile:
+  C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\fxc.exe /nologo /E"main" /T ps_5_0 /Fo "shader\FieldPS.cso" /Od /Zi shader\FieldPS.hlsl 
+  compilation object save succeeded; see C:\Users\ths40319\Documents\GM31\Shu-pre\shader\FieldPS.cso
+  C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\fxc.exe /nologo /E"main" /T vs_5_0 /Fo "shader\FieldVS.cso" /Od /Zi shader\FieldVS.hlsl 
+C:\Users\ths40319\Documents\GM31\Shu-pre\shader\FieldVS.hlsl(5,34-36): warning X3578: Output value 'Out' is not completely initialized [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  
+  compilation object save succeeded; see C:\Users\ths40319\Documents\GM31\Shu-pre\shader\FieldVS.cso
+  C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\fxc.exe /nologo /E"main" /T ps_5_0 /Fo "shader\\grassPS.cso" /Od /Zi shader\grassPS.hlsl 
+  compilation object save succeeded; see C:\Users\ths40319\Documents\GM31\Shu-pre\shader\grassPS.cso
+  C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\fxc.exe /nologo /E"main" /T vs_5_0 /Fo "shader\\grassVS.cso" /Od /Zi shader\grassVS.hlsl 
+C:\Users\ths40319\Documents\GM31\Shu-pre\shader\grassVS.hlsl(5,34-36): warning X3578: Output value 'Out' is not completely initialized [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  
+  compilation object save succeeded; see C:\Users\ths40319\Documents\GM31\Shu-pre\shader\grassVS.cso
+  C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\fxc.exe /nologo /E"main" /T ps_5_0 /Fo "shader\litTexturePS.cso" /Od /Zi shader\litTexturePS.hlsl 
+  compilation object save succeeded; see C:\Users\ths40319\Documents\GM31\Shu-pre\shader\litTexturePS.cso
+  C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\fxc.exe /nologo /E"main" /T vs_5_0 /Fo "shader\litTextureVS.cso" /Od /Zi shader\litTextureVS.hlsl 
+C:\Users\ths40319\Documents\GM31\Shu-pre\shader\litTextureVS.hlsl(5,34-36): warning X3578: Output value 'Out' is not completely initialized [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  
+  compilation object save succeeded; see C:\Users\ths40319\Documents\GM31\Shu-pre\shader\litTextureVS.cso
+  C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\fxc.exe /nologo /E"main" /T ps_5_0 /Fo "unlitTexturePS.cso" /Od /Zi shader\unlitTexturePS.hlsl 
+  compilation object save succeeded; see C:\Users\ths40319\Documents\GM31\Shu-pre\unlitTexturePS.cso
+  C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\fxc.exe /nologo /E"main" /T vs_5_0 /Fo "unlitTextureVS.cso" /Od /Zi shader\unlitTextureVS.hlsl 
+C:\Users\ths40319\Documents\GM31\Shu-pre\shader\unlitTextureVS.hlsl(5,34-36): warning X3578: Output value 'Out' is not completely initialized [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  
+  compilation object save succeeded; see C:\Users\ths40319\Documents\GM31\Shu-pre\unlitTextureVS.cso
+  C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\fxc.exe /nologo /E"main" /T vs_5_0 /Fo "shader\toonVS.cso" /Od /Zi shader\toonVS.hlsl 
+  compilation object save succeeded; see C:\Users\ths40319\Documents\GM31\Shu-pre\shader\toonVS.cso
+  C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\fxc.exe /nologo /E"main" /T ps_5_0 /Fo "shader\toonPS.cso" /Od /Zi shader\toonPS.hlsl 
+  compilation object save succeeded; see C:\Users\ths40319\Documents\GM31\Shu-pre\shader\toonPS.cso
+  C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\fxc.exe /nologo /E"main" /T ps_5_0 /Fo "shader\WavePS.cso" /Od /Zi shader\WavePS.hlsl 
+  compilation object save succeeded; see C:\Users\ths40319\Documents\GM31\Shu-pre\shader\WavePS.cso
+  C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\fxc.exe /nologo /E"main" /T vs_5_0 /Fo "shader\WaveVS.cso" /Od /Zi shader\WaveVS.hlsl 
+  compilation object save succeeded; see C:\Users\ths40319\Documents\GM31\Shu-pre\shader\WaveVS.cso
+ClCompile:
+  C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64\CL.exe /c /ZI /JMC /nologo /W3 /WX- /diagnostics:column /sdl /Od /D _DEBUG /D _WINDOWS /D _MBCS /Gm- /EHsc /RTC1 /MTd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /permissive- /Fo".codex-build/final-obj/" /Fd".codex-build/final-obj/vc143.pdb" /external:W3 /Gd /TP /FC /errorReport:queue AttackWeapon.cpp ActionSequence.cpp animationModel.cpp audio.cpp Box.cpp Bullet.cpp Camera.cpp Collision.cpp Enemy.cpp Explosion.cpp field.cpp Game.cpp Grass.cpp input.cpp main.cpp manager.cpp MeshField.cpp modelRenderer.cpp Particle.cpp Player.cpp PlayerActions.cpp PlayerAnimationAssets.cpp PreviewCamera.cpp PreviewPanel.cpp PreviewScene.cpp PreviewTimeline.cpp Polygon2D.cpp renderer.cpp Result.cpp Scene.cpp Score.cpp Shadow.cpp SkyDome.cpp Title.cpp ToonPanel.cpp ToonPreset.cpp ToonShader.cpp Tree.cpp imgui\imgui.cpp imgui\imgui_draw.cpp imgui\imgui_tables.cpp imgui\imgui_widgets.cpp imgui\imgui_impl_dx11.cpp imgui\imgui_impl_win32.cpp Wave.cpp
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  AttackWeapon.cpp
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  ActionSequence.cpp
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  animationModel.cpp
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  audio.cpp
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Box.cpp
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Bullet.cpp
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Camera.cpp
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Collision.cpp
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Enemy.cpp
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Explosion.cpp
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  field.cpp
+  Game.cpp
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Grass.cpp
+  input.cpp
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  main.cpp
+  manager.cpp
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  MeshField.cpp
+  modelRenderer.cpp
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Particle.cpp
+cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Player.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\AttackWeapon.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\ActionSequence.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  PlayerActions.cpp
+  PlayerAnimationAssets.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\animationModel.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  PreviewCamera.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\audio.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  PreviewPanel.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Box.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  PreviewScene.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Bullet.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  PreviewTimeline.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Camera.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Polygon2D.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Collision.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  renderer.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Enemy.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Result.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Explosion.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Scene.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\field.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Score.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Game.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Shadow.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Grass.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  SkyDome.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\input.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Title.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\manager.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  ToonPanel.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\main.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  ToonPreset.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\modelRenderer.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  ToonShader.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Particle.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Tree.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\MeshField.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  imgui.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Player.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  imgui_draw.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\PlayerAnimationAssets.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  imgui_tables.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\PlayerActions.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  imgui_widgets.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\PreviewCamera.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  imgui_impl_dx11.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\PreviewPanel.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  imgui_impl_win32.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\PreviewScene.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Wave.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\PreviewTimeline.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\Polygon2D.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\renderer.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\Result.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\Scene.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\Score.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\Shadow.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\SkyDome.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\Title.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\ToonPanel.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\ToonPreset.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\ToonShader.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\Tree.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\imgui\imgui.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\imgui\imgui_draw.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\imgui\imgui_tables.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\imgui\imgui_widgets.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\imgui\imgui_impl_dx11.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\imgui\imgui_impl_win32.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\Wave.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+プロジェクト "C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj" (既定のターゲット) のビルドが終了しました -- 失敗。
+プロジェクト "C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.sln" (既定のターゲット) のビルドが終了しました -- 失敗。
+
+ビルドに失敗しました。
+
+"C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.sln" (既定のターゲット) (1) ->
+"C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj" (既定のターゲット) (2) ->
+(FxCompile ターゲット) -> 
+  C:\Users\ths40319\Documents\GM31\Shu-pre\shader\FieldVS.hlsl(5,34-36): warning X3578: Output value 'Out' is not completely initialized [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+
+
+"C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.sln" (既定のターゲット) (1) ->
+"C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj" (既定のターゲット) (2) ->
+  C:\Users\ths40319\Documents\GM31\Shu-pre\shader\grassVS.hlsl(5,34-36): warning X3578: Output value 'Out' is not completely initialized [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+
+
+"C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.sln" (既定のターゲット) (1) ->
+"C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj" (既定のターゲット) (2) ->
+  C:\Users\ths40319\Documents\GM31\Shu-pre\shader\litTextureVS.hlsl(5,34-36): warning X3578: Output value 'Out' is not completely initialized [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+
+
+"C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.sln" (既定のターゲット) (1) ->
+"C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj" (既定のターゲット) (2) ->
+  C:\Users\ths40319\Documents\GM31\Shu-pre\shader\unlitTextureVS.hlsl(5,34-36): warning X3578: Output value 'Out' is not completely initialized [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+
+
+"C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.sln" (既定のターゲット) (1) ->
+"C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj" (既定のターゲット) (2) ->
+(ClCompile ターゲット) -> 
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/Z7' より '/ZI' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+
+
+"C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.sln" (既定のターゲット) (1) ->
+"C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj" (既定のターゲット) (2) ->
+(ClCompile ターゲット) -> 
+  C:\Users\ths40319\Documents\GM31\Shu-pre\AttackWeapon.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\ActionSequence.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\animationModel.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\audio.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Box.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Bullet.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Camera.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Collision.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Enemy.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Explosion.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\field.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Game.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Grass.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\input.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\manager.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\main.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\modelRenderer.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Particle.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\MeshField.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Player.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\PlayerAnimationAssets.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\PlayerActions.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\PreviewCamera.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\PreviewPanel.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\PreviewScene.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\PreviewTimeline.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Polygon2D.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\renderer.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Result.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Scene.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Score.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Shadow.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\SkyDome.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Title.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\ToonPanel.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\ToonPreset.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\ToonShader.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Tree.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\imgui\imgui.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\imgui\imgui_draw.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\imgui\imgui_tables.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\imgui\imgui_widgets.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\imgui\imgui_impl_dx11.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\imgui\imgui_impl_win32.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Wave.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+
+    25 個の警告
+    45 エラー
+
+経過時間 00:01:16.28

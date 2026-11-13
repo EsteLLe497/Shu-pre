@@ -2,45 +2,51 @@
 <Project>
   <ProjectOutputs>
     <ProjectOutput>
-      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\x64\Debug\GM31_Game.exe</FullPath>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\x64\Debug\GM31_Game.exe</FullPath>
     </ProjectOutput>
   </ProjectOutputs>
   <ContentFiles>
     <ContentFile>
-      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\FieldPS.cso</FullPath>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\FieldPS.cso</FullPath>
     </ContentFile>
     <ContentFile>
-      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\FieldVS.cso</FullPath>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\FieldVS.cso</FullPath>
     </ContentFile>
     <ContentFile>
-      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\grassPS.cso</FullPath>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\grassPS.cso</FullPath>
     </ContentFile>
     <ContentFile>
-      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\grassVS.cso</FullPath>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\grassVS.cso</FullPath>
     </ContentFile>
     <ContentFile>
-      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\litTexturePS.cso</FullPath>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\litTexturePS.cso</FullPath>
     </ContentFile>
     <ContentFile>
-      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\litTextureVS.cso</FullPath>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\litTextureVS.cso</FullPath>
     </ContentFile>
     <ContentFile>
-      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\unlitTexturePS.cso</FullPath>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\unlitTexturePS.cso</FullPath>
     </ContentFile>
     <ContentFile>
-      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\unlitTextureVS.cso</FullPath>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\unlitTextureVS.cso</FullPath>
     </ContentFile>
     <ContentFile>
-      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\toonVS.cso</FullPath>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\toonVS.cso</FullPath>
     </ContentFile>
     <ContentFile>
-      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\toonPS.cso</FullPath>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\toonPS.cso</FullPath>
     </ContentFile>
     <ContentFile>
-      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\WavePS.cso</FullPath>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\weaponEndVS.cso</FullPath>
     </ContentFile>
     <ContentFile>
-      <FullPath>C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\shader\WaveVS.cso</FullPath>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\weaponEndPS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\WavePS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\WaveVS.cso</FullPath>
     </ContentFile>
   </ContentFiles>
   <SatelliteDlls />

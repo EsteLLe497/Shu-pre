@@ -6,6 +6,38 @@
 #include "ActionSequence.h"
 #include <algorithm>
 
+bool WeaponTrack::visible(float time) const
+{
+    return enabled && time >= appear && time <= disappear;
+}
+
+WeaponPose WeaponTrack::sample(float time) const
+{
+    const bool first = time < middle;
+    const auto& from = keys[first ? 0 : 1];
+    const auto& to = keys[first ? 1 : 2];
+    const float start = first ? appear : middle;
+    const float end = first ? middle : disappear;
+    const float t = end > start ? std::max(0.0f, std::min(1.0f, (time - start) / (end - start))) : 1.0f;
+    WeaponPose pose;
+    for (std::size_t axis = 0; axis < pose.position.size(); ++axis)
+    {
+        pose.position[axis] = from.position[axis] + (to.position[axis] - from.position[axis]) * t;
+        pose.angles[axis] = from.angles[axis] + (to.angles[axis] - from.angles[axis]) * t;
+    }
+    return pose;
+}
+
+float WeaponTrack::cameraWeight(float time, float duration) const
+{
+    if (!enabled || !cameraEnabled)
+        return 0.0f;
+
+    const float fade = std::min(0.15f, duration * 0.5f);
+    const float t = std::max(0.0f, std::min(1.0f, std::min(time, duration - time) / fade));
+    return t * t * (3.0f - 2.0f * t);
+}
+
 bool hasExpressionMorphs(const ActionSequence& action, const std::vector<std::string>& names)
 {
     const auto has = [&](const std::string& name) {
@@ -54,7 +86,7 @@ bool ActionPlayback::takeEffect(const ActionSequence& action)
 
 void ActionPlayback::advance(const ActionSequence& action, float dt)
 {
-    advanceTo(action.duration, dt, false);
+    advanceTo(action.duration, dt * action.speed, false);
 }
 
 void ActionPlayback::advanceTo(float endTime, float dt, bool holdAtEnd)

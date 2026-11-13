@@ -8,6 +8,8 @@
 #include "animationModel.h"
 #include "ToonShader.h"
 #include "PlayerActionSet.h"
+#include "AttackWeapon.h"
+#include "Explosion.h"
 
 class Player : public GameObject
 {
@@ -16,6 +18,13 @@ private:
 
 
     ToonShader m_toonShader;
+    AttackWeapon m_weapon;
+    std::unique_ptr<Explosion> m_attackEffect;
+    Vector3 m_attackEffectPosition{ 0.0f, 0.0f, 0.0f };
+    bool m_attackEffectTriggered = false;
+    float m_sampledActionTime = -1.0f;
+    float m_weaponTime = -1.0f;
+    XMMATRIX m_weaponEndAnchor = XMMatrixIdentity();
 
     bool m_Ground = false;
     bool m_jumpedFromGround = false;
@@ -65,6 +74,7 @@ public:
     // 登録済みの単発アクションか、先読みした任意のアクションを再生する。
     bool playAction(PlayerActionKind kind);
     bool playAction(const ActionSequence& action);
+    Vector3 attackCameraOffset() const;
     ToonSettings& toonSettings() { return m_toonShader.settings(); }
 };
 

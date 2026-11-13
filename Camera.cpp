@@ -94,9 +94,14 @@ void Camera::Draw()
         static_cast<float>(SCREEN_WIDTH) / SCREEN_HEIGHT, nearPlane, 1000.0f);
     Renderer::SetProjectionMatrix(m_projectionMatrix);
 
+    const auto* player = Manager::GetGameObj<Player>();
+    const Vector3 offset = player ? player->attackCameraOffset() : Vector3(0.0f, 0.0f, 0.0f);
+    const auto safeOffset = XMVector3ClampLength(XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&offset)),
+        0.0f, m_distance * 0.8f);
+    const auto target = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&m_viewTarget)) + safeOffset;
     const XMFLOAT3 up(0.0f, 1.0f, 0.0f);
     m_viewMatrix = XMMatrixLookAtLH(XMLoadFloat3(reinterpret_cast<XMFLOAT3*>(&m_Position)),
-        XMLoadFloat3(reinterpret_cast<XMFLOAT3*>(&m_viewTarget)), XMLoadFloat3(&up));
+        target, XMLoadFloat3(&up));
     Renderer::SetViewMatrix(m_viewMatrix);
     Renderer::SetCameraPosition(m_Position);
 }
