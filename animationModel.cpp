@@ -412,6 +412,35 @@ bool AnimationModel::LoadAnimation(const char* fileName, const char* name)
     return false;
 }
 
+float AnimationModel::forwardAttackTravel(const char* name, double time) const
+{
+    const auto clip = m_Animation.find(name);
+    if (clip == m_Animation.end() || !m_landingArmature)
+        return 0.0f;
+
+    const auto& animation = *clip->second->mAnimations[0];
+    const double rate = animation.mTicksPerSecond > 0.0 ? animation.mTicksPerSecond : 60.0;
+    for (unsigned int i = 0; i < animation.mNumChannels; ++i)
+    {
+        const auto& channel = *animation.mChannels[i];
+        if (channel.mNodeName != m_landingArmature->mName || !channel.mNumPositionKeys)
+            continue;
+
+        const auto* keys = channel.mPositionKeys;
+        const auto count = channel.mNumPositionKeys;
+        const auto start = sampleVector(keys, count, 0.0);
+        auto direction = sampleVector(keys, count, animation.mDuration) - start;
+        auto displacement = sampleVector(keys, count, std::min(time * rate, animation.mDuration)) - start;
+        direction.y = displacement.y = 0.0f;
+        const float length = direction.Length();
+        if (length <= 0.0001f)
+            return 0.0f;
+        const float projected = (direction.x * displacement.x + direction.z * displacement.z) / length;
+        return std::max(0.0f, std::min(length, projected)) * m_skeletonUnitScale;
+    }
+    return 0.0f;
+}
+
 double AnimationModel::clipDuration(const char* name) const
 {
     const auto clip = m_Animation.find(name);
@@ -717,7 +746,8 @@ void AnimationModel::sampleBones(const aiAnimation& animation, double tick, Root
             ? removeHorizontalCycleTravel(*channel, tick, animation.mDuration)
             : sampleVector(channel->mPositionKeys, channel->mNumPositionKeys, tick);
         // ジャンプと着地の位置はゲーム側の移動・接地で制御する。
-        if ((rootTravel == RootTravel::anchorLandingFeet || rootTravel == RootTravel::lockTranslation)
+        if ((rootTravel == RootTravel::anchorLandingFeet || rootTravel == RootTravel::lockTranslation
+            || rootTravel == RootTravel::extractHorizontal)
             && channel->mNodeName == aiString("Armature"))
         {
             const auto& bind = bone->second.BindMatrix;

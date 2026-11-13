@@ -125,7 +125,10 @@
     <ClInclude Include="Wave.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="shader\toonCommon.hlsli" />
+    <None Include="shader\toonCommon.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
     <None Include="imgui\LICENSE.txt" />
     <FxCompile Include="shader\common.hlsl">
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>

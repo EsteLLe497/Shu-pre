@@ -31,6 +31,8 @@ private:
     float m_shakeTime = 0.0f;
     CameraOrbit m_orbit;
     float m_distance = m_orbit.distance;
+    float m_attackFraming = 0.0f;
+    Vector3 m_renderPosition{ 0.0f, 0.0f, 0.0f };
 
 public:
     void Init() override;

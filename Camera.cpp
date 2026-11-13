@@ -17,6 +17,7 @@ void Camera::Init()
     m_Layer = 0;
     m_Position = { 0.0f, 3.5f, -5.0f };
     m_Rotation.x = m_orbit.pitch;
+    m_renderPosition = m_Position;
 }
 
 void Camera::Uninit()
@@ -89,21 +90,45 @@ void Camera::Update()
 void Camera::Draw()
 {
     // 接写時だけ手前のクリップ面を近づけ、遠景の深度精度を保つ。
+    const auto* player = Manager::GetGameObj<Player>();
+    if (player)
+    {
+        const float dt = Manager::animationDeltaSeconds();
+        m_attackFraming += (player->attackCameraWeight() - m_attackFraming) * (1.0f - expf(-13.0f * dt));
+    }
+
+    // Camera updates before the player. Follow the latest resolved position in Draw.
+    const Vector3 follow = player
+        ? player->GetPosition() + Vector3(0.0f, m_orbit.lookHeight, 0.0f) - m_target
+        : Vector3(0.0f, 0.0f, 0.0f);
+    const auto orbit = m_Position - m_target;
+    const auto swingOrbit = XMVector3TransformNormal(XMVectorSet(orbit.x, orbit.y, orbit.z, 0.0f),
+        XMMatrixRotationY(0.26f * m_attackFraming));
+    const float zoom = 1.0f + 0.20f * m_attackFraming;
+    const auto eye = m_target + follow + Vector3(XMVectorGetX(swingOrbit) * zoom,
+        orbit.y + 0.34f * m_attackFraming, XMVectorGetZ(swingOrbit) * zoom);
+    m_renderPosition = eye;
+
     const float nearPlane = fminf(1.0f, m_distance * 0.20f);
     m_projectionMatrix = XMMatrixPerspectiveFovLH(1.0f,
         static_cast<float>(SCREEN_WIDTH) / SCREEN_HEIGHT, nearPlane, 1000.0f);
     Renderer::SetProjectionMatrix(m_projectionMatrix);
 
-    const auto* player = Manager::GetGameObj<Player>();
-    const Vector3 offset = player ? player->attackCameraOffset() : Vector3(0.0f, 0.0f, 0.0f);
+    auto offset = player ? player->attackCameraOffset() : Vector3(0.0f, 0.0f, 0.0f);
+    if (player)
+    {
+        const float yaw = player->GetRotation().y;
+        offset += Vector3(sinf(yaw), 0.15f, cosf(yaw)) * (0.58f * m_attackFraming);
+    }
     const auto safeOffset = XMVector3ClampLength(XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&offset)),
         0.0f, m_distance * 0.8f);
-    const auto target = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&m_viewTarget)) + safeOffset;
+    const auto target = XMVectorSet(m_viewTarget.x + follow.x, m_viewTarget.y + follow.y,
+        m_viewTarget.z + follow.z, 1.0f) + safeOffset;
     const XMFLOAT3 up(0.0f, 1.0f, 0.0f);
-    m_viewMatrix = XMMatrixLookAtLH(XMLoadFloat3(reinterpret_cast<XMFLOAT3*>(&m_Position)),
+    m_viewMatrix = XMMatrixLookAtLH(XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&m_renderPosition)),
         target, XMLoadFloat3(&up));
     Renderer::SetViewMatrix(m_viewMatrix);
-    Renderer::SetCameraPosition(m_Position);
+    Renderer::SetCameraPosition(m_renderPosition);
 }
 
 bool Camera::CheckView(Vector3 Position)

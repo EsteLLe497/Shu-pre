@@ -24,6 +24,8 @@ private:
     bool m_attackEffectTriggered = false;
     float m_sampledActionTime = -1.0f;
     float m_weaponTime = -1.0f;
+    float m_attackTravel = 0.0f;
+    XMMATRIX m_attackAnchor = XMMatrixIdentity();
     XMMATRIX m_weaponEndAnchor = XMMatrixIdentity();
 
     bool m_Ground = false;
@@ -59,6 +61,8 @@ private:
     {
         return m_actionPlayback.active() && m_playingActionKind == PlayerActionKind::land;
     }
+    bool isMovingAttack() const;
+    Vector3 advanceAttackTravel();
     void updateLocomotion(float dt, PlayerActionKind kind);
     void updateActionPose(float dt, float physicsDt);
     void spawnActionEffect(const ActionSequence& action);
@@ -75,6 +79,7 @@ public:
     bool playAction(PlayerActionKind kind);
     bool playAction(const ActionSequence& action);
     Vector3 attackCameraOffset() const;
+    float attackCameraWeight() const;
     ToonSettings& toonSettings() { return m_toonShader.settings(); }
 };
 

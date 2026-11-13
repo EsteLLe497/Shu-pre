@@ -211,6 +211,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         PostQuitMessage(0);
         break;
 
+    case WM_LBUTTONDOWN:
+        if (!ToonPanel::isOpen() && GetFocus() == hWnd)
+            Input::OnLeftClick();
+        break;
+
     case WM_KEYDOWN:
         if (wParam == VK_ESCAPE) DestroyWindow(hWnd);
         if (wParam == 'J' && !(lParam & (1LL << 30))) Input::OnAttackPress();
