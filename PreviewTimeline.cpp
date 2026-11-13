@@ -11,26 +11,32 @@
 // =========================================================
 // •b‚Åi‚ßAƒ‹[ƒvŽž‚ÍÅŒã‚ÌƒtƒŒ[ƒ€‚ð‰z‚¦‚½ŽžŠÔ‚àˆø‚«Œp‚®
 // =========================================================
+float PreviewTimeline::playbackEnd() const
+{
+    return std::max(duration, weaponVisualEnd);
+}
+
 void PreviewTimeline::advance(float dt)
 {
     if (!playing)
         return;
 
     const float next = time + dt * speed;
-    if (loop && next >= duration)
+    const float end = playbackEnd();
+    if (loop && next >= end)
     {
-        time = std::fmod(next, duration);
+        time = std::fmod(next, end);
         return;
     }
 
     seek(next);
-    if (time >= duration)
+    if (time >= end)
         playing = false;
 }
 
 void PreviewTimeline::seek(float seconds)
 {
-    time = std::max(0.0f, std::min(duration, seconds));
+    time = std::max(0.0f, std::min(playbackEnd(), seconds));
 }
 
 bool PreviewTimeline::trackEnabled(int track) const
@@ -38,7 +44,7 @@ bool PreviewTimeline::trackEnabled(int track) const
     if (soloTrack >= 0)
         return track == soloTrack;
 
-    return track == 0 ? motionEnabled : (track == 1 ? faceEnabled : effectEnabled);
+    return track == 0 ? motionEnabled : (track == 1 ? faceEnabled : track == 2 ? effectEnabled : true);
 }
 
 // =========================================================

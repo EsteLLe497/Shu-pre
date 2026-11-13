@@ -1,0 +1,57 @@
+2026/11/13 15:40:02 にビルドを開始しました。
+ログの詳細度は次のように設定されています: Normal。
+ノード 1 上のプロジェクト "C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.sln" (既定のターゲット)。
+ValidateSolutionConfiguration:
+  ソリューション構成 "Debug|x64" をビルドしています。
+プロジェクト "C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.sln" (1) は、ノード 1 上に "C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj" (2) をビルドしています (既定のターゲット)。
+PrepareForBuild:
+  構造化出力が有効になっています。コンパイラ診断の書式設定にはエラー階層が反映されます。詳細については、https://aka.ms/cpp/structured-output を参照してください。
+InitializeBuildStatus:
+  ".codex-build/obj/GM31_Game.tlog\unsuccessfulbuild" のタッチ タスクを実行しています。
+FxCompile:
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+ClCompile:
+  C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64\CL.exe /c /ZI /JMC /nologo /W3 /WX- /diagnostics:column /sdl /Od /D _DEBUG /D _WINDOWS /D _MBCS /Gm- /EHsc /RTC1 /MTd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /permissive- /Fo".codex-build/obj/" /Fd".codex-build/obj/vc143.pdb" /external:W3 /Gd /TP /FC /errorReport:queue Camera.cpp Game.cpp manager.cpp Player.cpp PlayerActions.cpp PreviewPanel.cpp
+  Camera.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Camera.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Game.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Game.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  manager.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\manager.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Player.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Player.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  PlayerActions.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\PlayerActions.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  PreviewPanel.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\PreviewPanel.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  コードを生成中...
+プロジェクト "C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj" (既定のターゲット) のビルドが終了しました -- 失敗。
+プロジェクト "C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.sln" (既定のターゲット) のビルドが終了しました -- 失敗。
+
+ビルドに失敗しました。
+
+"C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.sln" (既定のターゲット) (1) ->
+"C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj" (既定のターゲット) (2) ->
+(ClCompile ターゲット) -> 
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Camera.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Game.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\manager.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Player.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\PlayerActions.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\PreviewPanel.cpp(1,1): error C1902: プログラム データベース マネージャーが一致していません。セットアップが正しく行われているか確認してください。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+
+    0 個の警告
+    6 エラー
+
+経過時間 00:01:04.79

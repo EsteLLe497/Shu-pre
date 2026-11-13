@@ -77,7 +77,12 @@ namespace
 // =========================================================
 void AnimationModel::Draw()
 {
-    Renderer::SetWorldMatrix(XMMatrixRotationY(m_modelYawOffset) * m_GameObject->GetMatrx());
+    drawAt(XMMatrixRotationY(m_modelYawOffset) * m_GameObject->GetMatrx());
+}
+
+void AnimationModel::drawAt(FXMMATRIX world)
+{
+    Renderer::SetWorldMatrix(world);
     auto* context = Renderer::GetDeviceContext();
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     drawParts(m_opaqueParts, false);
@@ -149,6 +154,26 @@ void AnimationModel::loadDrawParts()
         {
             texture = loadTexture(m_AiScene->GetEmbeddedTexture(texturePath.C_Str()));
             if (!texture)
+            {
+                const std::string reference = texturePath.C_Str();
+                const auto filename = reference.substr(reference.find_last_of("/\\") + 1);
+                const auto folder = m_ModelPath.substr(0, m_ModelPath.find_last_of("/\\") + 1);
+                const auto path = folder + filename;
+                auto& external = m_externalTextures[path];
+                if (!external)
+                {
+                    const int length = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path.c_str(), -1, nullptr, 0);
+                    std::wstring widePath(length, L'\0');
+                    ScratchImage image;
+                    if (length > 0 && MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
+                        path.c_str(), -1, &widePath[0], length)
+                        && SUCCEEDED(LoadFromWICFile(widePath.c_str(), WIC_FLAGS_NONE, nullptr, image)))
+                        CreateShaderResourceView(Renderer::GetDevice(), image.GetImages(), image.GetImageCount(),
+                            image.GetMetadata(), &external);
+                }
+                texture = external;
+            }
+            if (!texture)
                 ++m_missingTextures;
         }
 
@@ -193,13 +218,16 @@ void AnimationModel::Load(const char* fileName)
     (void)loaded;
 }
 
-bool AnimationModel::tryLoad(const char* fileName)
+bool AnimationModel::tryLoad(const char* fileName, bool staticMesh)
 {
     if (m_AiScene)
         return false;
 
     m_ModelPath = fileName;
-    m_AiScene = aiImportFile(fileName, aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded);
+    unsigned int flags = aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded;
+    if (staticMesh)
+        flags |= aiProcess_PreTransformVertices;
+    m_AiScene = aiImportFile(fileName, flags);
     if (!m_AiScene)
         return false;
 
@@ -210,6 +238,32 @@ bool AnimationModel::tryLoad(const char* fileName)
     }
 
     const unsigned int meshCount = m_AiScene->mNumMeshes;
+    aiVector3D center{};
+    float unit = 1.0f;
+    if (staticMesh)
+    {
+        aiVector3D low(FLT_MAX), high(-FLT_MAX);
+        for (unsigned int m = 0; m < meshCount; ++m)
+        {
+            const auto& mesh = *m_AiScene->mMeshes[m];
+            for (unsigned int v = 0; v < mesh.mNumVertices; ++v)
+            {
+                const auto& p = mesh.mVertices[v];
+                low = { std::min(low.x, p.x), std::min(low.y, p.y), std::min(low.z, p.z) };
+                high = { std::max(high.x, p.x), std::max(high.y, p.y), std::max(high.z, p.z) };
+            }
+        }
+        const auto size = high - low;
+        unit = std::max({ size.x, size.y, size.z });
+        center = (low + high) * 0.5f;
+        if (!std::isfinite(unit) || unit <= 0.0f)
+        {
+            aiReleaseImport(m_AiScene);
+            m_AiScene = nullptr;
+            return false;
+        }
+        m_staticHalfExtents = { size.x / (2.0f * unit), size.y / (2.0f * unit), size.z / (2.0f * unit) };
+    }
     m_VertexBuffer = new ID3D11Buffer*[meshCount]{};
     m_IndexBuffer = new ID3D11Buffer*[meshCount]{};
     m_DeformVertex = new std::vector<DEFORM_VERTEX>[meshCount];
@@ -235,7 +289,7 @@ bool AnimationModel::tryLoad(const char* fileName)
         m_DeformVertex[m].resize(mesh->mNumVertices);
         for (unsigned int v = 0; v < mesh->mNumVertices; ++v)
         {
-            const auto& position = mesh->mVertices[v];
+            const auto position = (mesh->mVertices[v] - center) / unit;
             const auto& normal = mesh->mNormals[v];
             vertices[v] = { { position.x, position.y, position.z }, { normal.x, normal.y, normal.z },
                 { 1.0f, 1.0f, 1.0f, 1.0f }, mesh->HasTextureCoords(0)
@@ -356,6 +410,15 @@ bool AnimationModel::LoadAnimation(const char* fileName, const char* name)
     if (clip != m_AiScene)
         aiReleaseImport(clip);
     return false;
+}
+
+double AnimationModel::clipDuration(const char* name) const
+{
+    const auto clip = m_Animation.find(name);
+    if (clip == m_Animation.end())
+        return 0.0;
+    const auto& animation = *clip->second->mAnimations[0];
+    return animation.mDuration / (animation.mTicksPerSecond > 0.0 ? animation.mTicksPerSecond : 60.0);
 }
 
 bool AnimationModel::hasAnimation(const char* name) const
@@ -563,6 +626,10 @@ void AnimationModel::CreateBone(aiNode* node)
                 entry.second->Release();
         }
         m_textures.clear();
+        for (const auto& entry : m_externalTextures)
+            if (entry.second)
+                entry.second->Release();
+        m_externalTextures.clear();
 
 
 

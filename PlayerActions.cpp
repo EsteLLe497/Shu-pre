@@ -81,7 +81,12 @@ void Player::loadPlayerActions()
 
     assert(result == LoadResult::loaded);
     if (result == LoadResult::loaded)
+    {
         bindPlayerActions(*m_AnimationModel);
+        const auto& attack = m_actions.get(Kind::attack);
+        if (attack.loaded && attack.sequence.weapon.enabled)
+            m_weapon.load(attack.sequence.weapon.model);
+    }
 }
 
 // =========================================================
@@ -109,7 +114,7 @@ bool Player::playAction(PlayerActionKind kind)
 
     const auto& slot = m_actions.get(kind);
     if (!slot.loaded ||
-        (!slot.motionReady && !slot.faceReady && !slot.sequence.effectEnabled))
+        (!slot.motionReady && !slot.faceReady && !slot.sequence.effectEnabled && !slot.sequence.weapon.enabled))
         return false;
 
     auto action = slot.sequence;
@@ -173,6 +178,15 @@ bool Player::playAction(const ActionSequence& action)
     if (!ActionFile::validate(action) || !prepareAction(action))
         return false;
 
+    if (action.weapon.enabled && action.effectEnabled && !m_attackEffect)
+    {
+        m_attackEffect = std::make_unique<Explosion>();
+        m_attackEffect->Init();
+        m_attackEffect->SetScale({ ActionSequence::effectScale, ActionSequence::effectScale, ActionSequence::effectScale });
+    }
+
+    m_attackEffectTriggered = false;
+    m_weaponTime = -1.0f;
     m_playingAction = action;
     m_playingActionKind = Kind::count;
     m_actionMotionRestart = action.motionEnabled;
@@ -190,6 +204,9 @@ bool Player::playAction(const ActionSequence& action)
 bool Player::prepareAction(const ActionSequence& action)
 {
     if (!m_AnimationModel)
+        return false;
+
+    if (action.weapon.enabled && !m_weapon.load(action.weapon.model))
         return false;
 
     using namespace PlayerAnimationAssets;
@@ -229,6 +246,17 @@ void Player::updateActionPose(float dt, float physicsDt)
     const auto& gait = slot.sequence;
     const auto& action = m_playingAction;
     const bool active = m_actionPlayback.active();
+    m_sampledActionTime = active ? m_actionPlayback.time() : -1.0f;
+    if (action.weapon.enabled)
+    {
+        const float previous = m_weaponTime;
+        if (active)
+            m_weaponTime = m_sampledActionTime;
+        else if (m_weaponTime >= 0.0f)
+            m_weaponTime += dt * action.speed;
+        if (previous < action.weapon.disappear && m_weaponTime >= action.weapon.disappear)
+            m_weaponEndAnchor = GetMatrx();
+    }
     const bool jumping = m_playingActionKind == Kind::jump || m_playingActionKind == Kind::runJump;
     const bool landing = m_playingActionKind == Kind::land;
     const bool useActionFace = active && action.faceEnabled;
@@ -255,7 +283,7 @@ void Player::updateActionPose(float dt, float physicsDt)
         using Travel = AnimationModel::RootTravel;
         const auto rootTravel = jumping ? Travel::lockTranslation : (landing ? Travel::anchorLandingFeet : Travel::authored);
         m_AnimationModel->sampleBlendedClip(action.clip.c_str(), m_actionPlayback.time(), dt,
-            rootTravel, actionChanged || m_actionMotionRestart, !jumping && !landing);
+            rootTravel, actionChanged || m_actionMotionRestart, !jumping && !landing && !action.weapon.enabled);
     }
     else
     {
@@ -297,7 +325,30 @@ void Player::spawnActionEffect(const ActionSequence& action)
 {
     const Vector3 offset = GetRight() * action.effectX
         + GetFoward() * ActionSequence::effectForward + Vector3(0.0f, action.effectHeight, 0.0f);
+    if (action.weapon.enabled && m_attackEffect)
+    {
+        m_attackEffectPosition = action.weapon.effectOnWeapon && m_weapon.ready()
+            ? AttackWeapon::effectPosition(action.weapon, action.effectStart, GetMatrx())
+            : m_Position + offset;
+        m_attackEffectTriggered = true;
+        return;
+    }
+
     auto* effect = Manager::AddGameObj<Explosion>();
     effect->SetPosition(m_Position + offset);
     effect->SetScale({ ActionSequence::effectScale, ActionSequence::effectScale, ActionSequence::effectScale });
+}
+
+Vector3 Player::attackCameraOffset() const
+{
+    if (m_sampledActionTime < 0.0f)
+        return { 0.0f, 0.0f, 0.0f };
+
+    const auto& weapon = m_playingAction.weapon;
+    const auto& target = weapon.cameraTarget;
+    const float weight = weapon.cameraWeight(m_sampledActionTime, m_playingAction.duration);
+    const auto local = XMVectorSet(target[0] * weight, target[1] * weight, target[2] * weight, 0.0f);
+    const auto offset = XMVector3TransformNormal(local,
+        XMMatrixRotationRollPitchYaw(m_Rotation.x, m_Rotation.y, m_Rotation.z));
+    return { XMVectorGetX(offset), XMVectorGetY(offset), XMVectorGetZ(offset) };
 }

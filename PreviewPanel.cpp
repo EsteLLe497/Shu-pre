@@ -21,14 +21,40 @@ namespace
     constexpr ImGuiSliderFlags sliderFlags = ImGuiSliderFlags_AlwaysClamp;
 
     constexpr float trackLabelWidth = 188.0f;
+    constexpr char defaultWeapon[] = "asset/model/Weapon/Short_Sword/mfx025_viking-sword-A.FBX";
+    using LoadWeapon = std::function<bool(const std::string&)>;
+
+    void clampWeaponTiming(WeaponTrack& weapon, float duration)
+    {
+        weapon.disappear = std::min(weapon.disappear, duration);
+        weapon.middle = std::min(weapon.middle, weapon.disappear);
+        weapon.appear = std::min(weapon.appear, weapon.middle);
+    }
 
     float timelineHeight(const PreviewControls& controls)
     {
-        const float addedHeight = 23.0f * static_cast<float>(controls.extraMorphs.size());
+        const auto extraTracks = controls.extraMorphs.size() + (controls.weapon.model.empty() ? 0 : 1);
+        const float addedHeight = 23.0f * static_cast<float>(extraTracks);
         return fminf(196.0f + addedHeight, fmaxf(196.0f, ImGui::GetIO().DisplaySize.y * 0.48f));
     }
 
     // ピークを金色のひし形と秒数で表示し、クリックするとその時刻へ移動する。
+    void resizeTimeline(PreviewTimeline& timeline, PreviewControls& controls)
+    {
+        timeline.seek(timeline.time);
+        clampWeaponTiming(controls.weapon, timeline.duration);
+        timeline.faceEnd = std::min(timeline.faceEnd, timeline.duration);
+        timeline.facePeak = std::min(timeline.facePeak, timeline.faceEnd);
+        timeline.faceStart = std::min(timeline.faceStart, timeline.facePeak);
+        timeline.effectStart = std::min(timeline.effectStart, timeline.duration);
+        for (auto& morph : controls.extraMorphs)
+        {
+            morph.end = std::min(morph.end, timeline.duration);
+            morph.peak = std::min(morph.peak, morph.end);
+            morph.start = std::min(morph.start, morph.peak);
+        }
+    }
+
     void drawTrackBar(float start, float end, float peak, ImU32 color, bool enabled, PreviewTimeline& timeline)
     {
         const float width = fmaxf(1.0f, ImGui::GetContentRegionAvail().x);
@@ -36,7 +62,7 @@ namespace
         const ImVec2 origin = ImGui::GetItemRectMin();
         const ImVec2 corner = ImGui::GetItemRectMax();
         const auto timeToX = [&](float time) {
-            return origin.x + width * fmaxf(0.0f, fminf(1.0f, time / timeline.duration));
+            return origin.x + width * fmaxf(0.0f, fminf(1.0f, time / timeline.playbackEnd()));
         };
 
         auto* drawList = ImGui::GetWindowDrawList();
@@ -51,7 +77,7 @@ namespace
             const bool nearPeak = peak >= 0.0f && fabsf(mouseX - timeToX(peak)) <= 7.0f;
             timeline.playing = false;
             if (ImGui::IsItemActivated() || fabsf(ImGui::GetIO().MouseDelta.x) > 0.0f)
-                timeline.seek(nearPeak ? peak : (mouseX - origin.x) / width * timeline.duration);
+                timeline.seek(nearPeak ? peak : (mouseX - origin.x) / width * timeline.playbackEnd());
         }
 
         const float playhead = timeToX(timeline.time);
@@ -95,7 +121,7 @@ namespace
         if (ImGui::SmallButton(timeline.soloTrack == track ? "Solo on" : "Solo"))
             timeline.soloTrack = timeline.soloTrack == track ? -1 : track;
         ImGui::SameLine(trackLabelWidth);
-        drawTrackBar(start, end, peak, color, timeline.trackEnabled(track), timeline);
+        drawTrackBar(start, end, peak, color, (track != 3 || enabled) && timeline.trackEnabled(track), timeline);
         ImGui::PopID();
     }
 
@@ -121,6 +147,8 @@ namespace
     {
         ActionSequence action;
         action.duration = timeline.duration;
+        action.speed = timeline.speed;
+        action.weapon = controls.weapon;
         action.motionEnabled = timeline.motionEnabled;
         action.clip = controls.clipName;
         action.faceEnabled = timeline.faceEnabled && !morphs.empty();
@@ -145,15 +173,26 @@ namespace
     }
 
     const char* applyAction(const ActionSequence& action, PreviewTimeline& timeline, PreviewControls& controls,
-        const std::vector<std::string>& morphs, const std::function<bool(const std::string&)>& selectMotion)
+        const std::vector<std::string>& morphs, const std::function<bool(const std::string&)>& selectMotion,
+        const LoadWeapon& loadWeapon)
     {
         const auto base = std::find(morphs.begin(), morphs.end(), action.baseMorph);
         const auto target = std::find(morphs.begin(), morphs.end(), action.targetMorph);
         if (action.faceEnabled && !hasExpressionMorphs(action, morphs))
             return "This model is missing a shape key used by the action.";
 
+        const auto previousClip = controls.clipName;
         if (!selectMotion(action.clip) && action.motionEnabled)
             return "Could not load the motion used by the action.";
+        if (!action.weapon.model.empty() && !loadWeapon(action.weapon.model))
+        {
+            selectMotion(previousClip);
+            return "Could not load the weapon used by the action.";
+        }
+
+        controls.weapon = action.weapon;
+        strcpy_s(controls.weaponPath, controls.weapon.model.c_str());
+        timeline.speed = action.speed;
         controls.baseMorphIndex = base == morphs.end() ? -1 : static_cast<int>(base - morphs.begin());
         controls.morphIndex = target == morphs.end() ? 0 : static_cast<int>(target - morphs.begin());
         controls.extraMorphs.clear();
@@ -182,7 +221,7 @@ namespace
     }
 
     void drawTimeline(PreviewTimeline& timeline, PreviewControls& controls, const std::vector<std::string>& morphs,
-        const std::function<bool(const std::string&)>& selectMotion)
+        const std::function<bool(const std::string&)>& selectMotion, const LoadWeapon& loadWeapon)
     {
         const ImVec2 size = ImGui::GetIO().DisplaySize;
         const float height = timelineHeight(controls);
@@ -192,7 +231,7 @@ namespace
         {
             if (ImGui::Button(timeline.playing ? "Pause" : "Play", ImVec2(65.0f, 0.0f)))
             {
-                if (!timeline.playing && timeline.time >= timeline.duration)
+                if (!timeline.playing && timeline.time >= timeline.playbackEnd())
                     timeline.seek(0.0f);
                 timeline.playing = !timeline.playing;
             }
@@ -217,7 +256,7 @@ namespace
             ImGui::SameLine();
             ImGui::Checkbox("Loop", &timeline.loop);
             ImGui::SameLine();
-            ImGui::Text("%.3f / %.3f s", timeline.time, timeline.duration);
+            ImGui::Text("%.3f / %.3f s", timeline.time, timeline.playbackEnd());
 
             const float controlsHeight = 2.0f * ImGui::GetFrameHeightWithSpacing();
             const float trackHeight = fmaxf(40.0f, ImGui::GetContentRegionAvail().y - controlsHeight);
@@ -229,6 +268,9 @@ namespace
                     IM_COL32(179, 109, 181, 255), timeline, 1, timeline.facePeak);
                 for (const auto& morph : controls.extraMorphs)
                     drawMorphTrack(morph, timeline);
+                if (!controls.weapon.model.empty())
+                    drawTrack("Weapon", controls.weapon.enabled, controls.weapon.appear, controls.weapon.visualEnd(),
+                        IM_COL32(70, 180, 180, 255), timeline, 3, controls.weapon.middle);
                 drawTrack("Effect", timeline.effectEnabled, timeline.effectStart,
                     timeline.effectStart + Explosion::frameCount * Explosion::frameDuration,
                     IM_COL32(218, 151, 72, 255), timeline, 2);
@@ -238,17 +280,7 @@ namespace
             ImGui::SetNextItemWidth(110.0f);
             if (ImGui::SliderFloat("Duration", &timeline.duration, 0.5f, 10.0f, "%.2f s", sliderFlags))
             {
-                timeline.seek(timeline.time);
-                timeline.faceStart = fminf(timeline.faceStart, timeline.duration);
-                timeline.facePeak = fminf(timeline.facePeak, timeline.duration);
-                timeline.faceEnd = fminf(timeline.faceEnd, timeline.duration);
-                timeline.effectStart = fminf(timeline.effectStart, timeline.duration);
-                for (auto& morph : controls.extraMorphs)
-                {
-                    morph.start = fminf(morph.start, timeline.duration);
-                    morph.peak = fminf(morph.peak, timeline.duration);
-                    morph.end = fminf(morph.end, timeline.duration);
-                }
+                resizeTimeline(timeline, controls);
             }
             ImGui::SameLine();
             ImGui::SetNextItemWidth(110.0f);
@@ -294,7 +326,7 @@ namespace
                     ActionSequence action;
                     if (!ActionFile::loadNamed(name, action))
                         controls.actionStatus = "No valid action at " + actionPath;
-                    else if (const char* error = applyAction(action, timeline, controls, morphs, selectMotion))
+                    else if (const char* error = applyAction(action, timeline, controls, morphs, selectMotion, loadWeapon))
                         controls.actionStatus = error;
                     else
                     {
@@ -408,9 +440,90 @@ namespace
         ImGui::EndDisabled();
     }
 
+    void editWeapon(PreviewTimeline& timeline, PreviewControls& controls, const LoadWeapon& loadWeapon)
+    {
+        auto& weapon = controls.weapon;
+        ImGui::InputText("Weapon FBX", controls.weaponPath, sizeof(controls.weaponPath));
+        const bool load = ImGui::Button("Load weapon");
+        ImGui::SameLine();
+        const bool shortSword = ImGui::Button("Short Sword");
+        if (shortSword)
+            strcpy_s(controls.weaponPath, defaultWeapon);
+        if ((load || shortSword) && loadWeapon(controls.weaponPath))
+        {
+            weapon.model = controls.weaponPath;
+            weapon.enabled = true;
+            clampWeaponTiming(weapon, timeline.duration);
+        }
+        if (!controls.weaponStatus.empty())
+            ImGui::TextWrapped("%s", controls.weaponStatus.c_str());
+        if (weapon.model.empty())
+            return;
+
+        ImGui::Checkbox("Show during attack", &weapon.enabled);
+        ImGui::Checkbox("Move whole path", &controls.moveWholePath);
+        ImGui::TextDisabled("Off: move nearest pose key");
+        ImGui::SliderFloat("Appear", &weapon.appear, 0.0f, weapon.middle, "%.3f s", sliderFlags);
+        ImGui::SliderFloat("Swing key", &weapon.middle, weapon.appear, weapon.disappear, "%.3f s", sliderFlags);
+        ImGui::SliderFloat("End pose time", &weapon.disappear, weapon.middle, timeline.duration, "%.3f s", sliderFlags);
+        ImGui::SliderFloat("Scale", &weapon.scale, 0.001f, 20.0f, "%.3f",
+            sliderFlags | ImGuiSliderFlags_Logarithmic);
+        ImGui::DragFloat3("Pivot XYZ", weapon.pivot.data(), 0.01f, -10.0f, 10.0f, "%.2f", sliderFlags);
+        const char* labels[] = { "Appear pose", "Swing pose", "End pose" };
+        const float times[] = { weapon.appear, weapon.middle, weapon.disappear };
+        for (std::size_t i = 0; i < weapon.keys.size(); ++i)
+        {
+            if (!ImGui::TreeNode(labels[i]))
+                continue;
+            if (ImGui::Button("Seek to pose"))
+            {
+                timeline.playing = false;
+                timeline.seek(times[i]);
+            }
+            ImGui::DragFloat3("Position XYZ", weapon.keys[i].position.data(), 0.01f,
+                -10.0f, 10.0f, "%.2f", sliderFlags);
+            ImGui::DragFloat3("Pitch/Yaw/Roll", weapon.keys[i].angles.data(), 1.0f,
+                -1440.0f, 1440.0f, "%.0f deg", sliderFlags);
+            ImGui::TreePop();
+        }
+
+        ImGui::Checkbox("Trail", &weapon.trail);
+        if (weapon.trail)
+        {
+            ImGui::ColorEdit3("Trail color", weapon.trailColor.data());
+            ImGui::SliderFloat("Trail length", &weapon.trailLength, 0.01f, 1.0f, "%.2f s", sliderFlags);
+            ImGui::DragFloat3("Blade base", weapon.trailBase.data(), 0.01f, -10.0f, 10.0f, "%.2f", sliderFlags);
+        }
+        ImGui::Checkbox("End dissolve", &weapon.dissolve);
+        if (weapon.dissolve)
+        {
+            if (ImGui::Button("Preview dissolve"))
+            {
+                timeline.playing = false;
+                timeline.seek(weapon.disappear + weapon.dissolveDuration * 0.45f);
+            }
+            ImGui::SliderFloat("Dissolve time", &weapon.dissolveDuration, 0.08f, 1.5f, "%.2f s", sliderFlags);
+            ImGui::SliderFloat("Edge glow", &weapon.dissolveGlow, 0.1f, 3.0f, "%.2f", sliderFlags);
+            ImGui::ColorEdit3("Edge color", weapon.dissolveColor.data());
+            ImGui::Checkbox("End particles", &weapon.dissolveParticles);
+            if (weapon.dissolveParticles)
+            {
+                ImGui::SliderInt("Particle count", &weapon.particleCount, 8, 128, "%d", sliderFlags);
+                ImGui::ColorEdit3("Particle color", weapon.particleColor.data());
+            }
+        }
+        ImGui::Checkbox("Effect at blade tip", &weapon.effectOnWeapon);
+        if (weapon.trail || weapon.effectOnWeapon)
+            ImGui::DragFloat3("Blade tip", weapon.trailTip.data(), 0.01f, -10.0f, 10.0f, "%.2f", sliderFlags);
+        ImGui::Checkbox("Attack camera target", &weapon.cameraEnabled);
+        if (weapon.cameraEnabled)
+            ImGui::DragFloat3("Target offset XYZ", weapon.cameraTarget.data(), 0.01f, -10.0f, 10.0f, "%.2f", sliderFlags);
+    }
+
     void drawInspector(PreviewTimeline& timeline, PreviewControls& controls, PreviewCamera& camera,
         ToonSettings& shader, const std::vector<std::string>& morphs,
-        const std::function<bool(const std::string&)>& selectMotion)
+        const std::function<bool(const std::string&)>& selectMotion, const LoadWeapon& loadWeapon,
+        const std::function<double()>& clipDuration)
     {
         const ImVec2 size = ImGui::GetIO().DisplaySize;
         ImGui::SetNextWindowPos(ImVec2(fmaxf(16.0f, size.x - 336.0f), 16.0f), ImGuiCond_Always);
@@ -437,10 +550,18 @@ namespace
                     controls.motionNames = PlayerAnimationAssets::listMotions();
                     controls.motionStatus = "Motion list refreshed.";
                 }
+                if (ImGui::Button("Use clip duration") && clipDuration() > 0.0)
+                {
+                    timeline.duration = std::max(0.5f, std::min(10.0f, static_cast<float>(clipDuration())));
+                    resizeTimeline(timeline, controls);
+                }
                 if (controls.motionStatus)
                     ImGui::TextWrapped("%s", controls.motionStatus);
                 ImGui::TextDisabled("Muted motion holds frame 0.");
             }
+
+            if (ImGui::CollapsingHeader("Attack weapon", controls.weapon.enabled ? ImGuiTreeNodeFlags_DefaultOpen : 0))
+                editWeapon(timeline, controls, loadWeapon);
 
             if (ImGui::CollapsingHeader("Expression", ImGuiTreeNodeFlags_DefaultOpen))
             {
@@ -507,7 +628,8 @@ namespace
 // =========================================================
 bool PreviewPanel::draw(PreviewTimeline& timeline, PreviewControls& controls, PreviewCamera& camera,
     ToonSettings& shader, const std::vector<std::string>& morphs,
-    const std::function<bool(const std::string&)>& selectMotion)
+    const std::function<bool(const std::string&)>& selectMotion,
+    const LoadWeapon& loadWeapon, const std::function<double()>& clipDuration)
 {
     bool reload = false;
     ImGui::SetNextWindowPos(ImVec2(16.0f, 16.0f), ImGuiCond_Always);
@@ -515,15 +637,41 @@ bool PreviewPanel::draw(PreviewTimeline& timeline, PreviewControls& controls, Pr
     if (ImGui::Begin("Asset Preview", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
         ImGuiWindowFlags_AlwaysAutoResize))
     {
-        reload = ImGui::Button("Reload Blender export");
+        ImGui::Checkbox("Show XYZ axes", &controls.showWorldAxes);
+        ImGui::TextUnformatted("Character FBX");
+        ImGui::SetNextItemWidth(-1.0f);
+        ImGui::InputText("##CharacterFBX", controls.characterPath, sizeof(controls.characterPath));
+        reload = ImGui::Button("Load character");
+        ImGui::SameLine();
+        if (ImGui::Button("Reload Blender export"))
+        {
+            strcpy_s(controls.characterPath, PlayerAnimationAssets::previewModel);
+            reload = true;
+        }
+        if (ImGui::Button("Open Attack01"))
+        {
+            ActionSequence action;
+            if (!ActionFile::loadAttack(action))
+                controls.actionStatus = "Could not read Attack01.";
+            else if (const char* error = applyAction(action, timeline, controls, morphs, selectMotion, loadWeapon))
+                controls.actionStatus = error;
+            else
+            {
+                strcpy_s(controls.actionName, "Attack01");
+                controls.actionStatus = "Loaded Attack01.";
+                timeline.seek(action.weapon.middle);
+            }
+        }
         ImGui::TextWrapped("%s", controls.assetStatus.c_str());
         ImGui::Text("%zu morph targets", morphs.size());
-        ImGui::TextDisabled("Alt + LMB: orbit | MMB: pan");
+        ImGui::TextDisabled("RMB: orbit | MMB: pan");
         ImGui::TextDisabled("Wheel / Alt + RMB: zoom | F: frame");
+        ImGui::TextDisabled("Click weapon to move");
     }
     ImGui::End();
 
-    drawInspector(timeline, controls, camera, shader, morphs, selectMotion);
-    drawTimeline(timeline, controls, morphs, selectMotion);
+    drawInspector(timeline, controls, camera, shader, morphs, selectMotion, loadWeapon, clipDuration);
+    timeline.weaponVisualEnd = controls.weapon.enabled ? controls.weapon.visualEnd() : 0.0f;
+    drawTimeline(timeline, controls, morphs, selectMotion, loadWeapon);
     return reload;
 }

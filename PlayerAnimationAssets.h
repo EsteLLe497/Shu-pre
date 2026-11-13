@@ -16,6 +16,7 @@ namespace PlayerAnimationAssets
     constexpr char model[] = "asset/model/Player_Movement/Player.fbx";
     constexpr char previewModel[] = "asset/model/Player_Movement/Player_Preview.fbx";
     constexpr float skeletonScale = 0.01f;
+    constexpr char attackMotionsDirectory[] = "asset/model/Player_Movement/AttackMotions";
     constexpr char motionsDirectory[] = "asset/model/Player_Movement/Motions";
 
     bool isMotionName(const std::string& name);

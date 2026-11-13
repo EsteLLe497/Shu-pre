@@ -1,45 +1,46 @@
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\ActionFile.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\ActionFile.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\ActionSequence.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\ActionSequence.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\animationModel.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\animationModel.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\audio.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\audio.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Box.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Box.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Bullet.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Bullet.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Camera.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Camera.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Collision.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Collision.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Enemy.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Enemy.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Explosion.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Explosion.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\field.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\field.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Game.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Game.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Grass.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Grass.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\input.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\input.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\main.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\main.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\manager.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\manager.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\MeshField.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\MeshField.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\modelRenderer.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\modelRenderer.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Particle.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Particle.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Player.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Player.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\PlayerActions.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\PlayerActions.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\PlayerAnimationAssets.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\PlayerAnimationAssets.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\PreviewCamera.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\PreviewCamera.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\PreviewPanel.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\PreviewPanel.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\PreviewScene.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\PreviewScene.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\PreviewTimeline.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\PreviewTimeline.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Polygon2D.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Polygon2D.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\renderer.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\renderer.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Result.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Result.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Scene.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Scene.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Score.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Score.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Shadow.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Shadow.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\SkyDome.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\SkyDome.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Title.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Title.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\ToonPanel.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\ToonPanel.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\ToonPreset.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\ToonPreset.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\ToonShader.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\ToonShader.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Tree.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Tree.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\imgui\imgui.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\imgui.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\imgui\imgui_draw.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\imgui_draw.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\imgui\imgui_tables.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\imgui_tables.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\imgui\imgui_widgets.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\imgui_widgets.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\imgui\imgui_impl_dx11.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\imgui_impl_dx11.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\imgui\imgui_impl_win32.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\imgui_impl_win32.obj
-C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\Wave.cpp;C:\Users\PC_User\Downloads\GM31_Game_ 3\GM31_Game_ 3\GM31_Game\x64\Debug\Wave.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\AttackWeapon.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\AttackWeapon.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\ActionFile.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\ActionFile.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\ActionSequence.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\ActionSequence.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\animationModel.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\animationModel.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\audio.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\audio.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\Box.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\Box.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\Bullet.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\Bullet.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\Camera.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\Camera.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\Collision.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\Collision.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\Enemy.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\Enemy.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\Explosion.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\Explosion.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\field.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\field.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\Game.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\Game.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\Grass.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\Grass.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\input.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\input.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\main.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\main.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\manager.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\manager.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\MeshField.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\MeshField.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\modelRenderer.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\modelRenderer.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\Particle.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\Particle.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\Player.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\Player.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\PlayerActions.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\PlayerActions.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\PlayerAnimationAssets.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\PlayerAnimationAssets.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\PreviewCamera.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\PreviewCamera.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\PreviewPanel.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\PreviewPanel.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\PreviewScene.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\PreviewScene.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\PreviewTimeline.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\PreviewTimeline.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\Polygon2D.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\Polygon2D.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\renderer.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\renderer.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\Result.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\Result.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\Scene.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\Scene.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\Score.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\Score.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\Shadow.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\Shadow.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\SkyDome.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\SkyDome.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\Title.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\Title.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\ToonPanel.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\ToonPanel.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\ToonPreset.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\ToonPreset.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\ToonShader.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\ToonShader.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\Tree.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\Tree.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\imgui\imgui.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\imgui.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\imgui\imgui_draw.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\imgui_draw.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\imgui\imgui_tables.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\imgui_tables.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\imgui\imgui_widgets.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\imgui_widgets.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\imgui\imgui_impl_dx11.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\imgui_impl_dx11.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\imgui\imgui_impl_win32.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\imgui_impl_win32.obj
+C:\Users\ths40319\Documents\GM31\Shu-pre\Wave.cpp;C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game\x64\Debug\Wave.obj

@@ -67,6 +67,12 @@ void Player::Init()
 
 void Player::Uninit()
 {
+    if (m_attackEffect)
+    {
+        m_attackEffect->Uninit();
+        m_attackEffect.reset();
+    }
+    m_weapon.clear();
     m_toonShader.uninit();
 
     GameObject::Uninit();
@@ -356,4 +362,23 @@ void Player::Draw()
     m_toonShader.bindSurface();
     GameObject::Draw();
     m_toonShader.drawOutline(*m_AnimationModel);
+    if (m_playingAction.weapon.enabled && m_weaponTime >= 0.0f && m_weaponTime < m_playingAction.weapon.visualEnd())
+    {
+        m_toonShader.bindSurface();
+        m_weapon.draw(m_playingAction.weapon, m_weaponTime, GetMatrx(), &m_weaponEndAnchor);
+    }
+    if (m_sampledActionTime >= 0.0f && m_playingAction.weapon.enabled)
+    {
+        const float age = m_sampledActionTime - m_playingAction.effectStart;
+        if (m_attackEffectTriggered && age >= 0.0f && age < Explosion::frameCount * Explosion::frameDuration)
+        {
+            if (auto* camera = Manager::GetGameObj<Camera>())
+            {
+                m_attackEffect->SetPosition(m_attackEffectPosition);
+                Renderer::SetDepthEnable(false);
+                m_attackEffect->drawFrame(static_cast<int>(age / Explosion::frameDuration), camera->GetViewMatrix());
+                Renderer::SetDepthEnable(true);
+            }
+        }
+    }
 }

@@ -1,0 +1,755 @@
+2026/11/13 15:44:01 にビルドを開始しました。
+ログの詳細度は次のように設定されています: Normal。
+ノード 1 上のプロジェクト "C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.sln" (既定のターゲット)。
+ValidateSolutionConfiguration:
+  ソリューション構成 "Debug|x64" をビルドしています。
+プロジェクト "C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.sln" (1) は、ノード 1 上に "C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj" (2) をビルドしています (既定のターゲット)。
+PrepareForBuild:
+  構造化出力が有効になっています。コンパイラ診断の書式設定にはエラー階層が反映されます。詳細については、https://aka.ms/cpp/structured-output を参照してください。
+InitializeBuildStatus:
+  "AlwaysCreate" が指定されたため ".codex-build/z7-obj/GM31_Game.tlog\unsuccessfulbuild" を作成しています。
+  ".codex-build/z7-obj/GM31_Game.tlog\unsuccessfulbuild" のタッチ タスクを実行しています。
+FxCompile:
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+  すべての出力が最新のものです。
+ClCompile:
+  C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64\CL.exe /c /ZI /JMC /nologo /W3 /WX- /diagnostics:column /sdl /Od /D _DEBUG /D _WINDOWS /D _MBCS /Gm- /EHsc /RTC1 /MTd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /permissive- /Fo".codex-build/z7-obj/" /Fd".codex-build/z7-obj/vc143.pdb" /external:W3 /Gd /TP /FC /errorReport:queue AttackWeapon.cpp ActionSequence.cpp animationModel.cpp audio.cpp Box.cpp Bullet.cpp Camera.cpp Collision.cpp Enemy.cpp Explosion.cpp field.cpp Game.cpp Grass.cpp input.cpp main.cpp manager.cpp MeshField.cpp modelRenderer.cpp Particle.cpp Player.cpp PlayerActions.cpp PlayerAnimationAssets.cpp PreviewCamera.cpp PreviewPanel.cpp PreviewScene.cpp PreviewTimeline.cpp Polygon2D.cpp renderer.cpp Result.cpp Scene.cpp Score.cpp Shadow.cpp SkyDome.cpp Title.cpp ToonPanel.cpp ToonPreset.cpp ToonShader.cpp Tree.cpp imgui\imgui.cpp imgui\imgui_draw.cpp imgui\imgui_tables.cpp imgui\imgui_widgets.cpp imgui\imgui_impl_dx11.cpp imgui\imgui_impl_win32.cpp Wave.cpp
+cl : コマンド ライン  warning D9025: '/ZI' より '/Z7' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+cl : コマンド ライン  warning D9025: '/ZI' より '/Z7' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+cl : コマンド ライン  warning D9025: '/ZI' より '/Z7' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  AttackWeapon.cpp
+  ActionSequence.cpp
+cl : コマンド ライン  warning D9025: '/ZI' より '/Z7' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+cl : コマンド ライン  warning D9025: '/ZI' より '/Z7' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  animationModel.cpp
+cl : コマンド ライン  warning D9025: '/ZI' より '/Z7' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  audio.cpp
+  Box.cpp
+cl : コマンド ライン  warning D9025: '/ZI' より '/Z7' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  Bullet.cpp
+  Camera.cpp
+  Collision.cpp
+  Enemy.cpp
+  Explosion.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Box.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Box.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Box.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Box.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Bullet.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Bullet.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Bullet.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Bullet.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'audio.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'audio.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'audio.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'audio.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'animationModel.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Box.cpp(40,14): warning C4305: '初期化中': 'double' から 'float' へ切り詰めます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\Bullet.cpp(43,14): warning C4305: '初期化中': 'double' から 'float' へ切り詰めます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'AttackWeapon.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'animationModel.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'AttackWeapon.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'animationModel.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'AttackWeapon.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'animationModel.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'AttackWeapon.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Collision.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Collision.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Collision.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Collision.cpp' をコンパイルしています)
+  
+  field.cpp
+  Game.cpp
+  Grass.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Camera.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Camera.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Camera.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Camera.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Enemy.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Enemy.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Enemy.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Enemy.cpp' をコンパイルしています)
+  
+  input.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Enemy.cpp(56,16): warning C4305: '引数': 'double' から 'float' へ切り詰めます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Explosion.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Explosion.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Explosion.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Explosion.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'field.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'field.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'field.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'field.cpp' をコンパイルしています)
+  
+  main.cpp
+  manager.cpp
+  MeshField.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Game.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Game.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Game.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Game.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Grass.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Grass.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Grass.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Grass.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Grass.cpp(86,28): warning C4101: 'rot': ローカル変数は 1 度も使われていません。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  modelRenderer.cpp
+  Particle.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'input.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'input.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'input.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'input.cpp' をコンパイルしています)
+  
+  Player.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'main.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'main.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'main.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'main.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'manager.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'manager.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'manager.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'manager.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'MeshField.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'MeshField.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'MeshField.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'MeshField.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\MeshField.cpp(107,53): warning C4244: '引数': 'int' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\MeshField.cpp(107,50): warning C4244: '引数': 'int' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  PlayerActions.cpp
+  PlayerAnimationAssets.cpp
+  PreviewCamera.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'modelRenderer.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'modelRenderer.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'modelRenderer.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'modelRenderer.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Particle.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Particle.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Particle.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Particle.cpp' をコンパイルしています)
+  
+  PreviewPanel.cpp
+  PreviewScene.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Player.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Player.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Player.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Player.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Player.cpp(88,14): warning C4305: '初期化中': 'double' から 'float' へ切り詰めます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PlayerActions.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PlayerActions.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PlayerActions.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PlayerActions.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PlayerAnimationAssets.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PlayerAnimationAssets.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PlayerAnimationAssets.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PlayerAnimationAssets.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PreviewCamera.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PreviewCamera.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PreviewCamera.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PreviewCamera.cpp' をコンパイルしています)
+  
+  PreviewTimeline.cpp
+  Polygon2D.cpp
+  renderer.cpp
+  Result.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PreviewPanel.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PreviewPanel.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PreviewPanel.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PreviewPanel.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PreviewScene.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PreviewScene.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PreviewScene.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'PreviewScene.cpp' をコンパイルしています)
+  
+  Scene.cpp
+  Score.cpp
+  Shadow.cpp
+  SkyDome.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'renderer.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'renderer.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'renderer.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'renderer.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Polygon2D.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Polygon2D.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Polygon2D.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Polygon2D.cpp' をコンパイルしています)
+  
+  Title.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Result.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Result.cpp' をコンパイルしています)
+  
+  ToonPanel.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Result.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Result.cpp' をコンパイルしています)
+  
+  ToonPreset.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Score.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Score.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Score.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Score.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Shadow.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Shadow.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Shadow.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Shadow.cpp' をコンパイルしています)
+  
+  ToonShader.cpp
+  Tree.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'SkyDome.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'SkyDome.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'SkyDome.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'SkyDome.cpp' をコンパイルしています)
+  
+  imgui.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Title.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Title.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Title.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Title.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'ToonPanel.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'ToonPanel.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'ToonPanel.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'ToonPanel.cpp' をコンパイルしています)
+  
+  imgui_draw.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'ToonPreset.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'ToonPreset.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'ToonPreset.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'ToonPreset.cpp' をコンパイルしています)
+  
+  imgui_tables.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'ToonShader.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'ToonShader.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'ToonShader.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'ToonShader.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Tree.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Tree.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Tree.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Tree.cpp' をコンパイルしています)
+  
+  imgui_widgets.cpp
+  imgui_impl_dx11.cpp
+  imgui_impl_win32.cpp
+  Wave.cpp
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Wave.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Wave.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Wave.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  (ソース ファイル 'Wave.cpp' をコンパイルしています)
+  
+C:\Users\ths40319\Documents\GM31\Shu-pre\Wave.cpp(22,55): warning C4244: '引数': 'int' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\Wave.cpp(22,52): warning C4244: '引数': 'int' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+C:\Users\ths40319\Documents\GM31\Shu-pre\Wave.cpp(139,40): warning C4244: '引数': 'int' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64\CL.exe /c /I"C:\Program Files (x86)\Windows Kits\10\Include\cppwinrt" /ZI /JMC /nologo /W3 /WX- /diagnostics:column /sdl /Od /D _DEBUG /D _WINDOWS /D _MBCS /Gm- /EHsc /RTC1 /MTd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /std:c++17 /permissive- /Fo".codex-build/z7-obj/" /Fd".codex-build/z7-obj/vc143.pdb" /external:W3 /Gd /TP /FC /errorReport:queue ActionFile.cpp
+cl : コマンド ライン  warning D9025: '/ZI' より '/Z7' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  ActionFile.cpp
+Link:
+  C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64\link.exe /ERRORREPORT:QUEUE /OUT:".codex-build/bin/GM31_Game.exe" /INCREMENTAL /ILK:".codex-build/z7-obj/GM31_Game.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:".codex-build/bin/GM31_Game.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:".codex-build/bin/GM31_Game.lib" /MACHINE:X64 ".codex-build/z7-obj/AttackWeapon.obj"
+  ".codex-build/z7-obj/ActionFile.obj"
+  ".codex-build/z7-obj/ActionSequence.obj"
+  ".codex-build/z7-obj/animationModel.obj"
+  ".codex-build/z7-obj/audio.obj"
+  ".codex-build/z7-obj/Box.obj"
+  ".codex-build/z7-obj/Bullet.obj"
+  ".codex-build/z7-obj/Camera.obj"
+  ".codex-build/z7-obj/Collision.obj"
+  ".codex-build/z7-obj/Enemy.obj"
+  ".codex-build/z7-obj/Explosion.obj"
+  ".codex-build/z7-obj/field.obj"
+  ".codex-build/z7-obj/Game.obj"
+  ".codex-build/z7-obj/Grass.obj"
+  ".codex-build/z7-obj/input.obj"
+  ".codex-build/z7-obj/main.obj"
+  ".codex-build/z7-obj/manager.obj"
+  ".codex-build/z7-obj/MeshField.obj"
+  ".codex-build/z7-obj/modelRenderer.obj"
+  ".codex-build/z7-obj/Particle.obj"
+  ".codex-build/z7-obj/Player.obj"
+  ".codex-build/z7-obj/PlayerActions.obj"
+  ".codex-build/z7-obj/PlayerAnimationAssets.obj"
+  ".codex-build/z7-obj/PreviewCamera.obj"
+  ".codex-build/z7-obj/PreviewPanel.obj"
+  ".codex-build/z7-obj/PreviewScene.obj"
+  ".codex-build/z7-obj/PreviewTimeline.obj"
+  ".codex-build/z7-obj/Polygon2D.obj"
+  ".codex-build/z7-obj/renderer.obj"
+  ".codex-build/z7-obj/Result.obj"
+  ".codex-build/z7-obj/Scene.obj"
+  ".codex-build/z7-obj/Score.obj"
+  ".codex-build/z7-obj/Shadow.obj"
+  ".codex-build/z7-obj/SkyDome.obj"
+  ".codex-build/z7-obj/Title.obj"
+  ".codex-build/z7-obj/ToonPanel.obj"
+  ".codex-build/z7-obj/ToonPreset.obj"
+  ".codex-build/z7-obj/ToonShader.obj"
+  ".codex-build/z7-obj/Tree.obj"
+  ".codex-build/z7-obj/imgui.obj"
+  ".codex-build/z7-obj/imgui_draw.obj"
+  ".codex-build/z7-obj/imgui_tables.obj"
+  ".codex-build/z7-obj/imgui_widgets.obj"
+  ".codex-build/z7-obj/imgui_impl_dx11.obj"
+  ".codex-build/z7-obj/imgui_impl_win32.obj"
+  ".codex-build/z7-obj/Wave.obj"
+  DirectXTex\DirectXTex_Debug.lib
+  DirectXTex\DirectXTex_Release.lib
+  GM31_Game.vcxproj -> C:\Users\ths40319\Documents\GM31\Shu-pre\.codex-build\bin\GM31_Game.exe
+FinalizeBuildStatus:
+  ファイル ".codex-build/z7-obj/GM31_Game.tlog\unsuccessfulbuild" を削除しています。
+  ".codex-build/z7-obj/GM31_Game.tlog\GM31_Game.lastbuildstate" のタッチ タスクを実行しています。
+プロジェクト "C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj" (既定のターゲット) のビルドが完了しました。
+プロジェクト "C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.sln" (既定のターゲット) のビルドが完了しました。
+
+ビルドに成功しました。
+
+"C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.sln" (既定のターゲット) (1) ->
+"C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj" (既定のターゲット) (2) ->
+(ClCompile ターゲット) -> 
+  cl : コマンド ライン  warning D9025: '/ZI' より '/Z7' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/ZI' より '/Z7' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/ZI' より '/Z7' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/ZI' より '/Z7' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/ZI' より '/Z7' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/ZI' より '/Z7' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  cl : コマンド ライン  warning D9025: '/ZI' より '/Z7' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Box.cpp(40,14): warning C4305: '初期化中': 'double' から 'float' へ切り詰めます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Bullet.cpp(43,14): warning C4305: '初期化中': 'double' から 'float' へ切り詰めます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Enemy.cpp(56,16): warning C4305: '引数': 'double' から 'float' へ切り詰めます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Grass.cpp(86,28): warning C4101: 'rot': ローカル変数は 1 度も使われていません。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\MeshField.cpp(107,53): warning C4244: '引数': 'int' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\MeshField.cpp(107,50): warning C4244: '引数': 'int' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Player.cpp(88,14): warning C4305: '初期化中': 'double' から 'float' へ切り詰めます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(63,21): warning C4244: '初期化中': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(87,14): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(92,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Vector3.h(110,13): warning C4244: 'return': 'double' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Wave.cpp(22,55): warning C4244: '引数': 'int' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Wave.cpp(22,52): warning C4244: '引数': 'int' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+  C:\Users\ths40319\Documents\GM31\Shu-pre\Wave.cpp(139,40): warning C4244: '引数': 'int' から 'float' への変換です。データが失われる可能性があります。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+
+
+"C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.sln" (既定のターゲット) (1) ->
+"C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj" (既定のターゲット) (2) ->
+  cl : コマンド ライン  warning D9025: '/ZI' より '/Z7' が優先されます。 [C:\Users\ths40319\Documents\GM31\Shu-pre\GM31_Game.vcxproj]
+
+    162 個の警告
+    0 エラー
+
+経過時間 00:00:19.87

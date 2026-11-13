@@ -5,13 +5,59 @@
 // =========================================================
 #pragma once
 
+#include <array>
 #include <string>
 #include <vector>
 #include "MorphTarget.h"
 
+struct WeaponPose
+{
+    std::array<float, 3> position{};
+    std::array<float, 3> angles{};
+};
+
+struct WeaponTrack
+{
+    std::string model;
+    bool enabled = false;
+    float appear = 0.15f;
+    float middle = 0.40f;
+    float disappear = 0.75f;
+    float scale = 1.0f;
+    std::array<float, 3> pivot{};
+    std::array<WeaponPose, 3> keys{};
+    bool trail = true;
+    float trailLength = 0.12f;
+    std::array<float, 3> trailBase{};
+    std::array<float, 3> trailTip{ 0.0f, 0.0f, -0.5f };
+    std::array<float, 3> trailColor{ 0.2f, 0.65f, 1.0f };
+    bool dissolve = true;
+    float dissolveDuration = 0.32f;
+    float dissolveGlow = 1.25f;
+    std::array<float, 3> dissolveColor{ 0.28f, 0.67f, 1.0f };
+    bool dissolveParticles = true;
+    int particleCount = 64;
+    std::array<float, 3> particleColor{ 0.48f, 0.78f, 1.0f };
+    float visualEnd() const
+    {
+        const float tail = dissolve ? dissolveDuration + (dissolveParticles ? 0.38f : 0.0f) : 0.0f;
+        return disappear + (trail && trailLength > tail ? trailLength : tail);
+    }
+
+    bool effectOnWeapon = false;
+    bool cameraEnabled = false;
+    std::array<float, 3> cameraTarget{};
+
+    bool visible(float time) const;
+    WeaponPose sample(float time) const;
+    float cameraWeight(float time, float duration) const;
+};
+
 struct ActionSequence
 {
     float duration = 3.0f;
+    float speed = 1.0f;
+    WeaponTrack weapon;
     bool motionEnabled = true;
     std::string clip = "Walk";
     bool faceEnabled = false;

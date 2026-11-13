@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <ProjectOutputs>
+    <ProjectOutput>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\.codex-build\bin\GM31_Game.exe</FullPath>
+    </ProjectOutput>
+  </ProjectOutputs>
+  <ContentFiles>
+    <ContentFile>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\FieldPS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\FieldVS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\grassPS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\grassVS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\litTexturePS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\litTextureVS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\unlitTexturePS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\unlitTextureVS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\toonVS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\toonPS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\weaponEndVS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\weaponEndPS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\WavePS.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Users\ths40319\Documents\GM31\Shu-pre\shader\WaveVS.cso</FullPath>
+    </ContentFile>
+  </ContentFiles>
+  <SatelliteDlls />
+  <NonRecipeFileRefs />
+</Project>

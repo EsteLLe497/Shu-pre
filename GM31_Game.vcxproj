@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AttackWeapon.cpp" />
     <ClCompile Include="ActionFile.cpp">
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(WindowsSDKVersion)cppwinrt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -69,6 +70,7 @@
     <ClCompile Include="Wave.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AttackWeapon.h" />
     <ClInclude Include="ActionFile.h" />
     <ClInclude Include="ActionSequence.h" />
     <ClInclude Include="animationModel.h" />
@@ -203,6 +205,16 @@
       <ObjectFileOutput>shader\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
     <FxCompile Include="shader\toonPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <ObjectFileOutput>shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\weaponEndVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <ObjectFileOutput>shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\weaponEndPS.hlsl">
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>5.0</ShaderModel>
       <ObjectFileOutput>shader\%(Filename).cso</ObjectFileOutput>

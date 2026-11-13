@@ -213,6 +213,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
     case WM_KEYDOWN:
         if (wParam == VK_ESCAPE) DestroyWindow(hWnd);
+        if (wParam == 'J' && !(lParam & (1LL << 30))) Input::OnAttackPress();
         break;
 
     default:

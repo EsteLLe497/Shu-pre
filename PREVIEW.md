@@ -95,3 +95,13 @@ if (ready)
 - `AnimationModel` と `Explosion` はゲーム本編と共通です。表情はスキニング前に合成し、エフェクトは現在時刻からスプライト番号を求めます。
 
 この版はモーション1本、表情キーごとに独立した区間、エフェクト1イベントを同時に試す構成です。`ActionSequence` が表情の補間と本編の再生時刻を扱い、`ActionFile` が JSON の入出力と検証を担当します。
+
+## 浮遊武器の攻撃
+
+1. **Open Attack01** で `SwordFinish` と短剣を開きます。
+2. **Asset Preview / Character FBX** でキャラを、**Inspector / Attack weapon / Weapon FBX** で武器を個別に読み込みます。
+3. **Attack weapon** の **Appear / Swing key / Disappear** で時刻を決め、対応する各ポーズで位置と角度を調整します。**Seek to pose** で対応キーへ移動できます。
+4. **Trail** は残る時間と刃元・刃先の位置を調整します。**Effect at blade tip** をオンにすると、**Effect / Trigger** 時点の刃先で既存のエフェクトが出ます。**Attack camera target** で攻撃中の注視点をずらせます。
+5. **Export Action** で `Attack01` を保存し、本編を起動し直して接地中に **J** を押します。Timeline の **Speed** も本編に反映されます。
+
+武器FBXは中心を原点にし、最長辺を1に正規化して読み込みます。**Pivot XYZ** は拡縮後の武器座標、**Blade base / Blade tip** は拡縮前の武器座標です。キャラの読み込み先はプレビュー用で、本編は既存のプレイヤー選択を使います。

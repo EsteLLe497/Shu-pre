@@ -61,6 +61,7 @@ private:
     std::vector<MorphLayer> m_morphLayers;
     std::size_t m_activeMorphLayerCount = 0;
     unsigned int m_missingTextures = 0;
+    XMFLOAT3 m_staticHalfExtents{};
 
     // マテリアルを読み込み時に解決し、不透明と透過の描画順を分ける。
     struct DrawPart
@@ -71,6 +72,7 @@ private:
     };
 
     std::unordered_map<const aiTexture*, ID3D11ShaderResourceView*> m_textures;
+    std::unordered_map<std::string, ID3D11ShaderResourceView*> m_externalTextures;
     std::vector<DrawPart> m_opaqueParts;
     std::vector<DrawPart> m_transparentParts;
 
@@ -117,7 +119,9 @@ public:
 	void setModelYawOffset(float yaw) { m_modelYawOffset = yaw; }
 	void Load( const char *FileName );
     bool LoadAnimation(const char* fileName, const char* name);
-    bool tryLoad(const char* fileName);
+    bool tryLoad(const char* fileName, bool staticMesh = false);
+    XMFLOAT3 staticHalfExtents() const { return m_staticHalfExtents; }
+    double clipDuration(const char* name) const;
     bool sampleClip(const char* name, double seconds, RootTravel rootTravel = RootTravel::authored);
     bool sampleBlendedClip(const char* name, double seconds, float dt, RootTravel rootTravel, bool restart = false, bool loop = true);
     bool hasAnimation(const char* name) const;
@@ -130,4 +134,5 @@ public:
 	void Uninit() override;
 	void Draw() override;
     void drawOutline();
+    void drawAt(FXMMATRIX world);
 };
