@@ -39,7 +39,7 @@ struct BONE
 class AnimationModel : public Component
 {
 public:
-    enum class RootTravel { authored, removeHorizontalCycle, anchorLandingFeet, lockTranslation };
+    enum class RootTravel { authored, removeHorizontalCycle, anchorLandingFeet, lockTranslation, extractHorizontal };
 
 private:
 	const aiScene* m_AiScene = nullptr;
@@ -121,6 +121,7 @@ public:
     bool LoadAnimation(const char* fileName, const char* name);
     bool tryLoad(const char* fileName, bool staticMesh = false);
     XMFLOAT3 staticHalfExtents() const { return m_staticHalfExtents; }
+    float forwardAttackTravel(const char* name, double time) const;
     double clipDuration(const char* name) const;
     bool sampleClip(const char* name, double seconds, RootTravel rootTravel = RootTravel::authored);
     bool sampleBlendedClip(const char* name, double seconds, float dt, RootTravel rootTravel, bool restart = false, bool loop = true);

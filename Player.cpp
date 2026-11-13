@@ -115,7 +115,10 @@ void Player::Update()
     const bool isDashing = isMoving && Input::GetKeyPress(VK_SHIFT);
 
     // 踏ん張り中は移動入力で加速しない。
-    const bool canMove = isMoving && !isLanding();
+    const bool attacking = isMovingAttack();
+    const bool canMove = isMoving && !isLanding() && !attacking;
+    if (attacking)
+        m_Velocity.x = m_Velocity.z = 0.0f;
 
     // Explicit target speeds keep walk and dash distinct from the first steps.
     if (isMoving) moveDirection.normalize();
@@ -141,7 +144,7 @@ void Player::Update()
         m_Rotation.y = atan2f(m_Velocity.x, m_Velocity.z);
     }
     // 接地中の新しい入力だけで踏み切り、空中での押し直しは受け付けない。
-    if (oldGround && !isLanding() && Input::GetKeyTrigger(VK_SPACE))
+    if (oldGround && !isLanding() && !attacking && Input::GetKeyTrigger(VK_SPACE))
     {
         m_Velocity.y = jumpSpeed;
         m_jumpedFromGround = true;
@@ -151,7 +154,7 @@ void Player::Update()
 
     m_Velocity.y -= gravity * dt;
 
-    m_Position += m_Velocity * dt;
+    m_Position += m_Velocity * dt + advanceAttackTravel();
    
     auto trees = Manager::GetGameObjs<Tree>();
     for(auto tree : trees)
@@ -325,16 +328,17 @@ void Player::Update()
     if (m_actions.updateIdleTimer(isIdle && (!m_actionPlayback.active() || m_yawning), dt))
         m_yawning = playAction(PlayerActionKind::yawn);
 
-    if (Input::GetKeyTrigger('J'))
+    const bool fire = Input::GetKeyTrigger('J');
+    if (fire)
     {
         Bullet* bullet = Manager::AddGameObj<Bullet>();
         bullet->SetPosition(m_Position);
         bullet->SetVelocity(GetFoward() * 20.0f);
-        // 発射はできるが、着地の姿勢は最後まで再生する。
-        if (m_Ground && !isLanding())
-            playAction(PlayerActionKind::attack);
     }
-    
+
+    if ((fire || Input::GetKeyTrigger(VK_LBUTTON)) && m_Ground && !isLanding() && !attacking)
+        playAction(PlayerActionKind::attack);
+
     if (m_Ground)
     {
         //m_MoveAnimation += VectorMag(m_Velocity) * dt;
@@ -346,7 +350,7 @@ void Player::Update()
     m_Shadow->SetScale({ visibleShadowSize, visibleShadowSize, visibleShadowSize });
     m_Shadow->SetPosition({ m_Position.x, groundHeight + shadowOffset, m_Position.z });
 
-    const auto kind = isMoving ? (isDashing ? PlayerActionKind::run : PlayerActionKind::walk)
+    const auto kind = canMove ? (isDashing ? PlayerActionKind::run : PlayerActionKind::walk)
         : PlayerActionKind::idle;
     // モーションと表情は実時間で進め、移動や衝突判定は固定間隔で更新する。
     const float animationDt = Manager::animationDeltaSeconds();
@@ -365,7 +369,8 @@ void Player::Draw()
     if (m_playingAction.weapon.enabled && m_weaponTime >= 0.0f && m_weaponTime < m_playingAction.weapon.visualEnd())
     {
         m_toonShader.bindSurface();
-        m_weapon.draw(m_playingAction.weapon, m_weaponTime, GetMatrx(), &m_weaponEndAnchor);
+        const auto anchor = m_playingActionKind == PlayerActionKind::attack ? m_attackAnchor : GetMatrx();
+        m_weapon.draw(m_playingAction.weapon, m_weaponTime, anchor, &m_weaponEndAnchor);
     }
     if (m_sampledActionTime >= 0.0f && m_playingAction.weapon.enabled)
     {

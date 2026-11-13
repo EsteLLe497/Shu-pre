@@ -124,6 +124,11 @@ bool Player::playAction(PlayerActionKind kind)
         return false;
 
     m_playingActionKind = kind;
+    if (kind == Kind::attack)
+    {
+        m_attackTravel = 0.0f;
+        m_attackAnchor = GetMatrx();
+    }
     if (definition(kind).motionStart > 0.0f)
     {
         m_actionPlayback.stop();
@@ -240,6 +245,23 @@ bool Player::prepareAction(const ActionSequence& action)
 // =========================================================
 // 単発アクションを優先し、終わったら移動状態の姿勢へ戻す
 // =========================================================
+bool Player::isMovingAttack() const
+{
+    return m_actionPlayback.active() && m_playingActionKind == Kind::attack && m_playingAction.motionEnabled;
+}
+
+Vector3 Player::advanceAttackTravel()
+{
+    if (!isMovingAttack())
+        return { 0.0f, 0.0f, 0.0f };
+
+    const auto& action = m_playingAction;
+    const float distance = m_AnimationModel->forwardAttackTravel(action.clip.c_str(), m_actionPlayback.time());
+    const float step = std::max(0.0f, distance - m_attackTravel);
+    m_attackTravel = std::max(m_attackTravel, distance);
+    return GetFoward() * step;
+}
+
 void Player::updateActionPose(float dt, float physicsDt)
 {
     const auto& slot = m_actions.get(m_locomotionKind);
@@ -255,7 +277,7 @@ void Player::updateActionPose(float dt, float physicsDt)
         else if (m_weaponTime >= 0.0f)
             m_weaponTime += dt * action.speed;
         if (previous < action.weapon.disappear && m_weaponTime >= action.weapon.disappear)
-            m_weaponEndAnchor = GetMatrx();
+            m_weaponEndAnchor = m_playingActionKind == Kind::attack ? m_attackAnchor : GetMatrx();
     }
     const bool jumping = m_playingActionKind == Kind::jump || m_playingActionKind == Kind::runJump;
     const bool landing = m_playingActionKind == Kind::land;
@@ -276,14 +298,19 @@ void Player::updateActionPose(float dt, float physicsDt)
         m_faceApplied = false;
     }
 
-    const bool useActionMotion = active && action.motionEnabled;
+    const bool attack = m_playingActionKind == Kind::attack;
+    const bool motionFinished = attack && m_sampledActionTime >= m_AnimationModel->clipDuration(action.clip.c_str());
+    const bool useActionMotion = active && action.motionEnabled && !motionFinished;
     const bool actionChanged = useActionMotion != m_actionMotionApplied;
     if (useActionMotion)
     {
         using Travel = AnimationModel::RootTravel;
-        const auto rootTravel = jumping ? Travel::lockTranslation : (landing ? Travel::anchorLandingFeet : Travel::authored);
+        auto rootTravel = Travel::authored;
+        if (jumping) rootTravel = Travel::lockTranslation;
+        if (landing) rootTravel = Travel::anchorLandingFeet;
+        if (attack) rootTravel = Travel::extractHorizontal;
         m_AnimationModel->sampleBlendedClip(action.clip.c_str(), m_actionPlayback.time(), dt,
-            rootTravel, actionChanged || m_actionMotionRestart, !jumping && !landing && !action.weapon.enabled);
+            rootTravel, actionChanged || m_actionMotionRestart, !jumping && !landing && !attack && !action.weapon.enabled);
     }
     else
     {
@@ -328,7 +355,8 @@ void Player::spawnActionEffect(const ActionSequence& action)
     if (action.weapon.enabled && m_attackEffect)
     {
         m_attackEffectPosition = action.weapon.effectOnWeapon && m_weapon.ready()
-            ? AttackWeapon::effectPosition(action.weapon, action.effectStart, GetMatrx())
+            ? AttackWeapon::effectPosition(action.weapon, action.effectStart,
+                m_playingActionKind == Kind::attack ? m_attackAnchor : GetMatrx())
             : m_Position + offset;
         m_attackEffectTriggered = true;
         return;
@@ -337,6 +365,16 @@ void Player::spawnActionEffect(const ActionSequence& action)
     auto* effect = Manager::AddGameObj<Explosion>();
     effect->SetPosition(m_Position + offset);
     effect->SetScale({ ActionSequence::effectScale, ActionSequence::effectScale, ActionSequence::effectScale });
+}
+
+float Player::attackCameraWeight() const
+{
+    if (m_playingActionKind != Kind::attack || m_sampledActionTime < 0.0f)
+        return 0.0f;
+
+    const float phase = m_sampledActionTime / m_playingAction.duration;
+    const float arc = sinf(XM_PI * std::min(1.0f, phase));
+    return arc * arc;
 }
 
 Vector3 Player::attackCameraOffset() const

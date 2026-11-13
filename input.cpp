@@ -26,6 +26,8 @@ bool Input::m_mouseCaptured = false;
 bool Input::m_acceptGameplayInput = true;
 bool Input::m_pendingAttackPress = false;
 bool Input::m_attackPress = false;
+bool Input::m_pendingLeftClick = false;
+bool Input::m_leftClick = false;
 
 // =========================================================
 // キーボードと相対マウス入力の初期化
@@ -63,6 +65,8 @@ void Input::Update(bool acceptGameplayInput)
     GetKeyboardState(m_keyState);
     m_attackPress = m_pendingAttackPress;
     m_pendingAttackPress = false;
+    m_leftClick = m_pendingLeftClick;
+    m_pendingLeftClick = false;
 
     // Raw input wins when both APIs report the same physical mouse move.
     const bool hasRawMovement = m_pendingMouseX != 0 || m_pendingMouseY != 0;
@@ -107,6 +111,7 @@ bool Input::GetKeyPress(BYTE keyCode)
 bool Input::GetKeyTrigger(BYTE keyCode)
 {
     return m_acceptGameplayInput && ((keyCode == 'J' && m_attackPress)
+        || (keyCode == VK_LBUTTON && m_leftClick)
         || ((m_keyState[keyCode] & 0x80) != 0 && (m_oldKeyState[keyCode] & 0x80) == 0));
 }
 
