@@ -4,6 +4,7 @@
 #include "main.h"
 #include "renderer.h"
 #include "planetarium.h"
+#include "constellation.h"
 #include "input.h"
 #include "manager.h"
 #include <d3dcompiler.h>
@@ -23,6 +24,12 @@ namespace
         XMFLOAT4 settings;
     };
 
+    struct SkyLightConstants
+    {
+        XMFLOAT4 centerRadius;
+        XMFLOAT4 skylight;
+    };
+
     constexpr float worldSpeed = 0.2f;
     constexpr float domeRadius = 12.0f;
     const Vector3 domeTint{ 0.22f, 0.52f, 0.86f };
@@ -30,12 +37,50 @@ namespace
     ComPtr<ID3D11VertexShader> vertexShader;
     ComPtr<ID3D11PixelShader> pixelShader;
     ComPtr<ID3D11Buffer> constants;
+    ComPtr<ID3D11Buffer> skyLightConstants;
+    ComPtr<ID3D11Buffer> constellationConstants;
     ComPtr<ID3D11RasterizerState> rasterizer;
     ComPtr<ID3D11BlendState> blendState;
+    ComPtr<ID3D11ShaderResourceView> starPanorama;
+    ComPtr<ID3D11SamplerState> starSampler;
     Vector3 center{};
     float progress = 0.0f;
     float worldTicks = 0.0f;
     bool held = false;
+    bool setConstellationYaw = false;
+    float constellationYaw = 0.0f;
+    Vector3 aimCorrection{ 0.0f, 0.0f, 0.0f };
+
+    // 原画は残し、GPUには縮小した全天画像だけを載せる。
+    void loadStarPanorama(ID3D11Device* device)
+    {
+        constexpr size_t maxWidth = 4096;
+        ScratchImage image, resized;
+        if (FAILED(LoadFromWICFile(L"asset/texture/planetarium2.jpg", WIC_FLAGS_IGNORE_SRGB, nullptr, image)))
+            return;
+
+        const auto* sky = &image;
+        const auto& metadata = image.GetMetadata();
+        if (metadata.width > maxWidth)
+        {
+            const auto height = std::max(size_t(1), metadata.height * maxWidth / metadata.width);
+            if (FAILED(Resize(*image.GetImage(0, 0, 0), maxWidth, height, TEX_FILTER_FANT, resized)))
+                return;
+            sky = &resized;
+        }
+
+        if (FAILED(CreateShaderResourceView(device, sky->GetImages(), sky->GetImageCount(),
+            sky->GetMetadata(), starPanorama.GetAddressOf())))
+            return;
+
+        D3D11_SAMPLER_DESC sampler{};
+        sampler.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+        sampler.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+        sampler.AddressV = sampler.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+        sampler.ComparisonFunc = D3D11_COMPARISON_NEVER;
+        sampler.MaxLOD = D3D11_FLOAT32_MAX;
+        device->CreateSamplerState(&sampler, starSampler.GetAddressOf());
+    }
 
     float opening()
     {
@@ -66,6 +111,12 @@ void planetarium::init()
     if (FAILED(device->CreateBuffer(&buffer, nullptr, constants.GetAddressOf())))
         return;
 
+    buffer.ByteWidth = sizeof(SkyLightConstants);
+    device->CreateBuffer(&buffer, nullptr, skyLightConstants.GetAddressOf());
+
+    buffer.ByteWidth = sizeof(constellation::DrawData);
+    device->CreateBuffer(&buffer, nullptr, constellationConstants.GetAddressOf());
+
     D3D11_RASTERIZER_DESC raster{};
     raster.FillMode = D3D11_FILL_SOLID;
     raster.CullMode = D3D11_CULL_NONE;
@@ -83,14 +134,19 @@ void planetarium::init()
     target.DestBlendAlpha = D3D11_BLEND_ZERO;
     target.BlendOpAlpha = D3D11_BLEND_OP_ADD;
     target.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-    device->CreateBlendState(&blend, blendState.GetAddressOf());
+    if (SUCCEEDED(device->CreateBlendState(&blend, blendState.GetAddressOf())))
+        loadStarPanorama(device);
 }
 
 void planetarium::uninit()
 {
     reset();
+    starSampler.Reset();
+    starPanorama.Reset();
     blendState.Reset();
     rasterizer.Reset();
+    constellationConstants.Reset();
+    skyLightConstants.Reset();
     constants.Reset();
     pixelShader.Reset();
     vertexShader.Reset();
@@ -99,6 +155,9 @@ void planetarium::uninit()
 void planetarium::reset()
 {
     held = false;
+    setConstellationYaw = false;
+    constellation::reset();
+    aimCorrection.zero();
     progress = 0.0f;
     worldTicks = 0.0f;
 }
@@ -108,8 +167,14 @@ void planetarium::reset()
 // =========================================================
 float planetarium::updatePlayer()
 {
-    held = blendState && Renderer::sceneDepth() &&
-        Input::isGameplayActive() && Input::GetKeyPress('F');
+    const bool requested = blendState && Renderer::sceneDepth() &&
+        Input::isGameplayActive() && Input::GetKeyPress(VK_RBUTTON);
+    if (requested && !held)
+    {
+        constellation::open(constellation::scorpio());
+        setConstellationYaw = true;
+    }
+    held = requested;
 
     const float dt = Manager::animationDeltaSeconds();
     progress = std::max(0.0f, std::min(1.0f, progress + dt * (held ? 2.1f : -3.8f)));
@@ -140,6 +205,11 @@ void planetarium::frameCamera(const Vector3& playerPosition, const Vector3& orbi
         return;
 
     center = playerPosition;
+    if (setConstellationYaw)
+    {
+        constellationYaw = orbitRotation.y;
+        setConstellationYaw = false;
+    }
 
     // 通常カメラと角度を共有し、肩越しの距離と構図だけを変える。
     const float yaw = orbitRotation.y;
@@ -161,6 +231,53 @@ void planetarium::frameCamera(const Vector3& playerPosition, const Vector3& orbi
 // =========================================================
 // シーン深度からドームの内側だけを残す
 // =========================================================
+// 素の照準が星に近い間だけ補助し、マウスで離せば解除する。
+void planetarium::assistAim(const Vector3& eye, Vector3& target, CXMMATRIX projection)
+{
+    if (!held || opening() < 0.71f)
+    {
+        aimCorrection.zero();
+        return;
+    }
+
+    const auto origin = XMVectorSet(eye.x, eye.y, eye.z, 1.0f);
+    const auto aim = XMVectorSet(target.x, target.y, target.z, 1.0f);
+    const auto view = XMMatrixLookAtLH(origin, aim, XMVectorSet(0, 1, 0, 0));
+    constellation::DrawData stars{};
+    XMFLOAT3 aimedStar{};
+    constellation::project(view * projection, {center.x, center.y, center.z},
+        0.25f + domeRadius * opening(), constellationYaw, 1.0f, true, stars, &aimedStar);
+
+    Vector3 correction(0.0f, 0.0f, 0.0f);
+    if (stars.state.w > 1.0f)
+    {
+        const auto direction = XMVector3Normalize(XMLoadFloat3(&aimedStar) - origin);
+        const auto offset = origin + direction * XMVector3Length(aim - origin) - aim;
+        correction = { XMVectorGetX(offset), XMVectorGetY(offset), XMVectorGetZ(offset) };
+    }
+
+    const float blend = 1.0f - expf(-22.0f * Manager::animationDeltaSeconds());
+    aimCorrection += (correction - aimCorrection) * blend;
+    target += aimCorrection;
+}
+
+void planetarium::bindLighting(const Vector3& playerPosition)
+{
+    constexpr UINT slot = 9;
+    auto* context = Renderer::GetDeviceContext();
+    auto* buffer = opening() > 0.0f ? skyLightConstants.Get() : nullptr;
+    if (buffer)
+    {
+        const float weight = opening();
+        const SkyLightConstants data{
+            { playerPosition.x, playerPosition.y, playerPosition.z, 0.25f + domeRadius * weight },
+            { 0.18f, 0.34f, 0.64f, weight }
+        };
+        context->UpdateSubresource(buffer, 0, nullptr, &data, 0, 0);
+    }
+    context->PSSetConstantBuffers(slot, 1, &buffer);
+}
+
 void planetarium::draw(FXMMATRIX view, CXMMATRIX projection)
 {
     if (progress <= 0.0f || !blendState || !Renderer::sceneDepth())
@@ -171,7 +288,7 @@ void planetarium::draw(FXMMATRIX view, CXMMATRIX projection)
     XMStoreFloat4x4(&data.inverseViewProjection, XMMatrixTranspose(XMMatrixInverse(nullptr, view * projection)));
     data.centerRadius = { center.x, center.y, center.z, 0.25f + domeRadius * weight };
     data.tint = { domeTint.x, domeTint.y, domeTint.z, weight };
-    data.settings = { 1.0f / SCREEN_WIDTH, 1.0f / SCREEN_HEIGHT, 0.0f, 0.0f };
+    data.settings = { 1.0f / SCREEN_WIDTH, 1.0f / SCREEN_HEIGHT, starPanorama && starSampler ? 1.0f : 0.0f, 0.0f };
 
     auto* context = Renderer::GetDeviceContext();
     ComPtr<ID3D11RenderTargetView> target;
@@ -190,16 +307,28 @@ void planetarium::draw(FXMMATRIX view, CXMMATRIX projection)
     context->OMSetBlendState(blendState.Get(), nullptr, 0xffffffff);
     context->UpdateSubresource(constants.Get(), 0, nullptr, &data, 0, 0);
     context->PSSetConstantBuffers(8, 1, constants.GetAddressOf());
-    auto* sceneDepth = Renderer::sceneDepth();
-    context->PSSetShaderResources(8, 1, &sceneDepth);
+    if (constellationConstants)
+    {
+        constellation::DrawData stars{};
+        const float visibility = std::max(0.0f, std::min(1.0f, (weight - 0.35f) / 0.45f));
+        constellation::project(view * projection, {center.x, center.y, center.z}, data.centerRadius.w, constellationYaw,
+            visibility, held && visibility >= 0.8f, stars);
+        context->UpdateSubresource(constellationConstants.Get(), 0, nullptr, &stars, 0, 0);
+    }
+    context->PSSetConstantBuffers(10, 1, constellationConstants.GetAddressOf());
+    ID3D11ShaderResourceView* textures[] = { Renderer::sceneDepth(), starPanorama.Get() };
+    context->PSSetShaderResources(8, 2, textures);
+    context->PSSetSamplers(2, 1, starSampler.GetAddressOf());
     context->IASetInputLayout(nullptr);
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     context->VSSetShader(vertexShader.Get(), nullptr, 0);
     context->PSSetShader(pixelShader.Get(), nullptr, 0);
     context->Draw(3, 0);
 
-    sceneDepth = nullptr;
-    context->PSSetShaderResources(8, 1, &sceneDepth);
+    ID3D11ShaderResourceView* emptyTextures[2]{};
+    context->PSSetShaderResources(8, 2, emptyTextures);
+    ID3D11SamplerState* emptySampler = nullptr;
+    context->PSSetSamplers(2, 1, &emptySampler);
     context->OMSetRenderTargets(1, target.GetAddressOf(), depth.Get());
     context->RSSetState(oldRasterizer.Get());
     context->OMSetBlendState(oldBlend.Get(), blendFactor, sampleMask);

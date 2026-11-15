@@ -42,6 +42,7 @@
     <ClCompile Include="MeshField.cpp" />
     <ClCompile Include="modelRenderer.cpp" />
     <ClCompile Include="Particle.cpp" />
+    <ClCompile Include="constellation.cpp" />
     <ClCompile Include="planetarium.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="PlayerActions.cpp" />
@@ -95,6 +96,7 @@
     <ClInclude Include="MorphTarget.h" />
     <ClInclude Include="modelRenderer.h" />
     <ClInclude Include="Particle.h" />
+    <ClInclude Include="constellation.h" />
     <ClInclude Include="planetarium.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="PlayerActionSet.h" />
@@ -127,6 +129,7 @@
     <ClInclude Include="Wave.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="shader\planetariumLight.hlsli" />
     <None Include="shader\toonCommon.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>

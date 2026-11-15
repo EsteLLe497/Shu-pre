@@ -9,6 +9,7 @@ void main(in VS_IN In, out PS_IN Out)
     wvp = mul(wvp, Projection);
 
     Out.Position = mul(In.Position, wvp);
+    Out.WorldPosition = mul(In.Position, World);
     Out.TexCoord = In.TexCoord;
     Out.Diffuse = In.Diffuse * Material.Diffuse;
 	
@@ -23,6 +24,6 @@ void main(in VS_IN In, out PS_IN Out)
     float light = -dot(normal.xyz, Light.Direction.xyz);
     light = saturate(light);
 	
-    Out.Diffuse.rgb *= light;
+    Out.Normal = float4(normal.xyz, light); // w ÇÕí∏ì_Ç≈åvéZÇµÇΩíãÇÃñæÇÈÇ≥ÅB
 }
 

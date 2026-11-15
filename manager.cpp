@@ -138,6 +138,8 @@ void Manager::Draw()
     }
 
 	Renderer::Begin();
+    const auto* lightPlayer = GetGameObj<Player>();
+    planetarium::bindLighting(lightPlayer ? lightPlayer->GetPosition() : Vector3(0.0f, 0.0f, 0.0f));
 	Camera* camera = GetGameObj<Camera>();
 	const bool showToonPanel = ToonPanel::isOpen();
 	if (showToonPanel)

@@ -108,6 +108,7 @@ void Camera::Draw()
         static_cast<float>(SCREEN_WIDTH) / SCREEN_HEIGHT, nearPlane, 1000.0f);
     Renderer::SetProjectionMatrix(m_projectionMatrix);
 
+    planetarium::assistAim(m_renderPosition, aim, m_projectionMatrix);
     const auto target = XMVectorSet(aim.x, aim.y, aim.z, 1.0f);
     const XMFLOAT3 up(0.0f, 1.0f, 0.0f);
     m_viewMatrix = XMMatrixLookAtLH(XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&m_renderPosition)),
