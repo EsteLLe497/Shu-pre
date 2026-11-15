@@ -10,6 +10,7 @@ ID3D11DeviceContext*    Renderer::m_DeviceContext{};
 IDXGISwapChain*         Renderer::m_SwapChain{};
 ID3D11RenderTargetView* Renderer::m_RenderTargetView{};
 ID3D11DepthStencilView* Renderer::m_DepthStencilView{};
+ID3D11ShaderResourceView* Renderer::m_sceneDepth{};
 
 ID3D11Buffer*			Renderer::m_WorldBuffer{};
 ID3D11Buffer*			Renderer::m_ViewBuffer{};
@@ -82,20 +83,26 @@ void Renderer::Init()
 	textureDesc.Height = swapChainDesc.BufferDesc.Height;
 	textureDesc.MipLevels = 1;
 	textureDesc.ArraySize = 1;
-	textureDesc.Format = DXGI_FORMAT_D16_UNORM;
+	textureDesc.Format = DXGI_FORMAT_R16_TYPELESS;
 	textureDesc.SampleDesc = swapChainDesc.SampleDesc;
 	textureDesc.Usage = D3D11_USAGE_DEFAULT;
-	textureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	textureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 	textureDesc.CPUAccessFlags = 0;
 	textureDesc.MiscFlags = 0;
 	m_Device->CreateTexture2D(&textureDesc, NULL, &depthStencile);
 
 	// デプスステンシルビュー作成
 	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc{};
-	depthStencilViewDesc.Format = textureDesc.Format;
+	depthStencilViewDesc.Format = DXGI_FORMAT_D16_UNORM;
 	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	depthStencilViewDesc.Flags = 0;
 	m_Device->CreateDepthStencilView(depthStencile, &depthStencilViewDesc, &m_DepthStencilView);
+	// ドームの描画でシーンの深度を読み取れるようにする。
+	D3D11_SHADER_RESOURCE_VIEW_DESC depthResource{};
+	depthResource.Format = DXGI_FORMAT_R16_UNORM;
+	depthResource.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	depthResource.Texture2D.MipLevels = 1;
+	m_Device->CreateShaderResourceView(depthStencile, &depthResource, &m_sceneDepth);
 	depthStencile->Release();
 
 
@@ -269,6 +276,10 @@ void Renderer::Uninit()
 
 
 	m_DeviceContext->ClearState();
+	if (m_sceneDepth)
+		m_sceneDepth->Release();
+	m_sceneDepth = nullptr;
+	m_DepthStencilView->Release();
 	m_RenderTargetView->Release();
 	m_SwapChain->Release();
 	m_DeviceContext->Release();

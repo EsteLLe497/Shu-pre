@@ -39,6 +39,9 @@ float noise(float3 samplePosition)
 float4 main(float4 position : SV_POSITION, float3 local : TEXCOORD0,
             float2 uv : TEXCOORD1, float4 vertexColor : COLOR0) : SV_TARGET
 {
+    if (EndParams.z > 1.5)
+        return vertexColor;
+
     if (EndParams.z > 0.5)
     {
         float2 p = uv * float2(1.0, 1.45);

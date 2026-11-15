@@ -29,15 +29,15 @@ void Game::Init()
 {
 
 
-	Camera* camera = Manager::AddGameObj<Camera>();
+	Manager::AddGameObj<Camera>();
 	//Manager::AddGameObj<field>();
 	Manager::AddGameObj<MeshField>();
 	//Manager::AddGameObj<Wave>();
 	Manager::AddGameObj<SkyDome>();
 
 	Player* player = Manager::AddGameObj<Player>();
-	// 保存済みの調整値があれば、ゲーム開始時に復元する。
-	ToonPreset::load(player->toonSettings(), camera->orbitSettings());
+	// 外観を読み込み、開始時は標準の三人称カメラを使う。
+	ToonPreset::loadAppearance(player->toonSettings());
 
 	Manager::AddGameObj<Enemy>()->SetPosition({ -2.0f,0.0f,1.0f });
 	/*Manager::AddGameObj<Enemy>()->SetPosition({ 0.0f,0.0f,1.0f });

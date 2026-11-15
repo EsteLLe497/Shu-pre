@@ -15,9 +15,9 @@ struct CameraOrbit
     static constexpr float maxLookHeight = 3.0f;
 
     float yaw = 0.0f;
-    float pitch = 0.36f;
-    float distance = 5.0f;
-    float lookHeight = 0.95f;
+    float pitch = 0.30f;
+    float distance = 4.8f;
+    float lookHeight = 0.93f;
 };
 
 class Camera : public GameObject
@@ -31,7 +31,6 @@ private:
     float m_shakeTime = 0.0f;
     CameraOrbit m_orbit;
     float m_distance = m_orbit.distance;
-    float m_attackFraming = 0.0f;
     Vector3 m_renderPosition{ 0.0f, 0.0f, 0.0f };
 
 public:
@@ -44,6 +43,7 @@ public:
     CameraOrbit& orbitSettings() { return m_orbit; }
 
     XMMATRIX GetViewMatrix() { return m_viewMatrix; }
+    XMMATRIX projectionMatrix() const { return m_projectionMatrix; }
     Vector3 GetFoward() override;
     Vector3 GetRight() override;
     void Shake(Vector3 shake);

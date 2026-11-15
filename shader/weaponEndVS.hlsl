@@ -25,7 +25,7 @@ WeaponPixel main(VS_IN vertex)
     WeaponPixel pixel;
     float4 viewPosition = mul(mul(vertex.Position, World), View);
     
-    if (EndParams.z > 0.5)
+    if (EndParams.z > 0.5 && EndParams.z < 1.5)
         viewPosition.xy += vertex.TexCoord * vertex.Normal.x;
     
     pixel.Position = mul(viewPosition, Projection);

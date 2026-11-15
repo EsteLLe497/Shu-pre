@@ -21,6 +21,7 @@
 #include "Box.h"
 #include "Shadow.h"
 #include "MeshField.h"
+#include "planetarium.h"
 
 namespace
 {
@@ -83,9 +84,10 @@ void Player::Uninit()
 // =========================================================
 void Player::Update()
 {
+    const float timeScale = planetarium::updatePlayer();
 
     Vector3 oldPosition = m_Position;
-    float dt = 1.0 / 60.0f;
+    const float dt = timeScale / 60.0f;
 
     Vector3 rot = m_Child->GetRotation();
     rot.y += 1.0f * dt;
@@ -149,12 +151,11 @@ void Player::Update()
         m_Velocity.y = jumpSpeed;
         m_jumpedFromGround = true;
         playAction(isDashing ? PlayerActionKind::runJump : PlayerActionKind::jump);
-        m_JumpSE->Play();
     }
 
     m_Velocity.y -= gravity * dt;
 
-    m_Position += m_Velocity * dt + advanceAttackTravel();
+    m_Position += m_Velocity * dt;
    
     auto trees = Manager::GetGameObjs<Tree>();
     for(auto tree : trees)
@@ -328,6 +329,7 @@ void Player::Update()
     if (m_actions.updateIdleTimer(isIdle && (!m_actionPlayback.active() || m_yawning), dt))
         m_yawning = playAction(PlayerActionKind::yawn);
 
+    /* 攻撃入力と弾の発射を一時停止する。
     const bool fire = Input::GetKeyTrigger('J');
     if (fire)
     {
@@ -338,6 +340,7 @@ void Player::Update()
 
     if ((fire || Input::GetKeyTrigger(VK_LBUTTON)) && m_Ground && !isLanding() && !attacking)
         playAction(PlayerActionKind::attack);
+    */
 
     if (m_Ground)
     {
@@ -353,7 +356,7 @@ void Player::Update()
     const auto kind = canMove ? (isDashing ? PlayerActionKind::run : PlayerActionKind::walk)
         : PlayerActionKind::idle;
     // モーションと表情は実時間で進め、移動や衝突判定は固定間隔で更新する。
-    const float animationDt = Manager::animationDeltaSeconds();
+    const float animationDt = Manager::animationDeltaSeconds() * timeScale;
     updateLocomotion(animationDt, kind);
     updateActionPose(animationDt, dt);
     GameObject::Update();
@@ -369,7 +372,7 @@ void Player::Draw()
     if (m_playingAction.weapon.enabled && m_weaponTime >= 0.0f && m_weaponTime < m_playingAction.weapon.visualEnd())
     {
         m_toonShader.bindSurface();
-        const auto anchor = m_playingActionKind == PlayerActionKind::attack ? m_attackAnchor : GetMatrx();
+        const auto anchor = m_weaponTime > m_playingAction.weapon.disappear ? m_weaponEndAnchor : GetMatrx();
         m_weapon.draw(m_playingAction.weapon, m_weaponTime, anchor, &m_weaponEndAnchor);
     }
     if (m_sampledActionTime >= 0.0f && m_playingAction.weapon.enabled)

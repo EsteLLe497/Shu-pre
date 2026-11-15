@@ -12,6 +12,7 @@
 #include "Player.h"
 #include "ToonPanel.h"
 #include "PreviewScene.h"
+#include "planetarium.h"
 
 std::list<GameObject*> Manager::m_GameObjects;
 Scene* Manager::m_Scene = nullptr;
@@ -29,6 +30,8 @@ void Manager::Init(bool previewMode)
 {
     previewWorkspace = previewMode;
 	Renderer::Init();
+    if (!previewMode)
+        planetarium::init();
 	Input::Init();
 	ToonPanel::init(GetWindow(), previewMode);
 	Audio::InitMaster();
@@ -60,6 +63,7 @@ void Manager::Uninit()
 
 	Audio::UninitMaster();
 	ToonPanel::uninit();
+    planetarium::uninit();
 	Renderer::Uninit();
 	Input::Uninit();
 }
@@ -71,12 +75,15 @@ void Manager::Update(float frameSeconds)
 	float dt = 1.0f / 60.0f;
 	Input::Update(!ToonPanel::isOpen());
 
-	if(m_Scene != nullptr)
-	m_Scene->Update();
+    const bool updateWorld = planetarium::updateWorld();
+    const auto* player = updateWorld ? nullptr : GetGameObj<Player>();
+    const auto* camera = updateWorld ? nullptr : GetGameObj<Camera>();
+	if (m_Scene && updateWorld)
+		m_Scene->Update();
 
 	for (GameObject* obj : m_GameObjects) 
 	{
-		if (obj != nullptr) {
+		if (obj && (updateWorld || obj == player || obj == camera)) {
 			obj->Update();
 		}
 	}
@@ -107,6 +114,7 @@ void Manager::Update(float frameSeconds)
 			}
 
 			m_GameObjects.clear();
+            planetarium::reset();
 
 			m_Scene = m_NextScene;
 			m_Scene->Init();
@@ -130,6 +138,8 @@ void Manager::Draw()
     }
 
 	Renderer::Begin();
+    const auto* lightPlayer = GetGameObj<Player>();
+    planetarium::bindLighting(lightPlayer ? lightPlayer->GetPosition() : Vector3(0.0f, 0.0f, 0.0f));
 	Camera* camera = GetGameObj<Camera>();
 	const bool showToonPanel = ToonPanel::isOpen();
 	if (showToonPanel)
@@ -156,6 +166,9 @@ void Manager::Draw()
 
 	for (int layer = 0; layer < 5; layer++)
 	{
+        // UIはドームの色や遮蔽の影響を受けない。
+        if (layer == 4 && camera)
+            planetarium::draw(camera->GetViewMatrix(), camera->projectionMatrix());
 		for (GameObject* obj : m_GameObjects) {
 			if (obj->GetLayer() == layer)
 			{

@@ -60,6 +60,7 @@ void AttackWeapon::clear()
     m_endPS.Reset();
     m_endLayout.Reset();
     m_trailVertices.Reset();
+    m_overlayDepth.Reset();
     m_trailDepth.Reset();
     m_trailRasterizer.Reset();
 }
@@ -121,12 +122,21 @@ bool AttackWeapon::prepareOverlay()
         if (FAILED(device->CreateBuffer(&buffer, nullptr, m_trailVertices.GetAddressOf())))
             return false;
     }
-    if (!m_trailDepth)
+    if (!m_overlayDepth)
     {
         D3D11_DEPTH_STENCIL_DESC depth{};
         depth.DepthEnable = TRUE;
         depth.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
         depth.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+        if (FAILED(device->CreateDepthStencilState(&depth, m_overlayDepth.GetAddressOf())))
+            return false;
+    }
+    // 背後からでも軌跡が体に隠れないよう、トレイルだけ深度を判定しない。
+    if (!m_trailDepth)
+    {
+        D3D11_DEPTH_STENCIL_DESC depth{};
+        depth.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+        depth.DepthFunc = D3D11_COMPARISON_ALWAYS;
         if (FAILED(device->CreateDepthStencilState(&depth, m_trailDepth.GetAddressOf())))
             return false;
     }
@@ -145,7 +155,7 @@ bool AttackWeapon::prepareOverlay()
 
 void AttackWeapon::drawTrail(const WeaponTrack& track, float time, FXMMATRIX anchor)
 {
-    if (!prepareOverlay())
+    if (!prepareOverlay() || !prepareEffectShaders())
         return;
 
     const float start = std::max(track.appear, time - track.trailLength);
@@ -173,10 +183,33 @@ void AttackWeapon::drawTrail(const WeaponTrack& track, float time, FXMMATRIX anc
     material.AlphaBlend = TRUE;
     material.AlphaCutoff = 1.0f / 255.0f;
     Renderer::SetMaterial(material);
-    drawOverlay(2 * (trailSegments + 1), D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+    // 残像はモデルの照明を受けず、頂点の色と透明度を使う。
+    using Microsoft::WRL::ComPtr;
+    ComPtr<ID3D11VertexShader> oldVS;
+    ComPtr<ID3D11PixelShader> oldPS;
+    ComPtr<ID3D11InputLayout> oldLayout;
+    ComPtr<ID3D11Buffer> oldVSConstants, oldPSConstants;
+    context->VSGetShader(oldVS.GetAddressOf(), nullptr, nullptr);
+    context->PSGetShader(oldPS.GetAddressOf(), nullptr, nullptr);
+    context->IAGetInputLayout(oldLayout.GetAddressOf());
+    context->VSGetConstantBuffers(7, 1, oldVSConstants.GetAddressOf());
+    context->PSGetConstantBuffers(7, 1, oldPSConstants.GetAddressOf());
+    const EndConstants constants{ {}, { 0, 0, 2, 0 }, {} };
+    context->UpdateSubresource(m_endConstants.Get(), 0, nullptr, &constants, 0, 0);
+    context->VSSetShader(m_endVS.Get(), nullptr, 0);
+    context->PSSetShader(m_endPS.Get(), nullptr, 0);
+    context->IASetInputLayout(m_endLayout.Get());
+    context->VSSetConstantBuffers(7, 1, m_endConstants.GetAddressOf());
+    context->PSSetConstantBuffers(7, 1, m_endConstants.GetAddressOf());
+    drawOverlay(2 * (trailSegments + 1), D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, false);
+    context->VSSetShader(oldVS.Get(), nullptr, 0);
+    context->PSSetShader(oldPS.Get(), nullptr, 0);
+    context->IASetInputLayout(oldLayout.Get());
+    context->VSSetConstantBuffers(7, 1, oldVSConstants.GetAddressOf());
+    context->PSSetConstantBuffers(7, 1, oldPSConstants.GetAddressOf());
 }
 
-void AttackWeapon::drawOverlay(unsigned int count, D3D11_PRIMITIVE_TOPOLOGY topology)
+void AttackWeapon::drawOverlay(unsigned int count, D3D11_PRIMITIVE_TOPOLOGY topology, bool depthTest)
 {
     auto* context = Renderer::GetDeviceContext();
     using Microsoft::WRL::ComPtr;
@@ -189,7 +222,7 @@ void AttackWeapon::drawOverlay(unsigned int count, D3D11_PRIMITIVE_TOPOLOGY topo
     context->OMGetDepthStencilState(depth.GetAddressOf(), &stencil);
     context->OMGetBlendState(blend.GetAddressOf(), blendFactor, &mask);
     context->RSSetState(m_trailRasterizer.Get());
-    context->OMSetDepthStencilState(m_trailDepth.Get(), 0);
+    context->OMSetDepthStencilState(depthTest ? m_overlayDepth.Get() : m_trailDepth.Get(), 0);
     Renderer::SetAddBlendEnable(true);
     constexpr UINT stride = sizeof(VERTEX_3D), offset = 0;
     context->IASetVertexBuffers(0, 1, m_trailVertices.GetAddressOf(), &stride, &offset);
@@ -200,17 +233,17 @@ void AttackWeapon::drawOverlay(unsigned int count, D3D11_PRIMITIVE_TOPOLOGY topo
     context->RSSetState(rasterizer.Get());
 }
 
-void AttackWeapon::drawDissolve(const WeaponTrack& track, float age, FXMMATRIX world)
+// トレイルと消失演出で同じシェーダーを使う。
+bool AttackWeapon::prepareEffectShaders()
 {
     auto* device = Renderer::GetDevice();
-    auto* context = Renderer::GetDeviceContext();
     if (!m_endVS || !m_endPS || !m_endLayout)
     {
         Renderer::CreateVertexShader(m_endVS.ReleaseAndGetAddressOf(), m_endLayout.ReleaseAndGetAddressOf(),
             "shader/weaponEndVS.cso");
         Renderer::CreatePixelShader(m_endPS.ReleaseAndGetAddressOf(), "shader/weaponEndPS.cso");
         if (!m_endVS || !m_endPS || !m_endLayout)
-            return;
+            return false;
     }
     if (!m_endConstants)
     {
@@ -218,9 +251,17 @@ void AttackWeapon::drawDissolve(const WeaponTrack& track, float age, FXMMATRIX w
         buffer.ByteWidth = sizeof(EndConstants);
         buffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
         if (FAILED(device->CreateBuffer(&buffer, nullptr, m_endConstants.GetAddressOf())))
-            return;
+            return false;
     }
+    return true;
+}
 
+void AttackWeapon::drawDissolve(const WeaponTrack& track, float age, FXMMATRIX world)
+{
+    if (!prepareEffectShaders())
+        return;
+
+    auto* context = Renderer::GetDeviceContext();
     const auto extent = m_model->staticHalfExtents();
     const int axis = extent.x >= extent.y && extent.x >= extent.z ? 0 : (extent.y >= extent.z ? 1 : 2);
     const XMFLOAT4 bladeAxis(axis == 0 ? 1.0f : 0.0f, axis == 1 ? 1.0f : 0.0f, axis == 2 ? 1.0f : 0.0f, 0.0f);
