@@ -46,6 +46,7 @@ private:
 	static IDXGISwapChain*         m_SwapChain;
 	static ID3D11RenderTargetView* m_RenderTargetView;
 	static ID3D11DepthStencilView* m_DepthStencilView;
+	static ID3D11ShaderResourceView* m_sceneDepth;
 
 	static ID3D11Buffer*			m_WorldBuffer;
 	static ID3D11Buffer*			m_ViewBuffer;
@@ -82,6 +83,7 @@ public:
 	static void SetLight(LIGHT Light);
 	static void SetCameraPosition(Vector3 camera);
 
+	static ID3D11ShaderResourceView* sceneDepth() { return m_sceneDepth; }
 	static ID3D11Device* GetDevice( void ){ return m_Device; }
 	static ID3D11DeviceContext* GetDeviceContext( void ){ return m_DeviceContext; }
 

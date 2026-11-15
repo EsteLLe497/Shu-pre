@@ -8,6 +8,7 @@
 #include "Camera.h"
 #include "Player.h"
 #include "input.h"
+#include "planetarium.h"
 
 // =========================================================
 // カメラの初期化
@@ -15,7 +16,8 @@
 void Camera::Init()
 {
     m_Layer = 0;
-    m_Position = { 0.0f, 3.5f, -5.0f };
+    m_Position = { 0.0f, m_orbit.lookHeight + sinf(m_orbit.pitch) * m_distance,
+        -cosf(m_orbit.pitch) * m_distance };
     m_Rotation.x = m_orbit.pitch;
     m_renderPosition = m_Position;
 }
@@ -91,39 +93,22 @@ void Camera::Draw()
 {
     // 接写時だけ手前のクリップ面を近づけ、遠景の深度精度を保つ。
     const auto* player = Manager::GetGameObj<Player>();
-    if (player)
-    {
-        const float dt = Manager::animationDeltaSeconds();
-        m_attackFraming += (player->attackCameraWeight() - m_attackFraming) * (1.0f - expf(-13.0f * dt));
-    }
-
-    // Camera updates before the player. Follow the latest resolved position in Draw.
+    // プレイヤー更新後の座標に通常の追従カメラを合わせる。
     const Vector3 follow = player
         ? player->GetPosition() + Vector3(0.0f, m_orbit.lookHeight, 0.0f) - m_target
         : Vector3(0.0f, 0.0f, 0.0f);
-    const auto orbit = m_Position - m_target;
-    const auto swingOrbit = XMVector3TransformNormal(XMVectorSet(orbit.x, orbit.y, orbit.z, 0.0f),
-        XMMatrixRotationY(0.26f * m_attackFraming));
-    const float zoom = 1.0f + 0.20f * m_attackFraming;
-    const auto eye = m_target + follow + Vector3(XMVectorGetX(swingOrbit) * zoom,
-        orbit.y + 0.34f * m_attackFraming, XMVectorGetZ(swingOrbit) * zoom);
-    m_renderPosition = eye;
+    m_renderPosition = m_Position + follow;
+    auto aim = m_viewTarget + follow;
+    if (player)
+        planetarium::frameCamera(player->GetPosition(), m_Rotation, m_distance, m_renderPosition, aim);
 
-    const float nearPlane = fminf(1.0f, m_distance * 0.20f);
+    const float eyeDistance = player ? (m_renderPosition - player->GetPosition()).lenght() : m_distance;
+    const float nearPlane = fminf(1.0f, eyeDistance * 0.16f);
     m_projectionMatrix = XMMatrixPerspectiveFovLH(1.0f,
         static_cast<float>(SCREEN_WIDTH) / SCREEN_HEIGHT, nearPlane, 1000.0f);
     Renderer::SetProjectionMatrix(m_projectionMatrix);
 
-    auto offset = player ? player->attackCameraOffset() : Vector3(0.0f, 0.0f, 0.0f);
-    if (player)
-    {
-        const float yaw = player->GetRotation().y;
-        offset += Vector3(sinf(yaw), 0.15f, cosf(yaw)) * (0.58f * m_attackFraming);
-    }
-    const auto safeOffset = XMVector3ClampLength(XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&offset)),
-        0.0f, m_distance * 0.8f);
-    const auto target = XMVectorSet(m_viewTarget.x + follow.x, m_viewTarget.y + follow.y,
-        m_viewTarget.z + follow.z, 1.0f) + safeOffset;
+    const auto target = XMVectorSet(aim.x, aim.y, aim.z, 1.0f);
     const XMFLOAT3 up(0.0f, 1.0f, 0.0f);
     m_viewMatrix = XMMatrixLookAtLH(XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&m_renderPosition)),
         target, XMLoadFloat3(&up));
