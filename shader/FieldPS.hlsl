@@ -1,5 +1,6 @@
 
 #include "common.hlsl"
+#include "planetariumLight.hlsli"
 
 
 Texture2D		g_Texture : register(t0);
@@ -18,5 +19,9 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 	{
 		outDiffuse = In.Diffuse;
 	}
+
+    const float night = planetariumLightWeight(In.WorldPosition.xyz);
+    const float3 lighting = lerp(In.Normal.www, planetariumIrradiance(normalize(In.Normal.xyz)), night);
+    outDiffuse.rgb *= lighting;
 	
 }

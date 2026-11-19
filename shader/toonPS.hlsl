@@ -5,6 +5,7 @@
 // =========================================================
 #include "common.hlsl"
 #include "toonCommon.hlsli"
+#include "planetariumLight.hlsli"
 
 Texture2D baseTexture : register(t0);
 SamplerState baseSampler : register(s0);
@@ -43,6 +44,8 @@ float4 main(PS_IN pixel) : SV_Target
     if (shadingMode != 2)
     {
         float3 normal = normalize(pixel.Normal.xyz);
+        const float night = planetariumLightWeight(pixel.WorldPosition.xyz);
+        const float3 albedo = color.rgb;
         float light = saturate(dot(normal, lightDirection.xyz));
         float lightBand = shadingMode == 0 ? getLightBand(light) : light;
         color.rgb *= lerp(shadowTint.rgb * shadowBrightness, 1.0f, lightBand);
@@ -54,6 +57,7 @@ float4 main(PS_IN pixel) : SV_Target
             float rim = pow(1.0f - saturate(dot(normal, viewDirection)), rimPower);
             color.rgb += rimColor.rgb * (rim * rimStrength);
         }
+        color.rgb = lerp(color.rgb, albedo * planetariumIrradiance(normal), night);
     }
 
     return float4(color.rgb * exposure, color.a);
