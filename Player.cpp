@@ -250,7 +250,8 @@ void Player::Update()
     for (auto enemy : enemies)
     {
         const float playerRadius = 0.7f;
-        const float enemyRadius = 0.7f;
+        if (enemy->IsAirborne()) continue;
+        const float enemyRadius = enemy->BodyRadius();
 
         Vector3 dir = m_Position - enemy->GetPosition();
         float length = dir.lenght();

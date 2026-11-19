@@ -39,19 +39,21 @@ void Game::Init()
 	// 外観を読み込み、開始時は標準の三人称カメラを使う。
 	ToonPreset::loadAppearance(player->toonSettings());
 
-	Manager::AddGameObj<Enemy>()->SetPosition({ -2.0f,0.0f,1.0f });
-	/*Manager::AddGameObj<Enemy>()->SetPosition({ 0.0f,0.0f,1.0f });
-	Manager::AddGameObj<Enemy>()->SetPosition({ 2.0f,0.0f,1.0f });
-	Manager::AddGameObj<Enemy>()->SetPosition({ 2.0f,0.0f,1.0f });
-	Manager::AddGameObj<Enemy>()->SetPosition({ 3.0f,0.0f,1.0f });
-	Manager::AddGameObj<Enemy>()->SetPosition({ 4.0f,0.0f,1.0f });
-	Manager::AddGameObj<Enemy>()->SetPosition({ 5.0f,0.0f,1.0f });
-	Manager::AddGameObj<Enemy>()->SetPosition({ 6.0f,0.0f,1.0f });
-	Manager::AddGameObj<Enemy>()->SetPosition({ 7.0f,0.0f,1.0f });
-	Manager::AddGameObj<Enemy>()->SetPosition({ 8.0f,0.0f,1.0f });
-	Manager::AddGameObj<Enemy>()->SetPosition({ 9.0f,0.0f,1.0f });
-	Manager::AddGameObj<Enemy>()->SetPosition({ 5.0f,-1.0f,1.0f });
-	Manager::AddGameObj<Enemy>()->SetPosition({ 5.0f,1.0f,1.0f });*/
+	const Vector3 smallEnemyPositions[] = {
+        { -2.4f, 0.0f, 5.4f },
+        {  0.0f, 0.0f, 5.0f },
+        {  2.4f, 0.0f, 5.4f },
+    };
+    for (const Vector3& position : smallEnemyPositions)
+    {
+        Enemy* enemy = Manager::AddGameObj<Enemy>();
+        enemy->Configure(false);
+        enemy->SetPosition(position);
+    }
+
+    Enemy* midBoss = Manager::AddGameObj<Enemy>();
+    midBoss->Configure(true);
+    midBoss->SetPosition({ -1.0f, 0.0f, 15.0f });
 
 
 
@@ -101,7 +103,7 @@ void Game::Uninit()
 
 void Game::Update()
 {
-	// Keep the game scene active while no enemies are spawned for model preview.
+	// Keep the scene active while testing the visual enemy prototype.
 }
 
 void Game::Draw()
