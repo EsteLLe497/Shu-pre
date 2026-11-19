@@ -20,6 +20,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AttackWeapon.cpp" />
+    <ClCompile Include="SceneEditor.cpp">
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
     <ClCompile Include="ActionFile.cpp">
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(WindowsSDKVersion)cppwinrt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -73,6 +76,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AttackWeapon.h" />
+    <ClInclude Include="SceneEditor.h" />
     <ClInclude Include="ActionFile.h" />
     <ClInclude Include="ActionSequence.h" />
     <ClInclude Include="animationModel.h" />
