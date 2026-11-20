@@ -5,11 +5,21 @@
 // =========================================================
 #pragma once
 
-#include"GameObject.h"
+#include "GameObject.h"
+#include <array>
 class MeshField :public GameObject
 {
+public:
+    static constexpr int GridSize = 101;
+    using Heights = std::array<float, GridSize * GridSize>;
+    const Heights& heights() const { return m_heights; }
+    void setHeights(const Heights& heights);
+    void sculpt(float x, float z, float radius, float amount, const float* targetHeight);
+
 private:
-	ID3D11Buffer* m_VertexBuffer;
+    Heights m_heights{};
+    void updateVertices();
+	ID3D11Buffer* m_VertexBuffer = nullptr;
 	ID3D11Buffer* m_IndexBuffer;
 
 	ID3D11InputLayout* m_VertexLayout;

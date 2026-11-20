@@ -10,6 +10,7 @@
 
 #include "GameObject.h"
 #include "Player.h"
+#include "SceneEditor.h"
 #include "ToonPanel.h"
 #include "PreviewScene.h"
 #include "planetarium.h"
@@ -75,7 +76,8 @@ void Manager::Update(float frameSeconds)
 	float dt = 1.0f / 60.0f;
 	Input::Update(!ToonPanel::isOpen());
 
-    const bool updateWorld = planetarium::updateWorld();
+    const bool editing = SceneEditor::isOpen();
+    const bool updateWorld = !editing && planetarium::updateWorld();
     const auto* player = updateWorld ? nullptr : GetGameObj<Player>();
     const auto* camera = updateWorld ? nullptr : GetGameObj<Camera>();
 	if (m_Scene && updateWorld)
@@ -83,7 +85,7 @@ void Manager::Update(float frameSeconds)
 
 	for (GameObject* obj : m_GameObjects) 
 	{
-		if (obj && (updateWorld || obj == player || obj == camera)) {
+		if (obj && !editing && (updateWorld || obj == player || obj == camera)) {
 			obj->Update();
 		}
 	}
@@ -141,8 +143,10 @@ void Manager::Draw()
     const auto* lightPlayer = GetGameObj<Player>();
     planetarium::bindLighting(lightPlayer ? lightPlayer->GetPosition() : Vector3(0.0f, 0.0f, 0.0f));
 	Camera* camera = GetGameObj<Camera>();
-	const bool showToonPanel = ToonPanel::isOpen();
-	if (showToonPanel)
+	const bool editing = SceneEditor::isOpen();
+    const bool showToonPanel = ToonPanel::isOpen();
+    if (editing) ToonPanel::beginFrame();
+	else if (showToonPanel)
 	{
 		Player* player = GetGameObj<Player>();
 		ToonPanel::beginFrame(player ? &player->toonSettings() : nullptr,
@@ -167,6 +171,7 @@ void Manager::Draw()
 	for (int layer = 0; layer < 5; layer++)
 	{
         // UIはドームの色や遮蔽の影響を受けない。
+        if (editing && layer == 4) continue;
         if (layer == 4 && camera)
             planetarium::draw(camera->GetViewMatrix(), camera->projectionMatrix());
 		for (GameObject* obj : m_GameObjects) {
@@ -178,6 +183,7 @@ void Manager::Draw()
 			}
 		}
 	}
+    if (editing) SceneEditor::draw();
 	if (showToonPanel)
 		ToonPanel::draw();
 	Renderer::End();

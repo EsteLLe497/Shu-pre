@@ -8,6 +8,7 @@
 #include "Camera.h"
 #include "Player.h"
 #include "input.h"
+#include "SceneEditor.h"
 #include "planetarium.h"
 
 // =========================================================
@@ -91,6 +92,13 @@ void Camera::Update()
 // =========================================================
 void Camera::Draw()
 {
+    if (SceneEditor::cameraMatrices(m_renderPosition, m_viewMatrix, m_projectionMatrix))
+    {
+        Renderer::SetProjectionMatrix(m_projectionMatrix);
+        Renderer::SetViewMatrix(m_viewMatrix);
+        Renderer::SetCameraPosition(m_renderPosition);
+        return;
+    }
     // 接写時だけ手前のクリップ面を近づけ、遠景の深度精度を保つ。
     const auto* player = Manager::GetGameObj<Player>();
     // プレイヤー更新後の座標に通常の追従カメラを合わせる。

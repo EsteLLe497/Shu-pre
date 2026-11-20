@@ -7,6 +7,7 @@
 #include "renderer.h"
 #include "input.h"
 #include "ToonShader.h"
+#include "SceneEditor.h"
 #include "ToonPanel.h"
 #include "Camera.h"
 #include "ToonPreset.h"
@@ -163,7 +164,7 @@ void ToonPanel::uninit()
 
 bool ToonPanel::isOpen()
 {
-    return panelOpen || previewWorkspace;
+    return panelOpen || previewWorkspace || SceneEditor::isOpen();
 }
 
 // =========================================================
@@ -177,14 +178,23 @@ LRESULT ToonPanel::handleMessage(HWND window, UINT message, WPARAM wParam, LPARA
     if (previewWorkspace && message == WM_SYSCOMMAND && (wParam & 0xfff0) == SC_KEYMENU)
         return 1;
 
-    if (!previewWorkspace && message == WM_KEYDOWN && wParam == VK_F1)
+    if (!previewWorkspace && message == WM_KEYDOWN && (wParam == VK_F1 || (wParam == VK_F2 && SceneEditor::isAvailable())))
     {
         constexpr LPARAM previousKeyState = 1L << 30;
         if ((lParam & previousKeyState) == 0)
         {
-            panelOpen = !panelOpen;
-            Input::SetMouseCapture(!panelOpen && GetFocus() == window);
-            if (panelOpen)
+            if (wParam == VK_F2)
+            {
+                panelOpen = false;
+                SceneEditor::toggle();
+            }
+            else
+            {
+                if (SceneEditor::isOpen()) SceneEditor::toggle();
+                panelOpen = !panelOpen;
+            }
+            Input::SetMouseCapture(!isOpen() && GetFocus() == window);
+            if (isOpen())
                 SetCursor(LoadCursor(nullptr, IDC_ARROW));
             else
             {

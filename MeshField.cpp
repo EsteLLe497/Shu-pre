@@ -13,13 +13,13 @@
 // =========================================================
 namespace
 {
-constexpr int vertexCount = 21;
+constexpr int vertexCount = MeshField::GridSize;
 constexpr int cellCount = vertexCount - 1;
-constexpr float cellSize = 10.0f;
+constexpr float cellSize = 2.0f;
 constexpr float gridCenter = cellCount * 0.5f;
 constexpr int indexCount = vertexCount * 2 * cellCount + (cellCount - 1) * 2;
 
-constexpr float fieldHeight[vertexCount][vertexCount] =
+constexpr float fieldHeight[21][21] =
 {
     {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f},
     {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f},
@@ -65,18 +65,18 @@ bool MeshField::tryGetHeight(float worldX, float worldZ, float& height) const
     const float offsetZ = gridZ - cellZ;
 
     // ストリップの対角線は (1, 0) と (0, 1) を結ぶ。
-    const float rightHeight = fieldHeight[cellZ][cellX + 1];
-    const float bottomHeight = fieldHeight[cellZ + 1][cellX];
+    const float rightHeight = m_heights[(cellZ) * vertexCount + (cellX + 1)];
+    const float bottomHeight = m_heights[(cellZ + 1) * vertexCount + (cellX)];
     float localHeight;
     if (offsetX + offsetZ <= 1.0f)
     {
-        const float cornerHeight = fieldHeight[cellZ][cellX];
+        const float cornerHeight = m_heights[(cellZ) * vertexCount + (cellX)];
         localHeight = cornerHeight + offsetX * (rightHeight - cornerHeight)
             + offsetZ * (bottomHeight - cornerHeight);
     }
     else
     {
-        const float cornerHeight = fieldHeight[cellZ + 1][cellX + 1];
+        const float cornerHeight = m_heights[(cellZ + 1) * vertexCount + (cellX + 1)];
         localHeight = cornerHeight + (1.0f - offsetX) * (bottomHeight - cornerHeight)
             + (1.0f - offsetZ) * (rightHeight - cornerHeight);
     }
@@ -91,59 +91,25 @@ bool MeshField::tryGetHeight(float worldX, float worldZ, float& height) const
 void MeshField::Init()
 {
     m_Layer = 1;
-
-    // 頂点バッファ生成
+    // Resample the original 10-unit terrain without changing its triangle slopes.
+    for (int z = 0; z < vertexCount; ++z)
     {
-        VERTEX_3D vertex[vertexCount][vertexCount];
-
-        for (int x = 0; x < vertexCount; x++)
+        for (int x = 0; x < vertexCount; ++x)
         {
-            for (int z = 0; z < vertexCount; z++)
-            {
-                vertex[x][z].Position = XMFLOAT3(
-                    (x - gridCenter) * cellSize, fieldHeight[z][x], (gridCenter - z) * cellSize);
-                vertex[x][z].Normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
-                vertex[x][z].Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-                vertex[x][z].TexCoord = XMFLOAT2(x, z);
-            }
+            const int col = std::min(x / 5, 19);
+            const int row = std::min(z / 5, 19);
+            const float u = (x - col * 5) / 5.0f;
+            const float v = (z - row * 5) / 5.0f;
+            const float right = fieldHeight[row][col + 1];
+            const float bottom = fieldHeight[row + 1][col];
+            const float corner = u + v <= 1.0f ? fieldHeight[row][col] : fieldHeight[row + 1][col + 1];
+            m_heights[z * vertexCount + x] = u + v <= 1.0f
+                ? corner + u * (right - corner) + v * (bottom - corner)
+                : corner + (1.0f - u) * (bottom - corner) + (1.0f - v) * (right - corner);
         }
-
-        //法線計算
-        for (int x = 1; x < cellCount; x++)
-        {
-            for (int z = 1; z < cellCount; z++)
-            {
-                Vector3 vx, vz, vn;
-                vx.x = vertex[x + 1][z].Position.x - vertex[x - 1][z].Position.x;
-                vx.y = vertex[x + 1][z].Position.y - vertex[x - 1][z].Position.y;
-                vx.z = vertex[x + 1][z].Position.z - vertex[x - 1][z].Position.z;
-
-                vz.x = vertex[x][z - 1].Position.x - vertex[x][z + 1].Position.x;
-                vz.y = vertex[x][z - 1].Position.y - vertex[x][z + 1].Position.y;
-                vz.z = vertex[x][z - 1].Position.z - vertex[x][z + 1].Position.z;
-
-                vn = Vector3::cross(vz, vx);//外積
-                vn.normalize();//正規化（長さ1にする）
-
-                vertex[x][z].Normal.x = vn.x;
-                vertex[x][z].Normal.y = vn.y;
-                vertex[x][z].Normal.z = vn.z;
-            }
-        }
-
-        D3D11_BUFFER_DESC bd{};
-        bd.Usage = D3D11_USAGE_DEFAULT;
-        bd.ByteWidth = sizeof(VERTEX_3D) * vertexCount * vertexCount;
-        bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-        bd.CPUAccessFlags = 0;
-
-        D3D11_SUBRESOURCE_DATA sd{};
-        sd.pSysMem = vertex;
-
-        Renderer::GetDevice()->CreateBuffer(&bd, &sd, &m_VertexBuffer);
     }
+    updateVertices();
 
-    //インデックスバッファ生成
     {
         unsigned int index[indexCount];
 
@@ -203,10 +169,71 @@ void MeshField::Init()
     //bgm->Play(true);
 
 }
+void MeshField::updateVertices()
+{
+    std::vector<VERTEX_3D> vertices(vertexCount * vertexCount);
+    const auto sample = [&](int x, int z) { return m_heights[z * vertexCount + x]; };
+    for (int x = 0; x < vertexCount; ++x)
+    {
+        for (int z = 0; z < vertexCount; ++z)
+        {
+            auto& vertex = vertices[x * vertexCount + z];
+            vertex.Position = { (x - gridCenter) * cellSize, sample(x, z), (gridCenter - z) * cellSize };
+            const int left = std::max(0, x - 1), right = std::min(cellCount, x + 1);
+            const int top = std::max(0, z - 1), bottom = std::min(cellCount, z + 1);
+            const float dx = (sample(right, z) - sample(left, z)) / ((right - left) * cellSize);
+            const float dz = (sample(x, top) - sample(x, bottom)) / ((bottom - top) * cellSize);
+            XMStoreFloat3(&vertex.Normal, XMVector3Normalize(XMVectorSet(-dx, 1.0f, -dz, 0.0f)));
+            vertex.Diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
+            vertex.TexCoord = { x / 5.0f, z / 5.0f };
+        }
+    }
+
+    if (m_VertexBuffer)
+    {
+        Renderer::GetDeviceContext()->UpdateSubresource(m_VertexBuffer, 0, nullptr, vertices.data(), 0, 0);
+        return;
+    }
+    D3D11_BUFFER_DESC description{};
+    description.Usage = D3D11_USAGE_DEFAULT;
+    description.ByteWidth = static_cast<UINT>(sizeof(VERTEX_3D) * vertices.size());
+    description.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    D3D11_SUBRESOURCE_DATA data{};
+    data.pSysMem = vertices.data();
+    Renderer::GetDevice()->CreateBuffer(&description, &data, &m_VertexBuffer);
+}
+
+void MeshField::setHeights(const Heights& heights)
+{
+    m_heights = heights;
+    updateVertices();
+}
+
+void MeshField::sculpt(float x, float z, float radius, float amount, const float* targetHeight)
+{
+    bool changed = false;
+    for (int row = 0; row < vertexCount; ++row)
+    {
+        for (int col = 0; col < vertexCount; ++col)
+        {
+            const float distance = hypotf((col - gridCenter) * cellSize - x, (gridCenter - row) * cellSize - z);
+            if (distance >= radius) continue;
+            const float t = 1.0f - distance / radius;
+            const float weight = t * t * (3.0f - 2.0f * t);
+            float& height = m_heights[row * vertexCount + col];
+            height += targetHeight ? (*targetHeight - height) * std::min(1.0f, amount * weight) : amount * weight;
+            height = std::max(-30.0f, std::min(30.0f, height));
+            changed = true;
+        }
+    }
+    if (changed) updateVertices();
+}
+
 void MeshField::Uninit()
 {
-    m_VertexBuffer->Release();
+    if (m_VertexBuffer) m_VertexBuffer->Release();
     m_IndexBuffer->Release();
+    if (m_Texture) m_Texture->Release();
 
 
     m_VertexLayout->Release();
@@ -222,6 +249,7 @@ void  MeshField::Update()
 }
 void  MeshField::Draw()
 {
+    if (!m_VertexBuffer) return;
     Renderer::GetDeviceContext()->IASetInputLayout(m_VertexLayout);
 
     Renderer::GetDeviceContext()->VSSetShader(m_VertexShader, NULL, 0);
