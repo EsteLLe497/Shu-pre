@@ -10,6 +10,7 @@
 #include "MeshField.h"
 #include "Wave.h"
 #include "Player.h"
+#include "SceneAudio.h"
 #include "SceneEditor.h"
 #include "ToonPreset.h"
 #include "Enemy.h"
@@ -40,6 +41,7 @@ void Game::Init()
 	// 外観を読み込み、開始時は標準の三人称カメラを使う。
 	ToonPreset::loadAppearance(player->toonSettings());
 
+	SceneAudio::init();
 	SceneEditor::init(*player, *terrain);
 	Manager::AddGameObj<Score>()->SetPosition({ 100.0f,100.0f,0.0f });
 }
@@ -48,11 +50,12 @@ void Game::Init()
 void Game::Uninit()
 {
     SceneEditor::shutdown();
+    SceneAudio::shutdown();
 }
 
 void Game::Update()
 {
-	// Keep the scene active while testing the visual enemy prototype.
+	SceneEditor::updatePhysics(Manager::animationDeltaSeconds());
 }
 
 void Game::Draw()

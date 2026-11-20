@@ -14,13 +14,14 @@
 
 #include "Manager.h"
 #include "Camera.h"
-#include "audio.h"
+#include "SceneAudio.h"
 
 #include "Enemy.h"
 #include "Tree.h"
 #include "Box.h"
 #include "Shadow.h"
 #include "MeshField.h"
+#include "SceneEditor.h"
 #include "planetarium.h"
 
 namespace
@@ -51,10 +52,6 @@ void Player::Init()
 
     // シェーダー読込
     m_toonShader.init();
-
-    //BGM
-    m_JumpSE = AddGameComponent<Audio>(this);
-    m_JumpSE->Load("asset\\Audio\\wan.wav");
 
     m_Child = Manager::AddGameObj<GameObject>();
     m_Child->SetParent(this);
@@ -150,7 +147,8 @@ void Player::Update()
     {
         m_Velocity.y = jumpSpeed;
         m_jumpedFromGround = true;
-        playAction(isDashing ? PlayerActionKind::runJump : PlayerActionKind::jump);
+        const auto jump = isDashing ? PlayerActionKind::runJump : PlayerActionKind::jump;
+        if (!playAction(jump) || !hasMotionSounds(jump)) SceneAudio::play(SceneAudio::Cue::Jump);
     }
 
     m_Velocity.y -= gravity * dt;
@@ -177,97 +175,7 @@ void Player::Update()
         }
     }
 
-    //auto boxes = Manager::GetGameObjs<Box>();
-    //for (auto box : boxes)
-    //{
-    //    Vector3 boxPosition = box->GetPosition();
-    //    Vector3 boxScale = box->GetScale();
-
-    //    if (boxPosition.x - boxScale.x < m_Position.x &&
-    //        m_Position.x < boxPosition.x + boxScale.x &&
-    //        boxPosition.z - boxScale.z < m_Position.z &&
-    //        m_Position.z < boxPosition.z + boxScale.z)
-    //    {
-    //        if (boxPosition.y + boxScale.y < m_Position.y &&
-    //            m_Position.y < boxPosition.y + boxScale.y * 2.0f)
-    //        {
-    //            //上面に衝突 top of the box
-    //            m_Position.y = boxPosition.y + boxScale.y * 2.0f;
-    //            m_Velocity.y = 0.0f;
-    //            m_Ground = true;
-    //        }
-    //        else if (boxPosition.y - boxScale.y < m_Position.y &&
-    //            m_Position.y < boxPosition.y + boxScale.y)
-    //        {
-    //            //側面に衝突
-    //            m_Position.x = oldPosition.x;
-    //            m_Position.z = oldPosition.z;
-    //            m_Velocity.x = 0.0f;
-    //            m_Velocity.z = 0.0f;
-    //        }
-    //    }
-    //}
-
-    //ボックスとの衝突判定
-     auto boxes = Manager::GetGameObjs<Box>();
-     for (auto box : boxes)
-     {
-         Vector3 boxPosition = box->GetPosition();
-         Vector3 boxScale = box->GetScale();
-		 Vector3 direction = m_Position - boxPosition;
-         Vector3 axisX = box->GetRight();
-         Vector3 axisZ = box->GetFoward();
-
-		 float dotX = Vector3::dot(direction, axisX);
-		 float dotZ = Vector3::dot(direction, axisZ);
-
-         if(-boxScale.x < dotX && dotX < boxScale.x &&
-            -boxScale.z < dotZ && dotZ < boxScale.z)
-         {
-             const float boxTop = boxPosition.y + boxScale.y * 2.0f;
-             if (oldPosition.y >= boxTop - groundTolerance && m_Position.y <= boxTop &&
-                 m_Velocity.y <= 0.0f)
-             {
-                 //上面に衝突 top of the box
-                 m_Position.y = boxTop;
-                 m_Velocity.y = 0.0f;
-                 m_Ground = true;
-             }
-             else if (boxPosition.y - boxScale.y < m_Position.y &&
-                      m_Position.y < boxPosition.y + boxScale.y)
-             {
-                 //側面に衝突
-                 m_Position.x = oldPosition.x;
-                 m_Position.z = oldPosition.z;
-                 m_Velocity.x = 0.0f;
-                 m_Velocity.z = 0.0f;
-             }
-		 }
-     }
-
-    auto enemies = Manager::GetGameObjs<Enemy>();
-
-    for (auto enemy : enemies)
-    {
-        const float playerRadius = 0.7f;
-        if (enemy->IsAirborne()) continue;
-        const float enemyRadius = enemy->BodyRadius();
-
-        Vector3 dir = m_Position - enemy->GetPosition();
-        float length = dir.lenght();
-
-        if (Collision::SphereVsSphere(m_Position, playerRadius, enemy->GetPosition(), enemyRadius))
-        {
-            if (length > 0.0f)
-            {
-                float overlap = (playerRadius + enemyRadius) - length;
-                dir /= length;
-                m_Position += dir * overlap;
-            }
-
-            break;
-        }
-    }
+    SceneEditor::resolvePlayerCollision(oldPosition, m_Position, m_Velocity, m_Ground);
 
     //if (!oldGround && m_Ground)
     //{
@@ -301,12 +209,16 @@ void Player::Update()
     // ジャンプの着地は移動姿勢へ直接つなぎ、段差からの落下だけ踏ん張る。
     if (m_Ground)
     {
+        const bool landingMotion = !m_jumpedFromGround && !oldGround && m_airborneTime >= minLandingAirTime
+            && playAction(PlayerActionKind::land);
+        if (!oldGround && (!landingMotion || !hasMotionSounds(PlayerActionKind::land)))
+            SceneAudio::play(SceneAudio::Cue::Land);
         if (m_jumpedFromGround)
         {
             if (m_playingActionKind == PlayerActionKind::jump || m_playingActionKind == PlayerActionKind::runJump)
                 m_actionPlayback.stop();
         }
-        else if (!oldGround && m_airborneTime >= minLandingAirTime && playAction(PlayerActionKind::land))
+        else if (landingMotion)
         {
             // 踏ん張りに入る瞬間に水平速度を止め、接地点から滑らないようにする。
             m_Velocity.x = 0.0f;

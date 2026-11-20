@@ -26,6 +26,7 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SceneAudio.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="SceneEditor.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="manager.cpp">
       <Filter>Source Files</Filter>
@@ -171,6 +172,7 @@
     <ClInclude Include="main.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SceneAudio.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="SceneEditor.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="manager.h">
       <Filter>Header Files</Filter>
