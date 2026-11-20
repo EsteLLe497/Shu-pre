@@ -124,6 +124,7 @@ bool Player::playAction(PlayerActionKind kind)
         return false;
 
     m_playingActionKind = kind;
+    m_soundKind = Kind::count;
     if (definition(kind).motionStart > 0.0f)
     {
         m_actionPlayback.stop();
@@ -252,6 +253,10 @@ void Player::updateActionPose(float dt, float physicsDt)
     const auto& action = m_playingAction;
     const bool active = m_actionPlayback.active();
     m_sampledActionTime = active ? m_actionPlayback.time() : -1.0f;
+    if (active && m_playingActionKind >= Kind::yawn && m_playingActionKind < Kind::count)
+        playMotionSounds(m_playingActionKind, m_sampledActionTime - definition(m_playingActionKind).motionStart, false);
+    else
+        playMotionSounds(m_locomotionKind, static_cast<float>(m_locomotionMotionTime), true);
     if (action.weapon.enabled)
     {
         const float previous = m_weaponTime;
@@ -346,4 +351,63 @@ void Player::spawnActionEffect(const ActionSequence& action)
     auto* effect = Manager::AddGameObj<Explosion>();
     effect->SetPosition(m_Position + offset);
     effect->SetScale({ ActionSequence::effectScale, ActionSequence::effectScale, ActionSequence::effectScale });
+}
+
+void Player::setMotionSounds(PlayerActionKind kind, const SceneAudio::Timeline& markers)
+{
+    m_motionSounds[static_cast<size_t>(kind)] = markers;
+}
+
+bool Player::hasMotionSounds(PlayerActionKind kind) const
+{
+    return !m_motionSounds[static_cast<size_t>(kind)].empty();
+}
+
+float Player::motionDuration(PlayerActionKind kind) const
+{
+    const auto& slot = m_actions.get(kind);
+    if (kind < Kind::yawn)
+    {
+        const char* clip = locomotionClip(slot, kind);
+        return clip ? static_cast<float>(m_AnimationModel->clipDuration(clip)) : 0.0f;
+    }
+    if (!slot.loaded) return 0.0f;
+    const auto& window = definition(kind);
+    const float end = window.motionEnd > window.motionStart ? window.motionEnd : slot.sequence.duration;
+    return std::max(0.0f, end - window.motionStart);
+}
+
+void Player::playMotionSounds(PlayerActionKind kind, float time, bool loop)
+{
+    const bool changed = kind != m_soundKind;
+    float previous = changed ? -1.0f : m_soundTime;
+    if (loop)
+    {
+        const float duration = motionDuration(kind);
+        if (duration > 0.0f) time = fmodf(time, duration);
+        if (changed && time > 0.05f) previous = time;
+    }
+    SceneAudio::playMarkers(m_motionSounds[static_cast<size_t>(kind)], previous, time,
+        loop && !changed && time < previous ? motionDuration(kind) : 0.0f);
+    m_soundKind = kind;
+    m_soundTime = time;
+}
+
+void Player::previewMotion(PlayerActionKind kind, float time)
+{
+    const auto& slot = m_actions.get(kind);
+    const char* clip = kind < Kind::yawn ? locomotionClip(slot, kind) : slot.sequence.clip.c_str();
+    if (!clip || !m_AnimationModel->hasAnimation(clip)) return;
+    using Travel = AnimationModel::RootTravel;
+    Travel root = Travel::authored;
+    if (kind == Kind::walk || kind == Kind::run) root = Travel::removeHorizontalCycle;
+    if (kind == Kind::jump || kind == Kind::runJump) root = Travel::lockTranslation;
+    if (kind == Kind::land) root = Travel::anchorLandingFeet;
+    m_AnimationModel->sampleBlendedClip(clip, time + definition(kind).motionStart, 0, root, false, false);
+}
+
+void Player::clearMotionPreview()
+{
+    const float duration = motionDuration(m_locomotionKind);
+    if (duration > 0.0f) previewMotion(m_locomotionKind, fmodf(static_cast<float>(m_locomotionMotionTime), duration));
 }

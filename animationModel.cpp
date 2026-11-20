@@ -744,6 +744,18 @@ void AnimationModel::applyPose(const aiAnimation& animation, double tick, RootTr
     }
 
     // FBXのボーンオフセットを使ってスキニング行列を求める。
+    uploadPose();
+}
+
+void AnimationModel::applyBindPose()
+{
+    if (!m_AiScene) return;
+    for (auto& entry : m_Bone) entry.second.AnimationMatrix = entry.second.BindMatrix;
+    uploadPose();
+}
+
+void AnimationModel::uploadPose()
+{
     aiMatrix4x4 rootMatrix;
     UpdateBoneMatrix(m_AiScene->mRootNode, rootMatrix);
     for (unsigned int meshIndex = 0; meshIndex < m_AiScene->mNumMeshes; meshIndex++)
@@ -828,3 +840,109 @@ void AnimationModel::UpdateBoneMatrix(aiNode* node, aiMatrix4x4 matrix)
 		}
 	}
 
+
+namespace
+{
+    XMMATRIX directXMatrix(const aiMatrix4x4& m)
+    {
+        return XMMatrixSet(m.a1, m.b1, m.c1, m.d1, m.a2, m.b2, m.c2, m.d2,
+            m.a3, m.b3, m.c3, m.d3, m.a4, m.b4, m.c4, m.d4);
+    }
+}
+
+bool AnimationModel::fitBoneCapsule(const char* name, BoneCapsule& capsule) const
+{
+    if (!m_AiScene) return false;
+    const auto bone = m_Bone.find(name);
+    if (bone == m_Bone.end() || !bone->second.isSkinBone) return false;
+    const auto* node = m_AiScene->mRootNode->FindNode(aiString(name));
+    if (!node) return false;
+
+    aiMatrix4x4 bind;
+    for (auto* current = node; current; current = current->mParent)
+        bind = m_Bone.at(current->mName.C_Str()).BindMatrix * bind;
+    const XMMATRIX skin = directXMatrix(bind * bone->second.OffsetMatrix)
+        * XMMatrixScaling(m_skeletonUnitScale, m_skeletonUnitScale, m_skeletonUnitScale);
+    XMStoreFloat4x4(&capsule.inverseBindSkin, XMMatrixInverse(nullptr, skin));
+
+    std::vector<float> coordinates[3];
+    for (unsigned int m = 0; m < m_AiScene->mNumMeshes; ++m)
+    {
+        const auto* mesh = m_AiScene->mMeshes[m];
+        for (unsigned int v = 0; v < mesh->mNumVertices; ++v)
+        {
+            const auto& vertex = m_DeformVertex[m][v];
+            if (vertex.BoneNum == 0) continue;
+            int dominant = 0;
+            for (int b = 1; b < vertex.BoneNum; ++b)
+                if (vertex.BoneWeight[b] > vertex.BoneWeight[dominant]) dominant = b;
+            if (vertex.BoneName[dominant] != name) continue;
+            const auto& position = mesh->mVertices[v];
+            const auto point = XMVector3TransformCoord(XMVectorSet(position.x, position.y, position.z, 1), skin);
+            for (int axis = 0; axis < 3; ++axis)
+                coordinates[axis].push_back(XMVectorGetByIndex(point, axis));
+        }
+    }
+    const auto count = coordinates[0].size();
+    if (count < 4) return false;
+    float center[3], half[3];
+    int major = 0;
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        auto& values = coordinates[axis];
+        std::sort(values.begin(), values.end());
+        const auto trim = count / 20;
+        const float low = values[trim], high = values[count - 1 - trim];
+        center[axis] = (low + high) * 0.5f;
+        half[axis] = (high - low) * 0.5f;
+        if (half[axis] > half[major]) major = axis;
+    }
+    if (!std::isfinite(half[major]) || half[major] <= 0.001f) return false;
+    float axes[3]{};
+    axes[major] = 1.0f;
+    capsule.bone = name;
+    capsule.center = { center[0], center[1], center[2] };
+    capsule.axis = { axes[0], axes[1], axes[2] };
+    capsule.radius = std::max(0.015f, std::max(half[(major + 1) % 3], half[(major + 2) % 3]));
+    capsule.halfLength = std::max(0.0f, half[major] - capsule.radius * 0.65f);
+    return true;
+}
+
+XMMATRIX AnimationModel::capsulePose(const BoneCapsule& capsule) const
+{
+    return XMLoadFloat4x4(&capsule.inverseBindSkin) * directXMatrix(m_Bone.at(capsule.bone).Matrix);
+}
+bool AnimationModel::loadEmbeddedClip(const char* name)
+{
+    if (!m_AiScene || m_AiScene->mNumAnimations == 0) return false;
+    return LoadAnimation(m_ModelPath.c_str(), name);
+}
+
+std::vector<std::string> AnimationModel::dominantSkinBones(size_t limit) const
+{
+    if (!m_AiScene || !m_DeformVertex) return {};
+    std::unordered_map<std::string, size_t> weights;
+    for (unsigned int m = 0; m < m_AiScene->mNumMeshes; ++m)
+    {
+        for (const auto& vertex : m_DeformVertex[m])
+        {
+            if (vertex.BoneNum == 0) continue;
+            int dominant = 0;
+            for (int b = 1; b < vertex.BoneNum; ++b)
+                if (vertex.BoneWeight[b] > vertex.BoneWeight[dominant]) dominant = b;
+            ++weights[vertex.BoneName[dominant]];
+        }
+    }
+    std::vector<std::pair<std::string, size_t>> ranked(weights.begin(), weights.end());
+    std::sort(ranked.begin(), ranked.end(), [](const auto& a, const auto& b)
+    {
+        return a.second == b.second ? a.first < b.first : a.second > b.second;
+    });
+    std::vector<std::string> names;
+    for (const auto& bone : ranked)
+    {
+        if (names.size() == limit || bone.second < 4) break;
+        names.push_back(bone.first);
+    }
+    return names;
+}
