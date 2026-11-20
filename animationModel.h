@@ -36,6 +36,16 @@ struct BONE
 	aiMatrix4x4 OffsetMatrix;
 };
 
+struct BoneCapsule
+{
+    std::string bone;
+    XMFLOAT3 center{};
+    XMFLOAT3 axis{};
+    float radius = 0.0f;
+    float halfLength = 0.0f;
+    XMFLOAT4X4 inverseBindSkin{};
+};
+
 class AnimationModel : public Component
 {
 public:
@@ -99,6 +109,7 @@ private:
 
 	void CreateBone(aiNode* node);
 	void UpdateBoneMatrix(aiNode* Node, aiMatrix4x4 Matrix);
+    void uploadPose();
     bool samplePose(const char* name, double seconds, RootTravel rootTravel, float dt, bool restart, bool loop);
     float updatePoseTransition(const char* name, RootTravel rootTravel, float dt, bool restart);
     void blendTransitionPose(float weight);
@@ -135,4 +146,9 @@ public:
 	void Draw() override;
     void drawOutline();
     void drawAt(FXMMATRIX world);
+    bool fitBoneCapsule(const char* name, BoneCapsule& capsule) const;
+    std::vector<std::string> dominantSkinBones(size_t limit) const;
+    bool loadEmbeddedClip(const char* name);
+    void applyBindPose();
+    XMMATRIX capsulePose(const BoneCapsule& capsule) const;
 };

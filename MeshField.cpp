@@ -6,7 +6,6 @@
 #include "main.h"
 #include "renderer.h"
 #include "MeshField.h"
-#include "audio.h"
 
 // =========================================================
 // 地形の格子と、描画・当たり判定で共有する高さ表
@@ -163,10 +162,6 @@ void MeshField::Init()
         image.GetImageCount(), metadata, &m_Texture);
     assert(m_Texture);
 
-    //BGM
-    Audio* bgm = AddGameComponent<Audio>(this);
-    bgm->Load("asset\\Audio\\bgm.wav");
-    //bgm->Play(true);
 
 }
 void MeshField::updateVertices()

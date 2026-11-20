@@ -8,6 +8,7 @@
 #include "animationModel.h"
 #include "ToonShader.h"
 #include "PlayerActionSet.h"
+#include "SceneAudio.h"
 #include "AttackWeapon.h"
 #include "Explosion.h"
 
@@ -38,7 +39,6 @@ private:
     static constexpr float jumpSpeed = 15.0f;
     static constexpr float gravity = 35.0f;
     float m_MoveAnimation = 0.0f;
-    class Audio* m_JumpSE;
 
     GameObject* m_Child;
     GameObject* m_Shadow;
@@ -47,6 +47,10 @@ private:
     float m_walkSpeed = 1.43f; // 歩行の移動速度
     float m_runSpeed = 4.47f;  // ダッシュの移動速度
     PlayerActionSet m_actions;
+    std::array<SceneAudio::Timeline, static_cast<size_t>(PlayerActionKind::count)> m_motionSounds;
+    PlayerActionKind m_soundKind = PlayerActionKind::count;
+    float m_soundTime = -1.0f;
+    void playMotionSounds(PlayerActionKind kind, float time, bool loop);
     PlayerActionKind m_locomotionKind = PlayerActionKind::idle;
     ActionSequence m_playingAction;
     PlayerActionKind m_playingActionKind = PlayerActionKind::count;
@@ -77,6 +81,15 @@ public:
     void Update() override;
     void Draw() override;
 
+    static constexpr float BodyRadius = 0.52f;
+    static constexpr float BodyLowerCenter = 0.57f;
+    static constexpr float BodyUpperCenter = 1.24f;
+
+    void setMotionSounds(PlayerActionKind kind, const SceneAudio::Timeline& markers);
+    bool hasMotionSounds(PlayerActionKind kind) const;
+    float motionDuration(PlayerActionKind kind) const;
+    void previewMotion(PlayerActionKind kind, float time);
+    void clearMotionPreview();
     bool loadAction(const char* path, ActionSequence& action);
     // 登録済みの単発アクションか、先読みした任意のアクションを再生する。
     bool playAction(PlayerActionKind kind);
