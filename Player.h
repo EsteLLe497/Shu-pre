@@ -11,10 +11,128 @@
 #include "SceneAudio.h"
 #include "AttackWeapon.h"
 #include "Explosion.h"
+#include <algorithm>
+#include <cstdint>
 
 class Player : public GameObject
 {
+public:
+    // 攻撃開始時に一度だけ発行し、同じ攻撃の全フレーム・全判定で共有する。
+    using AttackId = std::uint64_t;
+
+    enum class HitResult { miss, hit, evaded, perfectDodge, alreadyHandled };
+
+    struct DamageHit
+    {
+        AttackId id = 0;
+        Vector3 start{ 0, 0, 0 };
+        Vector3 end{ 0, 0, 0 };
+        float radius = 0.0f; // ワールド座標のカプセル。始点と終点が同じなら球になる。
+    };
+
+    struct HitEvent
+    {
+        HitResult result = HitResult::miss;
+        AttackId attackId = 0;
+    };
+
+    struct DodgeSettings
+    {
+        float distance = 3.0f;         // 移動距離 [m]
+        float moveTime = 0.20f;        // 移動にかける時間 [秒]
+        float cooldown = 0.65f;        // 再使用までの時間 [秒]
+        float invincibleTime = 0.24f;  // 無敵時間 [秒]
+        float perfectWindow = 0.12f;   // 開始直後のジャスト回避受付 [秒]
+        float afterimageTime = 0.24f;  // 残像が消えるまでの時間 [秒]
+    };
+
+    static AttackId newAttackId();
+    bool tryDodge(Vector3 direction);
+    void setDodgeSettings(const DodgeSettings& settings);
+
+    bool isDodging() const
+    {
+        return m_dodgeAge < std::max(m_dodgeSettings.moveTime, m_dodgeSettings.invincibleTime);
+    }
+
+    bool isDodgeInvincible() const
+    {
+        return m_dodgeAge < m_dodgeSettings.invincibleTime;
+    }
+
+    const DodgeSettings& dodgeSettings() const
+    {
+        return m_dodgeSettings;
+    }
+
+    // 敵・罠から届いた判定は、プレイヤーの回避入力を処理した後で解決する。
+    void submitIncomingHit(const DamageHit& hit)
+    {
+        m_incomingHits.push_back(hit);
+    }
+
+    HitResult resolveIncomingHit(const DamageHit& hit);
+    bool consumeHitEvent(HitEvent& event);
+
+    // 成功フラグは取得するまで保持する。取得時に一度だけ true を返す。
+    bool consumePerfectDodge();
+
+    bool hasPerfectDodge() const
+    {
+        return m_perfectDodgePending;
+    }
+
+    AttackId lastPerfectDodgeAttackId() const
+    {
+        return m_lastPerfectAttack;
+    }
+
 private:
+    struct DodgeAfterimage
+    {
+        XMFLOAT4X4 world{};
+        Vector3 position{ 0, 0, 0 };
+        float age = 1000.0f;
+    };
+
+    // 回避の移動状態。直前位置は高速移動中のすり抜け判定にも使う。
+    DodgeSettings m_dodgeSettings;
+    float m_dodgeAge = 1000.0f;
+    float m_dodgeCooldown = 0.0f;
+    Vector3 m_dodgeDirection{ 0, 0, 1 };
+    Vector3 m_dodgePreviousPosition{ 0, 0, 0 };
+    Vector3 m_dodgeTrailHead{ 0, 0, 0 };
+    bool m_dodgeBlocked = false;
+
+    // 同一攻撃の重複通知と、同一回避のジャスト成功重複を防ぐ。
+    bool m_dodgeAwarded = false;
+    bool m_perfectDodgePending = false;
+    AttackId m_lastPerfectAttack = 0;
+    std::array<AttackId, 64> m_handledAttacks{};
+    size_t m_handledCursor = 0;
+    std::vector<DamageHit> m_incomingHits;
+
+    // 通知を消費しない場合でもメモリが増え続けないよう、最新64件を保持する。
+    std::array<HitEvent, 64> m_hitEvents{};
+    size_t m_hitEventBegin = 0;
+    size_t m_hitEventCount = 0;
+
+    // 残像・トレイルの履歴と、専用の描画リソース。
+    float m_perfectFlash = 0.0f;
+    std::array<DodgeAfterimage, 8> m_afterimages{};
+    size_t m_afterimageCount = 0;
+    Microsoft::WRL::ComPtr<ID3D11BlendState> m_afterimageBlend;
+    Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_afterimageDepth;
+    Microsoft::WRL::ComPtr<ID3D11Buffer> m_dodgeTrailVertices;
+    Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_dodgeTrailRasterizer;
+
+    void updateDodge(float dt);
+    bool intersectsIncomingHit(const DamageHit& hit) const;
+    void captureDodgeAfterimage();
+    bool prepareDodgeEffects();
+    void drawDodgeAfterimages();
+    void drawDodgeTrail();
+
     Vector3 m_Velocity{ 0.0f, 0.0f, 0.0f }; //速度
 
 
