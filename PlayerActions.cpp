@@ -1,7 +1,7 @@
 // =========================================================
-// ƒtƒ@ƒCƒ‹‚Ìî•ñ[PlayerActions.cpp]
+// ãƒ•ã‚¡ã‚¤ãƒ«ã®æƒ…å ±[PlayerActions.cpp]
 //
-// §ìÒ:Masatora Tanaka        “ú•tF2026/11/11
+// åˆ¶ä½œè€…:Masatora Tanaka        æ—¥ä»˜ï¼š2026/11/11
 // =========================================================
 #include "main.h"
 #include "renderer.h"
@@ -25,14 +25,14 @@ namespace
         float motionEnd = 0.0f;
     };
 
-    // ó‘Ô‚ÆƒAƒZƒbƒg‚Ì‘Î‰‚Í‚±‚±‚ÅŠÇ—‚·‚éB
+    // çŠ¶æ…‹ã¨ã‚¢ã‚»ãƒƒãƒˆã®å¯¾å¿œã¯ã“ã“ã§ç®¡ç†ã™ã‚‹ã€‚
     constexpr ActionDefinition definitions[] = {
         { Kind::idle, "asset/actions/Idle.json", "Idle" },
         { Kind::walk, "asset/actions/Walk.json", "Walk" },
         { Kind::run, "asset/actions/Run.json", "Run" },
         { Kind::yawn, "asset/actions/akubi.json", nullptr },
         { Kind::attack, ActionFile::attackPath, nullptr },
-        // FBX‚Å“¥‚İØ‚èE‹ó’†AÚ’nE“¥‚ñ’£‚è‚É‘Š“–‚·‚é‹æŠÔB
+        // FBXã§è¸ã¿åˆ‡ã‚Šãƒ»ç©ºä¸­ã€æ¥åœ°ãƒ»è¸ã‚“å¼µã‚Šã«ç›¸å½“ã™ã‚‹åŒºé–“ã€‚
         { Kind::jump, "asset/actions/Jump.json", nullptr, 0.59f, 1.17f },
         { Kind::runJump, "asset/actions/RunJump.json", nullptr, 0.04f, 0.64f },
         { Kind::land, "asset/actions/Land.json", nullptr, 0.36f }
@@ -52,7 +52,7 @@ namespace
 }
 
 // =========================================================
-// –{•Ò‚Åg‚¤ƒAƒNƒVƒ‡ƒ“‚ğ‚Ü‚Æ‚ß‚Ä“Ç‚İ‚Ş
+// æœ¬ç·¨ã§ä½¿ã†ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚’ã¾ã¨ã‚ã¦èª­ã¿è¾¼ã‚€
 // =========================================================
 void PlayerActionSet::load()
 {
@@ -61,6 +61,10 @@ void PlayerActionSet::load()
         auto& slot = get(entry.kind);
         slot.loaded = ActionFile::load(entry.path, slot.sequence);
     }
+    m_attackSlots[0] = get(Kind::attack);
+    m_attackSlots[1].loaded = ActionFile::loadNamed("Attack02", m_attackSlots[1].sequence);
+    // Finish is optional until its weapon action is authored.
+    m_attackSlots[2].loaded = ActionFile::loadNamed("Finish", m_attackSlots[2].sequence);
 }
 
 void Player::loadPlayerActions()
@@ -90,7 +94,7 @@ void Player::loadPlayerActions()
 }
 
 // =========================================================
-// Œ©‚Â‚©‚ç‚È‚¢‘fŞ‚¾‚¯‚ğ–³Œø‚É‚µAˆÚ“®‚Ì•W€ƒ‚[ƒVƒ‡ƒ“‚ğc‚·
+// è¦‹ã¤ã‹ã‚‰ãªã„ç´ æã ã‘ã‚’ç„¡åŠ¹ã«ã—ã€ç§»å‹•ã®æ¨™æº–ãƒ¢ãƒ¼ã‚·ãƒ§ãƒ³ã‚’æ®‹ã™
 // =========================================================
 void Player::bindPlayerActions(AnimationModel& model)
 {
@@ -106,9 +110,10 @@ void Player::bindPlayerActions(AnimationModel& model)
     }
 }
 
-// “Ç‚İ‚ß‚½ƒŒƒCƒ„[‚ÅÄ¶‚µAŒ³‚Ìİ’è‚Í•Û‚·‚éB
+// èª­ã¿è¾¼ã‚ãŸãƒ¬ã‚¤ãƒ¤ãƒ¼ã§å†ç”Ÿã—ã€å…ƒã®è¨­å®šã¯ä¿æŒã™ã‚‹ã€‚
 bool Player::playAction(PlayerActionKind kind)
 {
+    if (kind == Kind::attack) return startWeaponAttack();
     if (kind < Kind::yawn || kind >= Kind::count)
         return false;
 
@@ -134,7 +139,7 @@ bool Player::playAction(PlayerActionKind kind)
 }
 
 // =========================================================
-// “ü—Í‚É‰‚¶‚½ˆÚ“®ó‘Ô‚ÖØ‚è‘Ö‚¦A•\î‚Æ‘Ì‚ğ‹¤’Ê‚Ì‚ÅÄ¶‚·‚é
+// å…¥åŠ›ã«å¿œã˜ãŸç§»å‹•çŠ¶æ…‹ã¸åˆ‡ã‚Šæ›¿ãˆã€è¡¨æƒ…ã¨ä½“ã‚’å…±é€šã®æ™‚åˆ»ã§å†ç”Ÿã™ã‚‹
 // =========================================================
 void Player::updateLocomotion(float dt, PlayerActionKind kind)
 {
@@ -148,7 +153,7 @@ void Player::updateLocomotion(float dt, PlayerActionKind kind)
         return;
     }
 
-    // ‘Ì‚ÍFBX–{—ˆ‚ÌüŠú‚Å‰ñ‚µA•\î‚ÆƒGƒtƒFƒNƒg‚É‚ÍJSON‚ÌüŠú‚ğg‚¤B
+    // ä½“ã¯FBXæœ¬æ¥ã®å‘¨æœŸã§å›ã—ã€è¡¨æƒ…ã¨ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã«ã¯JSONã®å‘¨æœŸã‚’ä½¿ã†ã€‚
     m_locomotionMotionTime += dt;
     if (m_locomotionTime >= action.duration)
     {
@@ -162,7 +167,7 @@ void Player::updateLocomotion(float dt, PlayerActionKind kind)
 }
 
 // =========================================================
-// ”CˆÓ‚ÌƒAƒNƒVƒ‡ƒ“‚ğæ“Ç‚İ‚µAƒCƒxƒ“ƒg‚©‚çÄ¶‚·‚é
+// ä»»æ„ã®ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚’å…ˆèª­ã¿ã—ã€ã‚¤ãƒ™ãƒ³ãƒˆã‹ã‚‰å†ç”Ÿã™ã‚‹
 // =========================================================
 bool Player::loadAction(const char* path, ActionSequence& action)
 {
@@ -176,6 +181,12 @@ bool Player::loadAction(const char* path, ActionSequence& action)
 
 bool Player::playAction(const ActionSequence& action)
 {
+    if (action.weapon.enabled)
+    {
+        if (m_weaponPlayback.active()) return false;
+        m_attackCombo.reset();
+        return startWeaponAttack(action);
+    }
     if (!ActionFile::validate(action) || !prepareAction(action))
         return false;
 
@@ -186,13 +197,11 @@ bool Player::playAction(const ActionSequence& action)
         m_attackEffect->SetScale({ ActionSequence::effectScale, ActionSequence::effectScale, ActionSequence::effectScale });
     }
 
-    m_attackEffectTriggered = false;
-    m_weaponTime = -1.0f;
     m_playingAction = action;
     m_playingActionKind = Kind::count;
     m_actionMotionRestart = action.motionEnabled;
     m_playingAction.clip = PlayerAnimationAssets::canonicalMotionName(action.clip);
-    // ŒÄ‚Ño‚µ‘¤‚ª‘I‚ñ‚¾“_‚ÅA‘O‚ÌƒAƒNƒVƒ‡ƒ“‚ğØ‚è‘Ö‚¦‚Äæ“ª‚©‚çÄ¶‚·‚éB
+    // å‘¼ã³å‡ºã—å´ãŒé¸ã‚“ã æ™‚ç‚¹ã§ã€å‰ã®ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚’åˆ‡ã‚Šæ›¿ãˆã¦å…ˆé ­ã‹ã‚‰å†ç”Ÿã™ã‚‹ã€‚
     m_yawning = false;
     m_actionPlayback.stop();
     m_actionPlayback.start();
@@ -200,7 +209,7 @@ bool Player::playAction(const ActionSequence& action)
 }
 
 // =========================================================
-// •K—v‚È‘fŞ‚ğŒŸØ‚µA¬Œ÷‚µ‚½‚Æ‚«‚¾‚¯•\î•t‚«ƒ‚ƒfƒ‹‚ÖØ‚è‘Ö‚¦‚é
+// å¿…è¦ãªç´ æã‚’æ¤œè¨¼ã—ã€æˆåŠŸã—ãŸã¨ãã ã‘è¡¨æƒ…ä»˜ããƒ¢ãƒ‡ãƒ«ã¸åˆ‡ã‚Šæ›¿ãˆã‚‹
 // =========================================================
 bool Player::prepareAction(const ActionSequence& action)
 {
@@ -239,8 +248,43 @@ bool Player::prepareAction(const ActionSequence& action)
 }
 
 // =========================================================
-// ’P”­ƒAƒNƒVƒ‡ƒ“‚ğ—Dæ‚µAI‚í‚Á‚½‚çˆÚ“®ó‘Ô‚Ìp¨‚Ö–ß‚·
+// å˜ç™ºã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚’å„ªå…ˆã—ã€çµ‚ã‚ã£ãŸã‚‰ç§»å‹•çŠ¶æ…‹ã®å§¿å‹¢ã¸æˆ»ã™
 // =========================================================
+bool Player::startWeaponAttack()
+{
+    if (m_weaponPlayback.active())
+        return m_attackCombo.buffer();
+
+    const auto& slot = m_actions.attackSlot(m_attackCombo.next());
+    if (!slot.loaded || !startWeaponAttack(slot.sequence))
+    {
+        // Missing Finish ends the chain without substituting another attack.
+        m_attackCombo.reset();
+        return false;
+    }
+    m_attackCombo.started();
+    return true;
+}
+
+bool Player::startWeaponAttack(const ActionSequence& action)
+{
+    if (!ActionFile::validate(action) || !action.weapon.enabled || m_weaponPlayback.active()
+        || !m_weapon.load(action.weapon.model)) return false;
+    m_weaponAction = action;
+    m_weaponAnchor = XMMatrixRotationY(m_toonShader.settings().modelYaw) * GetMatrx();
+    m_weaponEndAnchor = m_weaponAnchor;
+    m_attackEffectTriggered = false;
+    if (m_weaponAction.effectEnabled && !m_attackEffect)
+    {
+        m_attackEffect = std::make_unique<Explosion>();
+        m_attackEffect->Init();
+        m_attackEffect->SetScale({ ActionSequence::effectScale, ActionSequence::effectScale, ActionSequence::effectScale });
+    }
+    m_weaponTime = 0.0f;
+    m_weaponPlayback.start();
+    return true;
+}
+
 bool Player::isMovingAttack() const
 {
     return m_actionPlayback.active() && m_playingActionKind == Kind::attack && m_playingAction.motionEnabled;
@@ -248,6 +292,30 @@ bool Player::isMovingAttack() const
 
 void Player::updateActionPose(float dt, float physicsDt)
 {
+    if (m_weaponPlayback.active())
+    {
+        m_weaponTime = m_weaponPlayback.time();
+        // Keep preview-local weapon poses in front of the moving/turning actor.
+        if (m_weaponTime <= m_weaponAction.weapon.disappear)
+        {
+            m_weaponAnchor = XMMatrixRotationY(m_toonShader.settings().modelYaw) * GetMatrx();
+            m_weaponEndAnchor = m_weaponAnchor;
+        }
+        if (m_weaponPlayback.takeEffect(m_weaponAction)) spawnActionEffect(m_weaponAction);
+        m_weaponPlayback.advanceTo(std::max(m_weaponAction.duration, m_weaponAction.weapon.visualEnd()),
+            dt * m_weaponAction.speed, false);
+        if (!m_weaponPlayback.active())
+        {
+            m_attackCombo.finished();
+            if (m_attackCombo.takeBuffered())
+            {
+                if (m_Ground && !isLanding())
+                    startWeaponAttack();
+                else
+                    m_attackCombo.reset();
+            }
+        }
+    }
     const auto& slot = m_actions.get(m_locomotionKind);
     const auto& gait = slot.sequence;
     const auto& action = m_playingAction;
@@ -300,7 +368,7 @@ void Player::updateActionPose(float dt, float physicsDt)
     }
     else
     {
-        // •à‚«E‘–‚è‚ÌˆÚ“®‚Í“ü—Í‘¤‚ª’S“–‚·‚é‚½‚ßA•`‰æ‚Å‚Íü‰ñ‚²‚Æ‚Ì‘Oi—Ê‚ğ·‚µˆø‚­B
+        // æ­©ããƒ»èµ°ã‚Šã®ç§»å‹•ã¯å…¥åŠ›å´ãŒæ‹…å½“ã™ã‚‹ãŸã‚ã€æç”»ã§ã¯å‘¨å›ã”ã¨ã®å‰é€²é‡ã‚’å·®ã—å¼•ãã€‚
         const bool isGait = m_locomotionKind == Kind::walk || m_locomotionKind == Kind::run;
         const auto rootTravel = isGait ? AnimationModel::RootTravel::removeHorizontalCycle
             : AnimationModel::RootTravel::authored;
@@ -322,7 +390,7 @@ void Player::updateActionPose(float dt, float physicsDt)
 
     if (jumping && !m_Ground)
     {
-        // ‹ó’†p¨‚ğƒWƒƒƒ“ƒv‚Ì•¨—ŠÔ‚É‡‚í‚¹A’·‚¢—‰º‚Å‚ÍÅŒã‚Ìp¨‚ğ•Û‚ÂB
+        // ç©ºä¸­å§¿å‹¢ã‚’ã‚¸ãƒ£ãƒ³ãƒ—ã®ç‰©ç†æ™‚é–“ã«åˆã‚ã›ã€é•·ã„è½ä¸‹ã§ã¯æœ€å¾Œã®å§¿å‹¢ã‚’ä¿ã¤ã€‚
         const auto& window = definition(m_playingActionKind);
         constexpr float flightTime = 2.0f * jumpSpeed / gravity;
         m_actionPlayback.advanceTo(window.motionEnd,
@@ -342,7 +410,7 @@ void Player::spawnActionEffect(const ActionSequence& action)
     {
         m_attackEffectPosition = action.weapon.effectOnWeapon && m_weapon.ready()
             ? AttackWeapon::effectPosition(action.weapon, action.effectStart,
-                GetMatrx())
+                m_weaponAnchor)
             : m_Position + offset;
         m_attackEffectTriggered = true;
         return;

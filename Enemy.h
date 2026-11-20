@@ -96,6 +96,14 @@ private:
         const DirectX::XMFLOAT4&, bool)>& visit);
 
 public:
+    void PreviewPose(float time, int action)
+    {
+        m_Attack = action == 1 ? Attack::Punch : action == 2 ? Attack::Slam : action == 3 ? Attack::Charge : Attack::None;
+        const float end = action == 2 ? SlamImpact + ShockwaveDuration : action == 3 ? ChargeEnd + 0.33f : SwingDuration;
+        if (time > end) m_Attack = Attack::None;
+        m_AttackTime = time;
+        m_GaitPhase = time * 4.0f;
+    }
     static AttackSettings defaultAttackSettings(bool midBoss);
     void setAttackSettings(const AttackSettings& settings) { m_attackSettings = settings; }
     const AttackSettings& attackSettings() const { return m_attackSettings; }

@@ -77,6 +77,8 @@ void PreviewScene::Init()
 {
     m_controls.motionNames = PlayerAnimationAssets::listMotions();
     m_toonShader.init();
+    m_enemy.Init();
+    m_enemy.SetRotation({0, 0, 0});
 
     // 本編と同じ外観設定を使い、プレビューのカメラは独立させる。
     ToonPreset::loadAppearance(m_toonShader.settings());
@@ -101,6 +103,7 @@ void PreviewScene::Uninit()
     }
 
     m_weapon.clear();
+    m_enemy.Uninit();
     m_effect.Uninit();
     m_toonShader.uninit();
 }
@@ -184,14 +187,14 @@ bool PreviewScene::selectMotion(const std::string& name)
 void PreviewScene::sampleModel()
 {
     const float motionTime = m_timeline.trackEnabled(0) ? m_timeline.time : 0.0f;
-    const auto& clip = m_controls.clipName;
+    const std::string clip = m_controls.category == 2 ? "Idle" : m_controls.clipName;
     const float weight = m_timeline.faceWeight();
     const auto& morphs = m_model->morphNames();
-    const bool faceEnabled = m_timeline.trackEnabled(1) && !morphs.empty();
+    const bool faceEnabled = m_controls.category == 0 && m_timeline.trackEnabled(1) && !morphs.empty();
     const int morph = faceEnabled ? m_controls.morphIndex : -1;
     const int baseMorph = faceEnabled ? m_controls.baseMorphIndex : -1;
     const float extraTime = faceEnabled && !m_controls.extraMorphs.empty() ? m_timeline.time : -1.0f;
-    if (m_sampledClip == m_controls.clipName && m_sampledWeapon == m_controls.weapon.enabled
+    if (m_sampledClip == clip && m_sampledWeapon == m_controls.weapon.enabled
         && m_sampledMorph == morph &&
         m_sampledBaseMorph == baseMorph && m_sampledTime == motionTime && m_sampledWeight == weight
         && m_sampledExtraTime == extraTime && m_sampledExtraMorphs == m_controls.extraMorphs)
@@ -206,7 +209,7 @@ void PreviewScene::sampleModel()
 
     m_model->sampleBlendedClip(clip.c_str(), motionTime, 0.0f,
         AnimationModel::RootTravel::authored, false, !m_controls.weapon.enabled);
-    m_sampledClip = m_controls.clipName;
+    m_sampledClip = clip;
     m_sampledWeapon = m_controls.weapon.enabled;
     m_sampledMorph = morph;
     m_sampledBaseMorph = baseMorph;
@@ -232,10 +235,11 @@ void PreviewScene::editWeaponInViewport(FXMMATRIX view)
         || (m_timeline.soloTrack >= 0 && m_timeline.soloTrack != 3))
         return;
 
-    const float times[] = { weapon.appear, weapon.middle, weapon.disappear };
+    std::vector<float> times;
+    for (std::size_t i = 0; i < weapon.keys.size(); ++i) times.push_back(weapon.keyTime(i));
     const int nearest = static_cast<int>(std::min_element(std::begin(times), std::end(times), [this](float a, float b) {
         return fabsf(a - m_timeline.time) < fabsf(b - m_timeline.time);
-    }) - times);
+    }) - times.begin());
 
     const auto& io = ImGui::GetIO();
     const auto* viewport = ImGui::GetMainViewport();
@@ -255,11 +259,12 @@ void PreviewScene::editWeaponInViewport(FXMMATRIX view)
         return XMVectorGetX(XMVector3Dot(delta, perpendicular)) / std::max(0.0001f, 1.0f - dot * dot);
     };
 
+    if (m_dragPositions.size() != weapon.keys.size()) m_dragAxis = -1;
     if (m_dragAxis >= 0 && ImGui::IsMousePosValid())
     {
         const float delta = axisParameter(XMLoadFloat3(&m_dragOrigin), m_dragAxis) - m_dragStart;
         float minimum = -20.0f, maximum = 20.0f;
-        for (int i = 0; i < 3; ++i)
+        for (int i = 0; i < static_cast<int>(weapon.keys.size()); ++i)
         {
             if (m_dragKey >= 0 && i != m_dragKey)
                 continue;
@@ -267,7 +272,7 @@ void PreviewScene::editWeaponInViewport(FXMMATRIX view)
             maximum = std::min(maximum, 10.0f - m_dragPositions[i]);
         }
         const float movement = std::max(minimum, std::min(maximum, delta));
-        for (int i = 0; i < 3; ++i)
+        for (int i = 0; i < static_cast<int>(weapon.keys.size()); ++i)
             if (m_dragKey < 0 || i == m_dragKey)
                 weapon.keys[i].position[m_dragAxis] = m_dragPositions[i] + movement;
     }
@@ -326,7 +331,8 @@ void PreviewScene::editWeaponInViewport(FXMMATRIX view)
         m_dragKey = -1;
         XMStoreFloat3(&m_dragOrigin, origin);
         m_dragStart = axisParameter(origin, hovered);
-        for (int i = 0; i < 3; ++i)
+        m_dragPositions.resize(weapon.keys.size());
+        for (int i = 0; i < static_cast<int>(weapon.keys.size()); ++i)
             m_dragPositions[i] = weapon.keys[i].position[hovered];
         if (!m_controls.moveWholePath)
             m_dragKey = nearest;
@@ -390,17 +396,17 @@ void PreviewScene::Draw()
 
     const auto& weapon = m_controls.weapon;
     const auto& target = weapon.cameraTarget;
-    const float cameraWeight = weapon.cameraWeight(m_timeline.time, m_timeline.duration);
+    const float cameraWeight = m_controls.category == 2 ? weapon.cameraWeight(m_timeline.time, m_timeline.duration) : 0.0f;
     const auto view = m_camera.bind({ target[0] * cameraWeight, target[1] * cameraWeight,
         target[2] * cameraWeight });
     if (showUi)
     {
         if (m_controls.showWorldAxes)
             drawWorldAxes(view);
-        editWeaponInViewport(view);
+        if (m_controls.category == 2) editWeaponInViewport(view);
     }
 
-    if (m_model)
+    if (m_model && (m_controls.category == 0 || (m_controls.category == 2 && m_controls.showPlayerContext)))
     {
         sampleModel();
         m_model->setModelYawOffset(XM_PI + m_toonShader.settings().modelYaw);
@@ -409,14 +415,19 @@ void PreviewScene::Draw()
         m_toonShader.drawOutline(*m_model);
     }
 
-    if (m_timeline.soloTrack < 0 || m_timeline.soloTrack == 3)
+    if (m_controls.category == 1)
+    {
+        m_enemy.PreviewPose(m_timeline.time, m_controls.enemyAction);
+        m_enemy.Draw();
+    }
+    if (m_controls.category == 2 && (m_timeline.soloTrack < 0 || m_timeline.soloTrack == 3))
     {
         m_toonShader.bindSurface();
         m_weapon.draw(weapon, m_timeline.time, XMMatrixIdentity());
     }
 
     const float age = m_timeline.effectAge();
-    if (age >= 0.0f && age < Explosion::frameCount * Explosion::frameDuration)
+    if (m_controls.category != 1 && age >= 0.0f && age < Explosion::frameCount * Explosion::frameDuration)
     {
         const auto position = weapon.enabled && weapon.effectOnWeapon && m_weapon.ready()
             ? AttackWeapon::effectPosition(weapon, m_timeline.effectStart, XMMatrixIdentity())

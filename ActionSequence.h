@@ -12,6 +12,7 @@
 
 struct WeaponPose
 {
+    float time = -1.0f;
     std::array<float, 3> position{};
     std::array<float, 3> angles{};
 };
@@ -25,7 +26,7 @@ struct WeaponTrack
     float disappear = 0.75f;
     float scale = 1.0f;
     std::array<float, 3> pivot{};
-    std::array<WeaponPose, 3> keys{};
+    std::vector<WeaponPose> keys = std::vector<WeaponPose>(3);
     bool trail = true;
     float trailLength = 0.12f;
     std::array<float, 3> trailBase{};
@@ -49,6 +50,7 @@ struct WeaponTrack
     std::array<float, 3> cameraTarget{};
 
     bool visible(float time) const;
+    float keyTime(std::size_t index) const;
     WeaponPose sample(float time) const;
     float cameraWeight(float time, float duration) const;
 };

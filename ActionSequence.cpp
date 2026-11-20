@@ -11,15 +11,25 @@ bool WeaponTrack::visible(float time) const
     return enabled && time >= appear && time <= disappear;
 }
 
+float WeaponTrack::keyTime(std::size_t index) const
+{
+    if (keys[index].time >= 0.0f) return keys[index].time;
+    return index == 0 ? appear : (index + 1 == keys.size() ? disappear : middle);
+}
+
 WeaponPose WeaponTrack::sample(float time) const
 {
-    const bool first = time < middle;
-    const auto& from = keys[first ? 0 : 1];
-    const auto& to = keys[first ? 1 : 2];
-    const float start = first ? appear : middle;
-    const float end = first ? middle : disappear;
-    const float t = end > start ? std::max(0.0f, std::min(1.0f, (time - start) / (end - start))) : 1.0f;
+    if (keys.empty()) return {};
+    if (time <= keyTime(0)) return keys.front();
+    std::size_t next = 1;
+    while (next < keys.size() && keyTime(next) <= time) ++next;
+    if (next == keys.size()) return keys.back();
+    const auto& from = keys[next - 1];
+    const auto& to = keys[next];
+    const float start = keyTime(next - 1), end = keyTime(next);
+    const float t = end > start ? (time - start) / (end - start) : 1.0f;
     WeaponPose pose;
+    pose.time = time;
     for (std::size_t axis = 0; axis < pose.position.size(); ++axis)
     {
         pose.position[axis] = from.position[axis] + (to.position[axis] - from.position[axis]) * t;

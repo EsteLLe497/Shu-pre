@@ -242,18 +242,11 @@ void Player::Update()
     if (m_actions.updateIdleTimer(isIdle && (!m_actionPlayback.active() || m_yawning), dt))
         m_yawning = playAction(PlayerActionKind::yawn);
 
-    /* UŒ‚“ü—Í‚Æ’e‚Ì”­Ë‚ğˆê’â~‚·‚éB
-    const bool fire = Input::GetKeyTrigger('J');
-    if (fire)
-    {
-        Bullet* bullet = Manager::AddGameObj<Bullet>();
-        bullet->SetPosition(m_Position);
-        bullet->SetVelocity(GetFoward() * 20.0f);
-    }
+    m_attackCombo.advance(Manager::animationDeltaSeconds() * timeScale);
+    if ((Input::GetKeyTrigger('J') || Input::GetKeyTrigger(VK_LBUTTON))
+        && m_Ground && !isLanding())
+        startWeaponAttack();
 
-    if ((fire || Input::GetKeyTrigger(VK_LBUTTON)) && m_Ground && !isLanding() && !attacking)
-        playAction(PlayerActionKind::attack);
-    */
 
     if (m_Ground)
     {
@@ -282,15 +275,15 @@ void Player::Draw()
     m_toonShader.bindSurface();
     GameObject::Draw();
     m_toonShader.drawOutline(*m_AnimationModel);
-    if (m_playingAction.weapon.enabled && m_weaponTime >= 0.0f && m_weaponTime < m_playingAction.weapon.visualEnd())
+    if (m_weaponAction.weapon.enabled && m_weaponTime >= 0.0f && m_weaponTime < m_weaponAction.weapon.visualEnd())
     {
         m_toonShader.bindSurface();
-        const auto anchor = m_weaponTime > m_playingAction.weapon.disappear ? m_weaponEndAnchor : GetMatrx();
-        m_weapon.draw(m_playingAction.weapon, m_weaponTime, anchor, &m_weaponEndAnchor);
+        const auto anchor = m_weaponAnchor;
+        m_weapon.draw(m_weaponAction.weapon, m_weaponTime, anchor, &m_weaponEndAnchor);
     }
-    if (m_sampledActionTime >= 0.0f && m_playingAction.weapon.enabled)
+    if (m_weaponTime >= 0.0f && m_weaponAction.weapon.enabled)
     {
-        const float age = m_sampledActionTime - m_playingAction.effectStart;
+        const float age = m_weaponTime - m_weaponAction.effectStart;
         if (m_attackEffectTriggered && age >= 0.0f && age < Explosion::frameCount * Explosion::frameDuration)
         {
             if (auto* camera = Manager::GetGameObj<Camera>())

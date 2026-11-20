@@ -10,7 +10,7 @@
 #include <vector>
 #include "ActionSequence.h"
 
-struct PreviewTimeline;
+#include "PreviewTimeline.h"
 struct ToonSettings;
 class PreviewCamera;
 
@@ -25,6 +25,14 @@ struct PreviewControls
     float effectX = 0.75f;
     float effectHeight = 0.20f;
     WeaponTrack weapon;
+    int category = 0;
+    std::array<PreviewTimeline, 3> categoryTimelines;
+    std::array<std::string, 3> categoryNames{ "PlayerAction", "Enemy", "Attack01" };
+    std::array<float, 3> categoryEffectX{0.75f, 0.75f, 0.75f};
+    std::array<float, 3> categoryEffectHeight{0.2f, 0.2f, 0.2f};
+    int selectedKey = 0;
+    int enemyAction = 0;
+    bool showPlayerContext = true;
     bool showWorldAxes = true;
     bool moveWholePath = true;
     char characterPath[512]{};
@@ -32,7 +40,7 @@ struct PreviewControls
     std::string weaponStatus;
     std::string assetStatus;
     const char* shaderStatus = nullptr;
-    char actionName[70] = "Attack01";
+    char actionName[70] = "PlayerAction";
     std::vector<std::string> savedActionNames;
     std::string actionStatus;
 };
