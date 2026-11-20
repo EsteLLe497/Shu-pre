@@ -201,7 +201,7 @@ void AttackWeapon::drawTrail(const WeaponTrack& track, float time, FXMMATRIX anc
     context->IASetInputLayout(m_endLayout.Get());
     context->VSSetConstantBuffers(7, 1, m_endConstants.GetAddressOf());
     context->PSSetConstantBuffers(7, 1, m_endConstants.GetAddressOf());
-    drawOverlay(2 * (trailSegments + 1), D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, true);
+    drawOverlay(2 * (trailSegments + 1), D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, false);
     context->VSSetShader(oldVS.Get(), nullptr, 0);
     context->PSSetShader(oldPS.Get(), nullptr, 0);
     context->IASetInputLayout(oldLayout.Get());

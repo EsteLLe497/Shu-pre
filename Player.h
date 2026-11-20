@@ -154,8 +154,8 @@ private:
     bool m_Ground = false;
     bool m_jumpedFromGround = false;
     float m_airborneTime = 0.0f;
-    static constexpr float jumpSpeed = 15.0f;
-    static constexpr float gravity = 35.0f;
+    static constexpr float jumpSpeed = 12.5f;
+    static constexpr float gravity = 25.0f;
     float m_MoveAnimation = 0.0f;
 
     GameObject* m_Child;
@@ -187,7 +187,7 @@ private:
     {
         return m_actionPlayback.active() && m_playingActionKind == PlayerActionKind::land;
     }
-    bool isMovingAttack() const;
+    bool isAttacking() const;
     void updateLocomotion(float dt, PlayerActionKind kind);
     void updateActionPose(float dt, float physicsDt);
     void spawnActionEffect(const ActionSequence& action);
@@ -198,6 +198,7 @@ public:
     void Uninit() override;
     void Update() override;
     void Draw() override;
+    void drawEffects();
 
     static constexpr float BodyRadius = 0.52f;
     static constexpr float BodyLowerCenter = 0.57f;

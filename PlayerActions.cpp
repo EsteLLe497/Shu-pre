@@ -280,14 +280,16 @@ bool Player::startWeaponAttack(const ActionSequence& action)
         m_attackEffect->Init();
         m_attackEffect->SetScale({ ActionSequence::effectScale, ActionSequence::effectScale, ActionSequence::effectScale });
     }
+    m_Velocity.x = m_Velocity.z = 0.0f;
     m_weaponTime = 0.0f;
     m_weaponPlayback.start();
     return true;
 }
 
-bool Player::isMovingAttack() const
+bool Player::isAttacking() const
 {
-    return m_actionPlayback.active() && m_playingActionKind == Kind::attack && m_playingAction.motionEnabled;
+    return m_weaponPlayback.active()
+        || (m_actionPlayback.active() && m_playingActionKind == Kind::attack);
 }
 
 void Player::updateActionPose(float dt, float physicsDt)

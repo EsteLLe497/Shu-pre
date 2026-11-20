@@ -271,7 +271,7 @@ void Player::Update()
     const bool isDashing = isMoving && Input::GetKeyPress(VK_SHIFT);
 
     // 踏ん張り中は移動入力で加速しない。
-    const bool attacking = isMovingAttack();
+    const bool attacking = isAttacking();
     const bool canMove = isMoving && !isLanding() && !attacking && !isDodging();
     if (attacking)
         m_Velocity.x = m_Velocity.z = 0.0f;
@@ -428,12 +428,17 @@ void Player::Update()
 
 void Player::Draw()
 {
-    drawDodgeAfterimages();
     // 表示モデルの向きだけを調整し、本体と輪郭で同じポーズを使う。
     m_AnimationModel->setModelYawOffset(XM_PI + m_toonShader.settings().modelYaw);
     m_toonShader.bindSurface();
     GameObject::Draw();
     m_toonShader.drawOutline(*m_AnimationModel);
+}
+
+// Draw translucent effects after world geometry so later objects cannot erase them.
+void Player::drawEffects()
+{
+    drawDodgeAfterimages();
     if (m_weaponAction.weapon.enabled && m_weaponTime >= 0.0f && m_weaponTime < m_weaponAction.weapon.visualEnd())
     {
         m_toonShader.bindSurface();
@@ -483,7 +488,7 @@ void Player::setDodgeSettings(const DodgeSettings& settings)
 // 入力方向を固定して回避を開始する。ここではまだ座標を動かさない。
 bool Player::tryDodge(Vector3 direction)
 {
-    if (!m_Ground || m_dodgeCooldown > 0.0f || isDodging())
+    if (!m_Ground || m_dodgeCooldown > 0.0f || isDodging() || isAttacking())
     {
         return false;
     }

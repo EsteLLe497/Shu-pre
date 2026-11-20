@@ -171,6 +171,11 @@ void Manager::Draw()
 	for (int layer = 0; layer < 5; layer++)
 	{
         // UIはドームの色や遮蔽の影響を受けない。
+        if (layer == 4)
+        {
+            if (auto* player = GetGameObj<Player>())
+                player->drawEffects();
+        }
         if (editing && layer == 4) continue;
         if (layer == 4 && camera)
             planetarium::draw(camera->GetViewMatrix(), camera->projectionMatrix());
