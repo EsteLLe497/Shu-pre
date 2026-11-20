@@ -45,6 +45,14 @@ private:
         const DirectX::XMFLOAT4& color, bool shockwave = false);
 
 public:
+    void PreviewPose(float time, int action)
+    {
+        m_Attack = action == 1 ? Attack::Punch : action == 2 ? Attack::Slam : action == 3 ? Attack::Charge : Attack::None;
+        const float end = action == 2 ? SlamImpact + ShockwaveDuration : action == 3 ? ChargeEnd + 0.33f : SwingDuration;
+        if (time > end) m_Attack = Attack::None;
+        m_AttackTime = time;
+        m_GaitPhase = time * 4.0f;
+    }
     void Configure(bool midBoss);
     float BodyRadius() const { return 0.7f * m_Scale.x; }
     bool IsAirborne() const { return JumpHeight() > 0.7f; }

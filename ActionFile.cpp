@@ -64,6 +64,11 @@ namespace
             return std::all_of(values.begin(), values.end(),
                 [limit](float value) { return inRange(value, -limit, limit); });
         };
+        if (weapon.keys.size() < 2 || weapon.keys.size() > 512) return false;
+        for (std::size_t i = 0; i < weapon.keys.size(); ++i)
+            if ((weapon.keys[i].time != -1.0f && !inRange(weapon.keys[i].time, 0.0f, duration))
+                || !inRange(weapon.keyTime(i), i ? weapon.keyTime(i - 1) : weapon.appear, weapon.disappear))
+                return false;
         return (!weapon.enabled || !weapon.model.empty())
             && weapon.model.size() <= 240
             && inRange(weapon.appear, 0.0f, weapon.middle)
@@ -130,9 +135,11 @@ namespace
         data.SetNamedValue(L"cameraTarget", encodeVector(weapon.cameraTarget));
 
         JsonArray keys;
-        for (const auto& key : weapon.keys)
+        for (std::size_t i = 0; i < weapon.keys.size(); ++i)
         {
+            const auto& key = weapon.keys[i];
             JsonObject pose;
+            pose.SetNamedValue(L"time", JsonValue::CreateNumberValue(weapon.keyTime(i)));
             pose.SetNamedValue(L"position", encodeVector(key.position));
             pose.SetNamedValue(L"angles", encodeVector(key.angles));
             keys.Append(pose);
@@ -175,11 +182,14 @@ namespace
         weapon.cameraEnabled = data.GetNamedBoolean(L"cameraEnabled");
         weapon.cameraTarget = decodeVector(data.GetNamedArray(L"cameraTarget"));
         const auto keys = data.GetNamedArray(L"keys");
-        if (keys.Size() != weapon.keys.size())
+        if (keys.Size() < 2 || keys.Size() > 512)
             throw winrt::hresult_invalid_argument();
+        weapon.keys.resize(keys.Size());
         for (uint32_t i = 0; i < keys.Size(); ++i)
         {
             const auto pose = keys.GetObjectAt(i);
+            weapon.keys[i].time = pose.HasKey(L"time") ? static_cast<float>(pose.GetNamedNumber(L"time"))
+                : (i == 0 ? weapon.appear : (i + 1 == keys.Size() ? weapon.disappear : weapon.middle));
             weapon.keys[i].position = decodeVector(pose.GetNamedArray(L"position"));
             weapon.keys[i].angles = decodeVector(pose.GetNamedArray(L"angles"));
         }

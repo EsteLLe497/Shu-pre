@@ -19,6 +19,12 @@ private:
 
     ToonShader m_toonShader;
     AttackWeapon m_weapon;
+    ActionSequence m_weaponAction;
+    ActionPlayback m_weaponPlayback;
+    AttackCombo m_attackCombo;
+    XMMATRIX m_weaponAnchor = XMMatrixIdentity();
+    bool startWeaponAttack();
+    bool startWeaponAttack(const ActionSequence& action);
     std::unique_ptr<Explosion> m_attackEffect;
     Vector3 m_attackEffectPosition{ 0.0f, 0.0f, 0.0f };
     bool m_attackEffectTriggered = false;

@@ -29,4 +29,6 @@ __pycache__/
 Thumbs.db
 Desktop.ini
 
+/.codex/
+/.codexbuild/
 /.codex-build/

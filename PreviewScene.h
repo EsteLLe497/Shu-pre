@@ -15,6 +15,7 @@
 #include "PreviewCamera.h"
 #include "PreviewTimeline.h"
 #include "AttackWeapon.h"
+#include "Enemy.h"
 
 class PreviewScene : public Scene
 {
@@ -24,12 +25,13 @@ private:
     ToonShader m_toonShader;
     Explosion m_effect;
     AttackWeapon m_weapon;
+    Enemy m_enemy;
     std::string m_selectedWeapon;
     int m_dragAxis = -1;
     int m_dragKey = -1;
     XMFLOAT3 m_dragOrigin{};
     float m_dragStart = 0.0f;
-    std::array<float, 3> m_dragPositions{};
+    std::vector<float> m_dragPositions;
     PreviewTimeline m_timeline;
     PreviewControls m_controls;
     PreviewCamera m_camera;

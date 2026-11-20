@@ -61,6 +61,10 @@ void PlayerActionSet::load()
         auto& slot = get(entry.kind);
         slot.loaded = ActionFile::load(entry.path, slot.sequence);
     }
+    m_attackSlots[0] = get(Kind::attack);
+    m_attackSlots[1].loaded = ActionFile::loadNamed("Attack02", m_attackSlots[1].sequence);
+    // Finish is optional until its weapon action is authored.
+    m_attackSlots[2].loaded = ActionFile::loadNamed("Finish", m_attackSlots[2].sequence);
 }
 
 void Player::loadPlayerActions()
@@ -109,6 +113,7 @@ void Player::bindPlayerActions(AnimationModel& model)
 // 読み込めたレイヤーで再生し、元の設定は保持する。
 bool Player::playAction(PlayerActionKind kind)
 {
+    if (kind == Kind::attack) return startWeaponAttack();
     if (kind < Kind::yawn || kind >= Kind::count)
         return false;
 
@@ -175,6 +180,12 @@ bool Player::loadAction(const char* path, ActionSequence& action)
 
 bool Player::playAction(const ActionSequence& action)
 {
+    if (action.weapon.enabled)
+    {
+        if (m_weaponPlayback.active()) return false;
+        m_attackCombo.reset();
+        return startWeaponAttack(action);
+    }
     if (!ActionFile::validate(action) || !prepareAction(action))
         return false;
 
@@ -185,8 +196,6 @@ bool Player::playAction(const ActionSequence& action)
         m_attackEffect->SetScale({ ActionSequence::effectScale, ActionSequence::effectScale, ActionSequence::effectScale });
     }
 
-    m_attackEffectTriggered = false;
-    m_weaponTime = -1.0f;
     m_playingAction = action;
     m_playingActionKind = Kind::count;
     m_actionMotionRestart = action.motionEnabled;
@@ -240,6 +249,41 @@ bool Player::prepareAction(const ActionSequence& action)
 // =========================================================
 // 単発アクションを優先し、終わったら移動状態の姿勢へ戻す
 // =========================================================
+bool Player::startWeaponAttack()
+{
+    if (m_weaponPlayback.active())
+        return m_attackCombo.buffer();
+
+    const auto& slot = m_actions.attackSlot(m_attackCombo.next());
+    if (!slot.loaded || !startWeaponAttack(slot.sequence))
+    {
+        // Missing Finish ends the chain without substituting another attack.
+        m_attackCombo.reset();
+        return false;
+    }
+    m_attackCombo.started();
+    return true;
+}
+
+bool Player::startWeaponAttack(const ActionSequence& action)
+{
+    if (!ActionFile::validate(action) || !action.weapon.enabled || m_weaponPlayback.active()
+        || !m_weapon.load(action.weapon.model)) return false;
+    m_weaponAction = action;
+    m_weaponAnchor = XMMatrixRotationY(m_toonShader.settings().modelYaw) * GetMatrx();
+    m_weaponEndAnchor = m_weaponAnchor;
+    m_attackEffectTriggered = false;
+    if (m_weaponAction.effectEnabled && !m_attackEffect)
+    {
+        m_attackEffect = std::make_unique<Explosion>();
+        m_attackEffect->Init();
+        m_attackEffect->SetScale({ ActionSequence::effectScale, ActionSequence::effectScale, ActionSequence::effectScale });
+    }
+    m_weaponTime = 0.0f;
+    m_weaponPlayback.start();
+    return true;
+}
+
 bool Player::isMovingAttack() const
 {
     return m_actionPlayback.active() && m_playingActionKind == Kind::attack && m_playingAction.motionEnabled;
@@ -247,21 +291,35 @@ bool Player::isMovingAttack() const
 
 void Player::updateActionPose(float dt, float physicsDt)
 {
+    if (m_weaponPlayback.active())
+    {
+        m_weaponTime = m_weaponPlayback.time();
+        // Keep preview-local weapon poses in front of the moving/turning actor.
+        if (m_weaponTime <= m_weaponAction.weapon.disappear)
+        {
+            m_weaponAnchor = XMMatrixRotationY(m_toonShader.settings().modelYaw) * GetMatrx();
+            m_weaponEndAnchor = m_weaponAnchor;
+        }
+        if (m_weaponPlayback.takeEffect(m_weaponAction)) spawnActionEffect(m_weaponAction);
+        m_weaponPlayback.advanceTo(std::max(m_weaponAction.duration, m_weaponAction.weapon.visualEnd()),
+            dt * m_weaponAction.speed, false);
+        if (!m_weaponPlayback.active())
+        {
+            m_attackCombo.finished();
+            if (m_attackCombo.takeBuffered())
+            {
+                if (m_Ground && !isLanding())
+                    startWeaponAttack();
+                else
+                    m_attackCombo.reset();
+            }
+        }
+    }
     const auto& slot = m_actions.get(m_locomotionKind);
     const auto& gait = slot.sequence;
     const auto& action = m_playingAction;
     const bool active = m_actionPlayback.active();
     m_sampledActionTime = active ? m_actionPlayback.time() : -1.0f;
-    if (action.weapon.enabled)
-    {
-        const float previous = m_weaponTime;
-        if (active)
-            m_weaponTime = m_sampledActionTime;
-        else if (m_weaponTime >= 0.0f)
-            m_weaponTime += dt * action.speed;
-        if (previous < action.weapon.disappear && m_weaponTime >= action.weapon.disappear)
-            m_weaponEndAnchor = GetMatrx();
-    }
     const bool jumping = m_playingActionKind == Kind::jump || m_playingActionKind == Kind::runJump;
     const bool landing = m_playingActionKind == Kind::land;
     const bool useActionFace = active && action.faceEnabled;
@@ -337,7 +395,7 @@ void Player::spawnActionEffect(const ActionSequence& action)
     {
         m_attackEffectPosition = action.weapon.effectOnWeapon && m_weapon.ready()
             ? AttackWeapon::effectPosition(action.weapon, action.effectStart,
-                GetMatrx())
+                m_weaponAnchor)
             : m_Position + offset;
         m_attackEffectTriggered = true;
         return;
