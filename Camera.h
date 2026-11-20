@@ -25,12 +25,17 @@ class Camera : public GameObject
 private:
     Vector3 m_target{ 0.0f, 0.0f, 0.0f };
     Vector3 m_viewTarget{ 0.0f, 0.0f, 0.0f };
+    Vector3 m_followVelocity{ 0.0f, 0.0f, 0.0f };
+    bool m_followInitialized = false;
     XMMATRIX m_viewMatrix;
 	XMMATRIX m_projectionMatrix;
     Vector3 m_shake{ 0.0f, 0.0f, 0.0f };
     float m_shakeTime = 0.0f;
     CameraOrbit m_orbit;
     float m_distance = m_orbit.distance;
+    float m_yawVelocity = 0.0f;
+    float m_pitchVelocity = 0.0f;
+    float m_zoomVelocity = 0.0f;
     Vector3 m_renderPosition{ 0.0f, 0.0f, 0.0f };
 
 public:

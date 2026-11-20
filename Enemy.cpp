@@ -188,7 +188,7 @@ bool Enemy::MoveOnGround(const Vector3& displacement, const Player* player)
 void Enemy::Update()
 {
     const float dt = Manager::animationDeltaSeconds();
-    const Player* player = Manager::GetGameObj<Player>();
+    Player* player = Manager::GetGameObj<Player>();
     const Vector3 toPlayer = player ? player->GetPosition() - m_Position : Vector3{ 0.0f, 0.0f, 0.0f };
     const float horizontalDistance = hypotf(toPlayer.x, toPlayer.z);
     const bool detected = player && hypotf(horizontalDistance, toPlayer.y) <= m_attackSettings.detectionDistance;
@@ -211,6 +211,7 @@ void Enemy::Update()
     if (m_Attack != Attack::None)
     {
         const float previousTime = m_AttackTime;
+        const Vector3 previousPosition = m_Position;
         m_AttackTime += dt;
         const auto motion = static_cast<Motion>(static_cast<int>(m_Attack) + 1);
         const float duration = motionDuration(motion);
@@ -243,6 +244,7 @@ void Enemy::Update()
                     m_ChargeBlocked = !MoveOnGround(step, player);
             }
         }
+        if (player) submitAttackHit(*player, previousTime, previousPosition);
         if (m_AttackTime >= duration)
         {
             if (m_Attack == Attack::Punch) m_LeftHand = !m_LeftHand;
@@ -261,6 +263,7 @@ void Enemy::Update()
             {
                 m_Attack = m_NextAttack;
                 m_AttackTime = 0.0f;
+                m_attackHitId = Player::newAttackId();
                 const auto motion = static_cast<Motion>(static_cast<int>(m_Attack) + 1);
                 SceneAudio::playMarkers(m_motionSounds[static_cast<size_t>(motion)], -1.0f, 0.0f);
                 m_ChargeBlocked = false;
@@ -362,7 +365,8 @@ void Enemy::Draw()
     }
 }
 
-void Enemy::VisitBodyParts(const std::function<void(const Vector3&, const XMMATRIX&, const XMFLOAT4&, bool)>& visit)
+void Enemy::VisitBodyParts(const std::function<void(const Vector3&, const XMMATRIX&, const XMFLOAT4&, bool)>& visit,
+    const std::function<void(const Vector3&, float)>& fist)
 {
     const float attackSide = m_LeftHand ? -1.0f : 1.0f;
     const float gaitWeight = m_previewMotion == Motion::Count ? m_GaitWeight : (m_previewMotion == Motion::Move ? 1.0f : 0.0f);
@@ -418,6 +422,12 @@ void Enemy::VisitBodyParts(const std::function<void(const Vector3&, const XMMATR
         visit({ 0.47f, 0.24f, 0.24f }, XMMatrixTranslation(side * 0.34f, 0.0f, 0.0f) * arm,
             { 0.72f, 0.24f, 0.15f, 1.0f }, true);
         const float fistRadius = m_MidBoss ? 0.54f : 0.43f;
+        if (fist && strikingHand)
+        {
+            XMFLOAT3 center;
+            XMStoreFloat3(&center, XMVector3TransformCoord(XMVectorSet(side * 0.83f, 0, 0, 1), arm));
+            fist({ center.x, center.y, center.z }, fistRadius * std::max({ m_Scale.x, m_Scale.y, m_Scale.z }));
+        }
         visit({ fistRadius, fistRadius, fistRadius }, XMMatrixTranslation(side * 0.83f, 0.0f, 0.0f) * arm,
             { 1.0f, 0.62f, 0.16f, 1.0f }, true);
 
@@ -721,4 +731,78 @@ void Enemy::clearMotionPreview()
     if (m_previewMotion == Motion::Count) return;
     m_previewMotion = Motion::Count;
     sampleCharacterMotion(m_currentMotion == Motion::Count ? Motion::Idle : m_currentMotion, m_characterTime);
+}
+
+// Attack volumes are active only during the same strike phases shown by the editor.
+void Enemy::submitAttackHit(Player& player, float previousTime, const Vector3& previousPosition)
+{
+    const auto motion = static_cast<Motion>(static_cast<int>(m_Attack) + 1);
+    const auto phase = attackPhase(motion);
+    if (!m_attackHitId || m_AttackTime < phase.start || previousTime >= phase.end) return;
+    const float sampleTime = std::min(m_AttackTime, phase.end);
+    if (m_Attack == Attack::Punch)
+    {
+        // Reuse the rendered fist transform, including scale and the active left/right hand.
+        const float savedTime = m_AttackTime;
+        const auto noDraw = [](const Vector3&, const XMMATRIX&, const XMFLOAT4&, bool) {};
+        Vector3 from{ 0, 0, 0 }, to{ 0, 0, 0 };
+        float radius = 0.0f;
+        m_AttackTime = std::max(previousTime, phase.start);
+        VisitBodyParts(noDraw, [&](const Vector3& p, float r) { from = p; radius = r; });
+        m_AttackTime = sampleTime;
+        VisitBodyParts(noDraw, [&](const Vector3& p, float) { to = p; });
+        m_AttackTime = savedTime;
+        if (m_character)
+        {
+            // Imported characters use the animated hand hurtbox instead of prototype limbs.
+            const auto handIndex = [&]() -> size_t
+            {
+                for (size_t i = 0; i < m_capsules.size(); ++i)
+                {
+                    const auto& name = m_capsules[i].bone;
+                    if (name.find("Hand") == std::string::npos && name.find("hand") == std::string::npos) continue;
+                    const bool left = name.find("Left") != std::string::npos || name.find("left") != std::string::npos
+                        || name.find("_L_") != std::string::npos;
+                    if (left == m_LeftHand) return i;
+                }
+                return m_capsules.size();
+            }();
+            if (handIndex < m_capsules.size())
+            {
+                sampleCharacterMotion(motion, std::max(previousTime, phase.start));
+                auto hand = hurtboxPose(handIndex);
+                from = hand.end;
+                sampleCharacterMotion(motion, sampleTime);
+                hand = hurtboxPose(handIndex);
+                to = hand.end;
+                radius = std::max(0.15f * m_Scale.x, hand.radius);
+            }
+        }
+        player.submitIncomingHit({ m_attackHitId, from, to, radius });
+    }
+    else if (m_Attack == Attack::Charge)
+    {
+        const Vector3 height{ 0, 0.9f * m_Scale.y, 0 };
+        player.submitIncomingHit({ m_attackHitId, previousPosition + height, m_Position + height,
+            BodyRadius() + 0.35f * m_Scale.x });
+    }
+    else if (m_Attack == Attack::Slam)
+    {
+        // Sweep the visible ground ring, leaving its hollow center safe and allowing jumps.
+        const float from = shockwaveRadiusAt(std::max(previousTime, phase.start));
+        const float to = shockwaveRadiusAt(sampleTime);
+        const int steps = std::max(1, static_cast<int>(ceilf((to - from) / 0.15f)));
+        constexpr int sides = 32;
+        for (int step = 0; step <= steps; ++step)
+        {
+            const float radius = from + (to - from) * step / steps;
+            for (int side = 0; side < sides; ++side)
+            {
+                const float a = XM_2PI * side / sides, b = XM_2PI * (side + 1) / sides;
+                const Vector3 start = m_Position + Vector3{ sinf(a) * radius, 0.065f, cosf(a) * radius };
+                const Vector3 end = m_Position + Vector3{ sinf(b) * radius, 0.065f, cosf(b) * radius };
+                player.submitIncomingHit({ m_attackHitId, start, end, 0.12f });
+            }
+        }
+    }
 }

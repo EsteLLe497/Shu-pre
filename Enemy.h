@@ -7,6 +7,7 @@
 #include "SceneAudio.h"
 #include <array>
 #include <memory>
+#include <cstdint>
 
 class Player;
 
@@ -81,6 +82,8 @@ private:
     Attack m_NextAttack = Attack::Punch;
     bool m_LeftHand = true;
     float m_AttackTime = 0.0f;
+    std::uint64_t m_attackHitId = 0;
+    void submitAttackHit(Player& player, float previousTime, const Vector3& previousPosition);
     float m_PunchCooldown = 0.0f;
     float m_attackCooldown = 0.0f;
     bool m_ChargeBlocked = false;
@@ -93,7 +96,8 @@ private:
     void DrawPart(const Vector3& scale, const DirectX::XMMATRIX& transform,
         const DirectX::XMFLOAT4& color, bool shockwave = false);
     void VisitBodyParts(const std::function<void(const Vector3&, const DirectX::XMMATRIX&,
-        const DirectX::XMFLOAT4&, bool)>& visit);
+        const DirectX::XMFLOAT4&, bool)>& visit,
+        const std::function<void(const Vector3&, float)>& fist = {});
 
 public:
     void PreviewPose(float time, int action)
