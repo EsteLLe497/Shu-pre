@@ -224,54 +224,54 @@ void Attack::drawDebugPanel()
 {
     ImGui::SetNextWindowPos(ImVec2(16.0f, 16.0f), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(430.0f, 680.0f), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("Attack / Damage (F4)"))
+    if (ImGui::Begin(u8"攻撃デバッグ (F4)"))
     {
         constexpr auto flags = ImGuiSliderFlags_AlwaysClamp;
         ImGui::PushItemWidth(150.0f);
-        ImGui::TextUnformatted("Short Sword / Normal attack");
-        ImGui::DragFloat("Weapon damage", &m_parameters.weaponDamage, 1.0f, 0.0f, 1000000.0f, "%.1f", flags);
-        ImGui::DragFloat("Damage multiplier", &m_parameters.damageMultiplier, 0.05f, 0.0f, 100.0f, "%.2f", flags);
-        ImGui::DragFloat("Bonus damage", &m_parameters.bonusDamage, 1.0f, -1000000.0f, 1000000.0f, "%.1f", flags);
-        ImGui::Text("Final damage: %.1f", damage());
+        ImGui::TextUnformatted(u8"ショートソード / 通常攻撃");
+        ImGui::DragFloat(u8"武器の基礎ダメージ", &m_parameters.weaponDamage, 1.0f, 0.0f, 1000000.0f, "%.1f", flags);
+        ImGui::DragFloat(u8"攻撃倍率", &m_parameters.damageMultiplier, 0.05f, 0.0f, 100.0f, "%.2f", flags);
+        ImGui::DragFloat(u8"加算ダメージ", &m_parameters.bonusDamage, 1.0f, -1000000.0f, 1000000.0f, "%.1f", flags);
+        ImGui::Text(u8"最終ダメージ: %.1f", damage());
         ImGui::Separator();
-        if (ImGui::CollapsingHeader("Hit feedback"))
+        if (ImGui::CollapsingHeader(u8"ヒット時の演出"))
         {
-            ImGui::DragFloat("Shake strength", &m_feedback.shakeStrength, 0.005f, 0.0f, 0.5f, "%.3f", flags);
-            ImGui::DragFloat("Hit stop (sec)", &m_feedback.hitStopSeconds, 0.01f, 0.0f, 1.0f, "%.2f", flags);
-            ImGui::DragFloat("White flash (sec)", &m_feedback.flashSeconds, 0.01f, 0.0f, 2.0f, "%.2f", flags);
+            ImGui::DragFloat(u8"カメラの揺れの強さ", &m_feedback.shakeStrength, 0.005f, 0.0f, 0.5f, "%.3f", flags);
+            ImGui::DragFloat(u8"ヒットストップ (秒)", &m_feedback.hitStopSeconds, 0.01f, 0.0f, 1.0f, "%.2f", flags);
+            ImGui::DragFloat(u8"白く点滅する時間 (秒)", &m_feedback.flashSeconds, 0.01f, 0.0f, 2.0f, "%.2f", flags);
         }
         ImGui::Separator();
-        ImGui::Checkbox("Auto aim at attack start", &m_targeting.autoAim);
-        ImGui::Checkbox("Show target circles", &m_targeting.showCircle);
-        ImGui::DragFloat("Target range", &m_targeting.range, 0.05f, 0.1f, 20.0f, "%.2f", flags);
-        ImGui::DragFloat("Target height limit", &m_targeting.maxHeightDifference, 0.05f, 0.0f, 10.0f, "%.2f", flags);
-        ImGui::TextDisabled("Gold circle: nearest enemy in range");
-        ImGui::TextDisabled("Target range and damage hitbox are separate.");
+        ImGui::Checkbox(u8"攻撃開始時に敵の方を向く", &m_targeting.autoAim);
+        ImGui::Checkbox(u8"敵の範囲サークルを表示", &m_targeting.showCircle);
+        ImGui::DragFloat(u8"方向補正の範囲", &m_targeting.range, 0.05f, 0.1f, 20.0f, "%.2f", flags);
+        ImGui::DragFloat(u8"対象との高低差の上限", &m_targeting.maxHeightDifference, 0.05f, 0.0f, 10.0f, "%.2f", flags);
+        ImGui::TextDisabled(u8"黄色の円: 範囲内で一番近い敵");
+        ImGui::TextDisabled(u8"方向補正の範囲と命中判定は別です。");
         ImGui::Separator();
-        ImGui::Checkbox("Show hitbox", &m_showHitbox);
-        ImGui::Checkbox("Show while inactive", &m_showInactive);
-        ImGui::TextDisabled("Gray: inactive / Yellow: active / Red: hit");
-        ImGui::DragFloat("Forward offset", &m_hitbox.forwardOffset, 0.05f, 0.0f, 10.0f, "%.2f", flags);
-        ImGui::DragFloat("Height", &m_hitbox.height, 0.05f, 0.0f, 10.0f, "%.2f", flags);
-        ImGui::DragFloat("Radius", &m_hitbox.radius, 0.05f, 0.05f, 10.0f, "%.2f", flags);
-        ImGui::DragFloat("Hit start (sec)", &m_hitbox.startTime, 0.01f, 0.0f, 10.0f, "%.2f", flags);
-        ImGui::DragFloat("Hit end (sec)", &m_hitbox.endTime, 0.01f, m_hitbox.startTime + 0.01f, 20.0f, "%.2f", flags);
+        ImGui::Checkbox(u8"攻撃の当たり判定を表示", &m_showHitbox);
+        ImGui::Checkbox(u8"判定が無効な間も表示", &m_showInactive);
+        ImGui::TextDisabled(u8"グレー: 無効 / 黄: 有効 / 赤: 命中");
+        ImGui::DragFloat(u8"判定の前方距離", &m_hitbox.forwardOffset, 0.05f, 0.0f, 10.0f, "%.2f", flags);
+        ImGui::DragFloat(u8"判定の高さ", &m_hitbox.height, 0.05f, 0.0f, 10.0f, "%.2f", flags);
+        ImGui::DragFloat(u8"判定の半径", &m_hitbox.radius, 0.05f, 0.05f, 10.0f, "%.2f", flags);
+        ImGui::DragFloat(u8"判定の開始時間 (秒)", &m_hitbox.startTime, 0.01f, 0.0f, 10.0f, "%.2f", flags);
+        ImGui::DragFloat(u8"判定の終了時間 (秒)", &m_hitbox.endTime, 0.01f, m_hitbox.startTime + 0.01f, 20.0f, "%.2f", flags);
         ImGui::PopItemWidth();
         ImGui::Separator();
-        ImGui::Checkbox("Freeze enemies", &m_freezeEnemies);
-        if (ImGui::Button("Test attack"))
+        ImGui::Checkbox(u8"敵の動作を停止", &m_freezeEnemies);
+        if (ImGui::Button(u8"テスト攻撃"))
             if (auto* player = dynamic_cast<Player*>(m_GameObject)) player->playAction(PlayerActionKind::attack);
         ImGui::SameLine();
-        if (ImGui::Button("Reset enemy HP"))
+        if (ImGui::Button(u8"敵HPを回復・復活"))
             for (auto* enemy : Manager::GetGameObjs<Enemy>()) enemy->resetHealth();
-        if (ImGui::Button("Reset attack settings"))
+        if (ImGui::Button(u8"攻撃設定を初期値に戻す"))
         {
             m_parameters = DamageParameters{};
             m_hitbox = HitboxParameters{};
             m_targeting = TargetParameters{};
             m_feedback = HitFeedbackParameters{};
         }
-        ImGui::TextDisabled("Session only. F4 closes this panel.");
+        ImGui::TextDisabled(u8"変更は保存されません。F4で閉じます。");
     }
     ImGui::End();
 }

@@ -137,7 +137,19 @@ void ToonPanel::init(HWND window, bool previewMode)
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
-    ImGui::GetIO().IniFilename = nullptr;
+    auto& io = ImGui::GetIO();
+    io.IniFilename = nullptr;
+    // ImGuiの表示文字列はUTF-8。日本語の字形はWindows標準フォントから読み込む。
+    char windowsDirectory[MAX_PATH]{};
+    const UINT length = GetWindowsDirectoryA(windowsDirectory, MAX_PATH);
+    if (length > 0 && length < MAX_PATH)
+    {
+        const std::string fontPath = std::string(windowsDirectory) + "/Fonts/meiryo.ttc";
+        if (GetFileAttributesA(fontPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+            io.FontDefault = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), 14.0f, nullptr,
+                io.Fonts->GetGlyphRangesJapanese());
+    }
+    if (!io.FontDefault) io.Fonts->AddFontDefault();
 
     if (!ImGui_ImplWin32_Init(window))
     {
