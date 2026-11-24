@@ -6,6 +6,8 @@
 #include "MeshField.h"
 #include "SceneAudio.h"
 #include "SceneEditor.h"
+#include "Camera.h"
+#include "imgui/imgui.h"
 #include <cmath>
 #include <cfloat>
 
@@ -92,6 +94,7 @@ void Enemy::Init()
     Renderer::CreateVertexShader(m_VertexShader.GetAddressOf(), m_VertexLayout.GetAddressOf(),
         "shader\\litTextureVS.cso");
     Renderer::CreatePixelShader(m_PixelShader.GetAddressOf(), "shader\\litTexturePS.cso");
+    Renderer::CreatePixelShader(m_hitFlashPS.GetAddressOf(), "shader/hitFlashPS.cso");
 }
 
 void Enemy::Uninit()
@@ -102,12 +105,14 @@ void Enemy::Uninit()
     m_VertexLayout.Reset();
     m_VertexShader.Reset();
     m_PixelShader.Reset();
+    m_hitFlashPS.Reset();
     GameObject::Uninit();
 }
 
 void Enemy::Configure(bool midBoss)
 {
     m_MidBoss = midBoss;
+    resetHealth();
     m_attackSettings = defaultAttackSettings(midBoss);
     const float size = midBoss ? 1.55f : 0.75f;
     SetScale({ size, size, size });
@@ -187,6 +192,9 @@ bool Enemy::MoveOnGround(const Vector3& displacement, const Player* player)
 
 void Enemy::Update()
 {
+    if (isDead()) return;
+    if (auto* player = Manager::GetGameObj<Player>())
+        if (player->attack() && player->attack()->enemiesPaused()) return;
     const float dt = Manager::animationDeltaSeconds();
     Player* player = Manager::GetGameObj<Player>();
     const Vector3 toPlayer = player ? player->GetPosition() - m_Position : Vector3{ 0.0f, 0.0f, 0.0f };
@@ -337,11 +345,12 @@ void Enemy::DrawPart(const Vector3& scale, const XMMATRIX& transform, const XMFL
 
 void Enemy::Draw()
 {
+    if (isDead()) return;
     if (!m_VertexBuffer || !m_VertexShader || !m_PixelShader || !m_VertexLayout) return;
     auto* context = Renderer::GetDeviceContext();
     context->IASetInputLayout(m_VertexLayout.Get());
     context->VSSetShader(m_VertexShader.Get(), nullptr, 0);
-    context->PSSetShader(m_PixelShader.Get(), nullptr, 0);
+    context->PSSetShader(hitFlashWhite() && m_hitFlashPS ? m_hitFlashPS.Get() : m_PixelShader.Get(), nullptr, 0);
     const UINT stride = sizeof(VERTEX_3D);
     const UINT offset = 0;
     ID3D11Buffer* buffer = m_VertexBuffer.Get();
@@ -354,6 +363,7 @@ void Enemy::Draw()
         {
             DrawPart(scale, transform, color);
         });
+    context->PSSetShader(m_PixelShader.Get(), nullptr, 0);
     if (poseAttack() == Attack::Slam && poseTime() >= SlamImpact)
     {
         context->IASetVertexBuffers(0, 1, &buffer, &stride, &offset);
@@ -448,6 +458,7 @@ void Enemy::VisitBodyParts(const std::function<void(const Vector3&, const XMMATR
 
 void Enemy::VisitColliderParts(const std::function<void(const XMMATRIX&)>& visit)
 {
+    if (isDead()) return;
     VisitBodyParts([&](const Vector3& scale, const XMMATRIX& transform, const XMFLOAT4&, bool solid)
     {
         if (solid) visit(XMMatrixScaling(scale.x, scale.y, scale.z) * transform);
@@ -456,7 +467,7 @@ void Enemy::VisitColliderParts(const std::function<void(const XMMATRIX&)>& visit
 
 bool Enemy::IntersectsMesh(const BoundingSphere& sphere)
 {
-    if (!m_MeshCollider) return false;
+    if (!HasMeshCollider()) return false;
     if (m_character)
     {
         size_t part;
@@ -493,6 +504,7 @@ bool Enemy::IntersectsMesh(const BoundingSphere& sphere)
 
 bool Enemy::RaycastMesh(FXMVECTOR origin, FXMVECTOR direction, float& distance)
 {
+    if (isDead()) return false;
     bool found = false;
     distance = FLT_MAX;
     if (m_character)
@@ -631,7 +643,7 @@ Enemy::HurtboxPose Enemy::hurtboxPose(size_t i)
 
 bool Enemy::queryHurtbox(const Vector3& center, float radius, size_t& part)
 {
-    if (!m_MeshCollider) return false;
+    if (!HasMeshCollider()) return false;
     float best = FLT_MAX;
     for (size_t i = 0; i < hurtboxCount(); ++i)
     {
@@ -805,4 +817,82 @@ void Enemy::submitAttackHit(Player& player, float previousTime, const Vector3& p
             }
         }
     }
+}
+
+// 敵はエディターからも参照されるため、死亡時は削除せず非表示・無効化する。
+// これにより、デバッグのHPリセットで同じ敵を復活させられる。
+void Enemy::AddDamage(float damage, float flashDuration)
+{
+    if (isDead() || !std::isfinite(damage) || damage <= 0.0f) return;
+    m_health = std::max(0.0f, m_health - damage);
+    m_hitFlashDuration = std::isfinite(flashDuration) ? std::max(0.0f, std::min(2.0f, flashDuration)) : 0.0f;
+    m_hitFlashRemaining = m_hitFlashDuration;
+    if (isDead())
+    {
+        m_Attack = Attack::None;
+        m_attackHitId = 0;
+    }
+}
+
+void Enemy::updateHitFeedback(float realSeconds)
+{
+    m_hitFlashRemaining = std::max(0.0f, m_hitFlashRemaining - realSeconds);
+}
+
+bool Enemy::hitFlashWhite() const
+{
+    // 最初は白くし、0.04秒ごとに通常色と切り替える。
+    const float elapsed = m_hitFlashDuration - m_hitFlashRemaining;
+    return m_hitFlashRemaining > 0.0f && fmodf(elapsed, 0.08f) < 0.04f;
+}
+
+void Enemy::resetHealth()
+{
+    m_maxHealth = m_MidBoss ? 30.0f : 10.0f;
+    m_health = m_maxHealth;
+    m_hitFlashRemaining = m_hitFlashDuration = 0.0f;
+    m_Attack = Attack::None;
+    m_attackHitId = 0;
+    m_attackCooldown = 0.3f;
+    m_PunchCooldown = 0.3f;
+}
+
+void Enemy::drawHealthBar()
+{
+    if (isDead() || !ImGui::GetCurrentContext()) return;
+    auto* camera = Manager::GetGameObj<Camera>();
+    if (!camera) return;
+
+    // 頭や腕も含めた身体の一番高い位置の、少し上に置く。
+    float top = m_Position.y + 1.0f;
+    if (m_character)
+    {
+        for (size_t i = 0; i < hurtboxCount(); ++i)
+        {
+            const auto pose = hurtboxPose(i);
+            top = std::max(top, std::max(pose.start.y, pose.end.y) + pose.radius);
+        }
+    }
+    else
+    {
+        VisitColliderParts([&](const XMMATRIX& world)
+        {
+            BoundingBox box;
+            BoundingBox({ 0, 0, 0 }, { 1, 1, 1 }).Transform(box, world);
+            top = std::max(top, box.Center.y + box.Extents.y);
+        });
+    }
+    const auto vp = camera->GetViewMatrix() * camera->projectionMatrix();
+    const auto clip = XMVector4Transform(XMVectorSet(m_Position.x, top + 0.25f, m_Position.z, 1), vp);
+    const float w = XMVectorGetW(clip);
+    if (w <= 0.01f || XMVectorGetZ(clip) < 0.0f || XMVectorGetZ(clip) > w) return;
+    const auto size = ImGui::GetIO().DisplaySize;
+    const float x = (XMVectorGetX(clip) / w + 1.0f) * size.x * 0.5f;
+    const float y = (1.0f - XMVectorGetY(clip) / w) * size.y * 0.5f;
+    const float width = m_MidBoss ? 90.0f : 60.0f;
+    const float ratio = std::max(0.0f, std::min(1.0f, m_health / m_maxHealth));
+    auto* overlay = ImGui::GetBackgroundDrawList();
+    const ImVec2 start(x - width * 0.5f, y);
+    overlay->AddLine(start, { start.x + width, y }, IM_COL32(20, 22, 26, 230), 7.0f);
+    overlay->AddLine(start, { start.x + width * ratio, y }, IM_COL32(100, 230, 120, 255), 4.0f);
 }

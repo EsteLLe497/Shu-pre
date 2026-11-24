@@ -10,6 +10,7 @@
 
 #include "GameObject.h"
 #include "Player.h"
+#include "Enemy.h"
 #include "SceneEditor.h"
 #include "ToonPanel.h"
 #include "PreviewScene.h"
@@ -20,6 +21,7 @@ Scene* Manager::m_Scene = nullptr;
 Scene* Manager::m_NextScene = nullptr;
 float Manager::m_ChangeTime = 0.0f;
 float Manager::m_animationDeltaSeconds = 1.0f / 60.0f;
+float Manager::m_hitStopRemaining = 0.0f;
 
 namespace
 {
@@ -30,6 +32,7 @@ namespace
 void Manager::Init(bool previewMode)
 {
     previewWorkspace = previewMode;
+    m_hitStopRemaining = 0.0f;
 	Renderer::Init();
     if (!previewMode)
         planetarium::init();
@@ -69,6 +72,13 @@ void Manager::Uninit()
 	Input::Uninit();
 }
 
+void Manager::requestHitStop(float seconds)
+{
+    // 複数の敵へ同時に当たっても、停止時間を足し続けない。
+    if (seconds > 0.0f && seconds <= 1.0f)
+        m_hitStopRemaining = std::max(m_hitStopRemaining, seconds);
+}
+
 void Manager::Update(float frameSeconds)
 {
 	// 描画負荷による再生の遅れを防ぎ、長い中断からの復帰では急に飛ばさない。
@@ -77,15 +87,21 @@ void Manager::Update(float frameSeconds)
 	Input::Update(!ToonPanel::isOpen());
 
     const bool editing = SceneEditor::isOpen();
-    const bool updateWorld = !editing && planetarium::updateWorld();
+    const bool stopping = m_hitStopRemaining > 0.0f;
+    m_hitStopRemaining = std::max(0.0f, m_hitStopRemaining - m_animationDeltaSeconds);
+    // 白点滅は停止中やデバッグで敵を止めていても実時間で進める。
+    for (auto* enemy : GetGameObjs<Enemy>()) enemy->updateHitFeedback(m_animationDeltaSeconds);
+    const bool updateWorld = !editing && !stopping && planetarium::updateWorld();
     const auto* player = updateWorld ? nullptr : GetGameObj<Player>();
-    const auto* camera = updateWorld ? nullptr : GetGameObj<Camera>();
+    const auto* camera = GetGameObj<Camera>();
 	if (m_Scene && updateWorld)
 		m_Scene->Update();
 
 	for (GameObject* obj : m_GameObjects) 
 	{
-		if (obj && !editing && (updateWorld || obj == player || obj == camera)) {
+        // 命中したフレームの途中でも、以降のゲーム更新は止める。カメラは動かす。
+        const bool hitStopped = stopping || m_hitStopRemaining > 0.0f;
+        if (obj && !editing && (obj == camera || (!hitStopped && (updateWorld || obj == player)))) {
 			obj->Update();
 		}
 	}
@@ -117,6 +133,7 @@ void Manager::Update(float frameSeconds)
 
 			m_GameObjects.clear();
             planetarium::reset();
+            m_hitStopRemaining = 0.0f;
 
 			m_Scene = m_NextScene;
 			m_Scene->Init();
@@ -152,6 +169,7 @@ void Manager::Draw()
 		ToonPanel::beginFrame(player ? &player->toonSettings() : nullptr,
 			camera ? &camera->orbitSettings() : nullptr);
 	}
+    else ToonPanel::beginFrame();
 
 	if (camera)
 	{
@@ -188,8 +206,8 @@ void Manager::Draw()
 			}
 		}
 	}
+    for (auto* enemy : GetGameObjs<Enemy>()) enemy->drawHealthBar();
     if (editing) SceneEditor::draw();
-	if (showToonPanel)
-		ToonPanel::draw();
+    ToonPanel::draw();
 	Renderer::End();
 }

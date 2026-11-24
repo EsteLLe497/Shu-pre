@@ -270,6 +270,7 @@ bool Player::startWeaponAttack(const ActionSequence& action)
 {
     if (!ActionFile::validate(action) || !action.weapon.enabled || m_weaponPlayback.active()
         || !m_weapon.load(action.weapon.model)) return false;
+    if (m_attack) m_attack->faceTarget();
     m_weaponAction = action;
     m_weaponAnchor = XMMatrixRotationY(m_toonShader.settings().modelYaw) * GetMatrx();
     m_weaponEndAnchor = m_weaponAnchor;
@@ -283,6 +284,7 @@ bool Player::startWeaponAttack(const ActionSequence& action)
     m_Velocity.x = m_Velocity.z = 0.0f;
     m_weaponTime = 0.0f;
     m_weaponPlayback.start();
+    if (m_attack) m_attack->begin();
     return true;
 }
 
@@ -304,10 +306,13 @@ void Player::updateActionPose(float dt, float physicsDt)
             m_weaponEndAnchor = m_weaponAnchor;
         }
         if (m_weaponPlayback.takeEffect(m_weaponAction)) spawnActionEffect(m_weaponAction);
+        const float previousWeaponTime = m_weaponPlayback.time();
         m_weaponPlayback.advanceTo(std::max(m_weaponAction.duration, m_weaponAction.weapon.visualEnd()),
             dt * m_weaponAction.speed, false);
+        if (m_attack) m_attack->samplePlayback(previousWeaponTime, m_weaponPlayback.time());
         if (!m_weaponPlayback.active())
         {
+            if (m_attack) m_attack->finish();
             m_attackCombo.finished();
             if (m_attackCombo.takeBuffered())
             {

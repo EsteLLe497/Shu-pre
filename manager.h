@@ -10,6 +10,7 @@ private:
 	static Scene* m_NextScene;
 	static float m_ChangeTime;
 	static float m_animationDeltaSeconds;
+    static float m_hitStopRemaining;
 
 public:
 	static void Init(bool previewMode);
@@ -17,6 +18,7 @@ public:
 	static void Update(float frameSeconds);
 	static float animationDeltaSeconds() { return m_animationDeltaSeconds; }
 	static void Draw();
+    static void requestHitStop(float seconds); // ŽÀŽžŠÔ‚Å•œ‹A‚·‚é’Z‚¢’âŽ~
 
 	template<typename T>
 	static void ChangeScene(float time)

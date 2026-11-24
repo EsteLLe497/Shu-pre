@@ -23,7 +23,7 @@ private:
     void drawDissolve(const WeaponTrack& track, float age, FXMMATRIX world);
     bool prepareOverlay();
     bool prepareEffectShaders();
-    void drawOverlay(unsigned int count, D3D11_PRIMITIVE_TOPOLOGY topology, bool depthTest = true);
+    void drawOverlay(unsigned int count, D3D11_PRIMITIVE_TOPOLOGY topology);
     void drawTrail(const WeaponTrack& track, float time, FXMMATRIX anchor);
 
     std::string m_path;
@@ -35,6 +35,5 @@ private:
     Microsoft::WRL::ComPtr<ID3D11PixelShader> m_endPS;
     Microsoft::WRL::ComPtr<ID3D11InputLayout> m_endLayout;
     Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_overlayDepth;
-    Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_trailDepth;
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_trailRasterizer;
 };

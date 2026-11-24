@@ -61,7 +61,6 @@ void AttackWeapon::clear()
     m_endLayout.Reset();
     m_trailVertices.Reset();
     m_overlayDepth.Reset();
-    m_trailDepth.Reset();
     m_trailRasterizer.Reset();
 }
 
@@ -131,15 +130,6 @@ bool AttackWeapon::prepareOverlay()
         if (FAILED(device->CreateDepthStencilState(&depth, m_overlayDepth.GetAddressOf())))
             return false;
     }
-    // ”wŒã‚©‚ç‚Å‚à‹OÕ‚ª‘Ì‚É‰B‚ê‚È‚¢‚æ‚¤AƒgƒŒƒCƒ‹‚¾‚¯[“x‚ð”»’è‚µ‚È‚¢B
-    if (!m_trailDepth)
-    {
-        D3D11_DEPTH_STENCIL_DESC depth{};
-        depth.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-        depth.DepthFunc = D3D11_COMPARISON_ALWAYS;
-        if (FAILED(device->CreateDepthStencilState(&depth, m_trailDepth.GetAddressOf())))
-            return false;
-    }
     if (!m_trailRasterizer)
     {
         D3D11_RASTERIZER_DESC rasterizer{};
@@ -201,7 +191,8 @@ void AttackWeapon::drawTrail(const WeaponTrack& track, float time, FXMMATRIX anc
     context->IASetInputLayout(m_endLayout.Get());
     context->VSSetConstantBuffers(7, 1, m_endConstants.GetAddressOf());
     context->PSSetConstantBuffers(7, 1, m_endConstants.GetAddressOf());
-    drawOverlay(2 * (trailSegments + 1), D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP, false);
+    // Respect player/world occlusion; the late effect pass prevents draw-order erasure.
+    drawOverlay(2 * (trailSegments + 1), D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
     context->VSSetShader(oldVS.Get(), nullptr, 0);
     context->PSSetShader(oldPS.Get(), nullptr, 0);
     context->IASetInputLayout(oldLayout.Get());
@@ -209,7 +200,7 @@ void AttackWeapon::drawTrail(const WeaponTrack& track, float time, FXMMATRIX anc
     context->PSSetConstantBuffers(7, 1, oldPSConstants.GetAddressOf());
 }
 
-void AttackWeapon::drawOverlay(unsigned int count, D3D11_PRIMITIVE_TOPOLOGY topology, bool depthTest)
+void AttackWeapon::drawOverlay(unsigned int count, D3D11_PRIMITIVE_TOPOLOGY topology)
 {
     auto* context = Renderer::GetDeviceContext();
     using Microsoft::WRL::ComPtr;
@@ -222,7 +213,7 @@ void AttackWeapon::drawOverlay(unsigned int count, D3D11_PRIMITIVE_TOPOLOGY topo
     context->OMGetDepthStencilState(depth.GetAddressOf(), &stencil);
     context->OMGetBlendState(blend.GetAddressOf(), blendFactor, &mask);
     context->RSSetState(m_trailRasterizer.Get());
-    context->OMSetDepthStencilState(depthTest ? m_overlayDepth.Get() : m_trailDepth.Get(), 0);
+    context->OMSetDepthStencilState(m_overlayDepth.Get(), 0);
     Renderer::SetAddBlendEnable(true);
     constexpr UINT stride = sizeof(VERTEX_3D), offset = 0;
     context->IASetVertexBuffers(0, 1, m_trailVertices.GetAddressOf(), &stride, &offset);

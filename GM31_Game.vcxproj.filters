@@ -22,6 +22,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="attack.cpp" />
     <ClCompile Include="AttackWeapon.cpp" />
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
@@ -168,6 +169,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="attack.h" />
     <ClInclude Include="AttackWeapon.h" />
     <ClInclude Include="main.h">
       <Filter>Header Files</Filter>
@@ -347,6 +349,7 @@
     <FxCompile Include="shader\toonVS.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
+    <FxCompile Include="shader\hitFlashPS.hlsl"><Filter>Shader</Filter></FxCompile>
     <FxCompile Include="shader\toonPS.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>

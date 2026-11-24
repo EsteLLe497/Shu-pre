@@ -10,6 +10,7 @@
 #include "PlayerActionSet.h"
 #include "SceneAudio.h"
 #include "AttackWeapon.h"
+#include "attack.h"
 #include "Explosion.h"
 #include <algorithm>
 #include <cstdint>
@@ -138,6 +139,7 @@ private:
 
     ToonShader m_toonShader;
     AttackWeapon m_weapon;
+    Attack* m_attack = nullptr;
     ActionSequence m_weaponAction;
     ActionPlayback m_weaponPlayback;
     AttackCombo m_attackCombo;
@@ -199,6 +201,8 @@ public:
     void Update() override;
     void Draw() override;
     void drawEffects();
+    Attack* attack() { return m_attack; }
+    const Attack* attack() const { return m_attack; }
 
     static constexpr float BodyRadius = 0.52f;
     static constexpr float BodyLowerCenter = 0.57f;
