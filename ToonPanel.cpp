@@ -20,6 +20,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM,
 namespace
 {
     bool panelOpen = false;
+    bool attackDebugOpen = false;
     bool previewWorkspace = false;
     const char* presetStatus = nullptr;
     constexpr ImGuiSliderFlags sliderFlags = ImGuiSliderFlags_AlwaysClamp;
@@ -160,11 +161,24 @@ void ToonPanel::uninit()
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
     panelOpen = false;
+    attackDebugOpen = false;
+}
+
+bool ToonPanel::isAttackDebugOpen()
+{
+    return attackDebugOpen;
+}
+
+void ToonPanel::closeAttackDebug()
+{
+    if (!attackDebugOpen) return;
+    attackDebugOpen = false;
+    Input::SetMouseCapture(!isOpen() && GetFocus() == GetWindow());
 }
 
 bool ToonPanel::isOpen()
 {
-    return panelOpen || previewWorkspace || SceneEditor::isOpen();
+    return panelOpen || attackDebugOpen || previewWorkspace || SceneEditor::isOpen();
 }
 
 // =========================================================
@@ -178,18 +192,27 @@ LRESULT ToonPanel::handleMessage(HWND window, UINT message, WPARAM wParam, LPARA
     if (previewWorkspace && message == WM_SYSCOMMAND && (wParam & 0xfff0) == SC_KEYMENU)
         return 1;
 
-    if (!previewWorkspace && message == WM_KEYDOWN && (wParam == VK_F1 || (wParam == VK_F2 && SceneEditor::isAvailable())))
+    if (!previewWorkspace && message == WM_KEYDOWN
+        && (wParam == VK_F1 || ((wParam == VK_F2 || wParam == VK_F4) && SceneEditor::isAvailable())))
     {
         constexpr LPARAM previousKeyState = 1L << 30;
         if ((lParam & previousKeyState) == 0)
         {
-            if (wParam == VK_F2)
+            if (wParam == VK_F4)
             {
+                panelOpen = false;
+                if (SceneEditor::isOpen()) SceneEditor::toggle();
+                attackDebugOpen = !attackDebugOpen;
+            }
+            else if (wParam == VK_F2)
+            {
+                attackDebugOpen = false;
                 panelOpen = false;
                 SceneEditor::toggle();
             }
             else
             {
+                attackDebugOpen = false;
                 if (SceneEditor::isOpen()) SceneEditor::toggle();
                 panelOpen = !panelOpen;
             }
@@ -237,6 +260,7 @@ void ToonPanel::beginFrame()
 void ToonPanel::beginFrame(ToonSettings* settings, CameraOrbit* orbit)
 {
     beginFrame();
+    if (!panelOpen) return;
     ImGui::SetNextWindowPos(ImVec2(16.0f, 16.0f), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(365.0f, 640.0f), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Player / Toon Lab"))

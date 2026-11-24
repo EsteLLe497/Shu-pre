@@ -74,8 +74,13 @@ private:
     Microsoft::WRL::ComPtr<ID3D11InputLayout> m_VertexLayout;
     Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VertexShader;
     Microsoft::WRL::ComPtr<ID3D11PixelShader> m_PixelShader;
+    Microsoft::WRL::ComPtr<ID3D11PixelShader> m_hitFlashPS;
     UINT m_VertexCount = 0;
     bool m_MidBoss = false;
+    float m_health = 10.0f;    // 現在のHP
+    float m_hitFlashRemaining = 0.0f;
+    float m_hitFlashDuration = 0.0f;
+    float m_maxHealth = 10.0f; // 最大HP（通常10、ボス30）
     AttackSettings m_attackSettings;
     bool m_MeshCollider = true;
     Attack m_Attack = Attack::None;
@@ -129,7 +134,7 @@ public:
     bool queryHurtbox(const Vector3& center, float radius, size_t& part);
     void Configure(bool midBoss);
     void SetMeshCollider(bool enabled) { m_MeshCollider = enabled; }
-    bool HasMeshCollider() const { return m_MeshCollider; }
+    bool HasMeshCollider() const { return m_MeshCollider && !isDead(); }
     bool IntersectsMesh(const DirectX::BoundingSphere& sphere);
     bool RaycastMesh(DirectX::FXMVECTOR origin, DirectX::FXMVECTOR direction, float& distance);
     void VisitColliderParts(const std::function<void(const DirectX::XMMATRIX&)>& visit);
@@ -140,7 +145,14 @@ public:
     void Update() override;
     void Draw() override;
 
-    // Keep existing projectile callers compatible; combat is deferred.
+    // 既存の弾からの呼び出しも維持する。
     void Shake(Vector3) {}
-    void AddDamage(int) {}
+    void AddDamage(float damage, float flashDuration = 0.20f);
+    void updateHitFeedback(float realSeconds);
+    bool hitFlashWhite() const;
+    void resetHealth();
+    bool isDead() const { return m_health <= 0.0f; }
+    float health() const { return m_health; }
+    float maxHealth() const { return m_maxHealth; }
+    void drawHealthBar();
 };

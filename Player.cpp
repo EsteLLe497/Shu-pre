@@ -177,6 +177,7 @@ void Player::Init()
     //ModelRenderer* m_ModelRenderer = AddGameComponent<ModelRenderer>(this);
     //m_ModelRenderer->Load("asset\\model\\player.obj");
     m_AnimationModel = AddGameComponent<AnimationModel>(this);
+    m_attack = AddGameComponent<Attack>(this);
     loadPlayerActions();
     updateLocomotion(0.0f, PlayerActionKind::idle);
 
@@ -208,6 +209,7 @@ void Player::Uninit()
     m_toonShader.uninit();
 
     GameObject::Uninit();
+    m_attack = nullptr;
 }
 
 // =========================================================
@@ -520,6 +522,7 @@ bool Player::tryDodge(Vector3 direction)
     m_Rotation.y = atan2f(direction.x, direction.z);
     m_actionPlayback.stop();
     m_weaponPlayback.stop();
+    if (m_attack) m_attack->finish();
     m_attackCombo.reset();
     m_weaponTime = -1.0f;
     m_yawning = false;

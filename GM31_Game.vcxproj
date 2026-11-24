@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="attack.cpp" />
     <ClCompile Include="AttackWeapon.cpp" />
     <ClCompile Include="SceneAudio.cpp">
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -78,6 +79,7 @@
     <ClCompile Include="Wave.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="attack.h" />
     <ClInclude Include="AttackWeapon.h" />
     <ClInclude Include="SceneAudio.h" />
     <ClInclude Include="SceneEditor.h" />
@@ -217,6 +219,11 @@
     </FxCompile>
     <FxCompile Include="shader\toonVS.hlsl">
       <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <ObjectFileOutput>shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\hitFlashPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
       <ShaderModel>5.0</ShaderModel>
       <ObjectFileOutput>shader\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
