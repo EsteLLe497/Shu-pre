@@ -6,6 +6,7 @@ class Manager
 {
 private:
 	static std::list<GameObject*> m_GameObjects;
+    static std::list<GameObject*> m_EditObjects;
 	static Scene* m_Scene;
 	static Scene* m_NextScene;
 	static float m_ChangeTime;
@@ -18,12 +19,14 @@ public:
 	static void Update(float frameSeconds);
 	static float animationDeltaSeconds() { return m_animationDeltaSeconds; }
 	static void Draw();
+    static bool beginEditorPlay();
+    static void endEditorPlay();
     static void requestHitStop(float seconds); // ŽÀŽžŠÔ‚Å•œ‹A‚·‚é’Z‚¢’âŽ~
 
 	template<typename T>
 	static void ChangeScene(float time)
 	{
-		if (m_NextScene != nullptr)
+		if (m_NextScene != nullptr || !m_EditObjects.empty())
 			return;
 
 		m_ChangeTime = time;

@@ -97,6 +97,11 @@ void Enemy::Init()
     Renderer::CreatePixelShader(m_hitFlashPS.GetAddressOf(), "shader/hitFlashPS.cso");
 }
 
+Enemy::~Enemy()
+{
+    if (m_character) m_character->Uninit();
+}
+
 void Enemy::Uninit()
 {
     if (m_character) m_character->Uninit();
@@ -555,6 +560,11 @@ bool Enemy::RaycastMesh(FXMVECTOR origin, FXMVECTOR direction, float& distance)
 
 bool Enemy::loadCharacter(const std::string& path)
 {
+    return loadCharacter(path, this);
+}
+
+bool Enemy::loadCharacter(const std::string& path, Enemy* modelOwner)
+{
     if (path == m_characterPath) return true;
     if (path.empty())
     {
@@ -569,7 +579,7 @@ bool Enemy::loadCharacter(const std::string& path)
         return true;
     }
 
-    auto model = std::make_unique<AnimationModel>(this);
+    auto model = std::make_unique<AnimationModel>(modelOwner);
     if (!model->tryLoad(path.c_str())) return false;
     std::vector<BoneCapsule> capsules;
     float bottom = FLT_MAX, top = -FLT_MAX;
@@ -724,6 +734,31 @@ bool Enemy::assignMotion(Motion motion, const std::string& file)
     oldFile = file;
     m_currentMotion = Motion::Count;
     return true;
+}
+
+std::unique_ptr<Enemy> Enemy::prepareCharacter(const std::string& path,
+    const std::array<std::string, MotionCount>& clips)
+{
+    auto prepared = std::make_unique<Enemy>();
+    if (!prepared->loadCharacter(path, this)) return nullptr;
+    for (size_t i = 0; i < clips.size(); ++i)
+        if (!prepared->assignMotion(static_cast<Motion>(i), clips[i])) return nullptr;
+    return prepared;
+}
+
+void Enemy::adoptCharacter(Enemy& prepared)
+{
+    if (m_character) m_character->Uninit();
+    m_character = std::move(prepared.m_character);
+    m_characterPath = std::move(prepared.m_characterPath);
+    m_capsules = std::move(prepared.m_capsules);
+    m_adjustments = std::move(prepared.m_adjustments);
+    m_hasCharacterMotion = prepared.m_hasCharacterMotion;
+    m_characterGroundOffset = prepared.m_characterGroundOffset;
+    m_motionFiles = std::move(prepared.m_motionFiles);
+    m_motionClips = std::move(prepared.m_motionClips);
+    m_characterTime = 0;
+    m_currentMotion = Motion::Count;
 }
 
 void Enemy::setMotionSounds(Motion motion, const SceneAudio::Timeline& markers)

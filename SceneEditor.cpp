@@ -1,7 +1,9 @@
-#include "main.h"
+﻿#include "main.h"
 #include "renderer.h"
 #include "GameObject.h"
 #include "manager.h"
+#include "Game.h"
+#include "input.h"
 #include "SceneEditor.h"
 #include "SceneAudio.h"
 #include "MeshField.h"
@@ -21,7 +23,9 @@
 #include <limits>
 #include <cmath>
 #include <deque>
+#include <map>
 #include <memory>
+#include <optional>
 #include <wrl/client.h>
 #include <DirectXCollision.h>
 
@@ -31,10 +35,11 @@ namespace
     constexpr char layoutPath[] = "asset/scene-layout.txt";
     constexpr char temporaryPath[] = "asset/scene-layout.txt.tmp";
     constexpr size_t maxObjects = 512;
-    constexpr int layoutVersion = 7;
+    constexpr int layoutVersion = 8;
+    constexpr size_t maxPrefabs = 128;
 
     enum class Kind { Player, Enemy, Boss, Box, Grass, Particle, Model };
-    const char* const labels[] = { "Player spawn", "Enemy", "Mid boss", "Box", "Grass", "Particle", "Model" };
+    const char* const labels[] = { u8"プレイヤー開始地点", u8"敵", u8"中ボス", u8"箱", u8"草", u8"パーティクル", u8"モデル" };
 
     struct Transform
     {
@@ -58,6 +63,7 @@ namespace
         std::vector<std::pair<std::string, Enemy::HurtboxAdjustment>> hurtboxes;
         std::array<MotionTrack, playerMotionCount> motions;
         Enemy::AttackSettings attack = Enemy::defaultAttackSettings(kind == Kind::Boss);
+        std::string prefab;
     };
     struct Entry
     {
@@ -98,11 +104,30 @@ namespace
     Player* player = nullptr;
     MeshField* terrain = nullptr;
     std::vector<Entry> entries;
+    struct EditWorld
+    {
+        Player* player;
+        MeshField* terrain;
+        std::vector<Entry> entries;
+    };
+    std::optional<EditWorld> editWorld;
+    bool playModeRequested = false;
+    std::map<std::string, Placement> prefabs;
+    bool prefabPanel = false;
+    std::string prefabChoice;
+    std::string prefabToPlace;
+    char newPrefabName[65]{};
     std::vector<std::string> models;
+    bool modelsScanned = false;
+    ImGuiTextFilter hierarchySearch;
+    int hierarchyKind = 0;
+    ImGuiTextFilter assetSearch;
     std::string status;
     int selected = -1;
     bool open = false;
     bool terrainMode = false;
+    bool gridSnap = false;
+    float gridStep = 1.0f;
     int brushMode = 0;
     float radius = 5.0f;
     float strength = 4.0f;
@@ -126,17 +151,24 @@ namespace
         bool bossOnly = false;
     };
     constexpr AttackField attackFields[] = {
-        { "Detection distance", &Enemy::AttackSettings::detectionDistance, 0.0f, 100.0f },
-        { "Attack interval (s)", &Enemy::AttackSettings::attackInterval, 0.0f, 60.0f },
-        { "Punch start range", &Enemy::AttackSettings::punchStartRange, 0.1f, 30.0f },
-        { "Punch repeat interval (s)", &Enemy::AttackSettings::punchRepeatInterval, 0.0f, 60.0f, true },
-        { "Slam start range", &Enemy::AttackSettings::slamStartRange, 0.1f, 30.0f, true },
-        { "Charge start range", &Enemy::AttackSettings::chargeStartRange, 0.1f, 30.0f, true },
-        { "Charge travel distance", &Enemy::AttackSettings::chargeDistance, 0.0f, 30.0f, true },
-        { "Shockwave max radius", &Enemy::AttackSettings::shockwaveRadius, 0.1f, 30.0f, true },
+        { u8"検知距離", &Enemy::AttackSettings::detectionDistance, 0.0f, 100.0f },
+        { u8"攻撃間隔 (秒)", &Enemy::AttackSettings::attackInterval, 0.0f, 60.0f },
+        { u8"パンチ開始距離", &Enemy::AttackSettings::punchStartRange, 0.1f, 30.0f },
+        { u8"パンチ再使用間隔 (秒)", &Enemy::AttackSettings::punchRepeatInterval, 0.0f, 60.0f, true },
+        { u8"叩きつけ開始距離", &Enemy::AttackSettings::slamStartRange, 0.1f, 30.0f, true },
+        { u8"突進開始距離", &Enemy::AttackSettings::chargeStartRange, 0.1f, 30.0f, true },
+        { u8"突進距離", &Enemy::AttackSettings::chargeDistance, 0.0f, 30.0f, true },
+        { u8"衝撃波の最大半径", &Enemy::AttackSettings::shockwaveRadius, 0.1f, 30.0f, true },
     };
 
-    enum class UndoKind { Modify, Add, Remove, Terrain, Audio };
+    enum class UndoKind { Modify, Add, Remove, Terrain, Audio, Prefab };
+    using PlacementChanges = std::vector<std::pair<size_t, Placement>>;
+    struct PrefabEdit
+    {
+        std::string name;
+        std::optional<Placement> previous;
+        PlacementChanges instances;
+    };
     struct EditRecord
     {
         UndoKind kind;
@@ -144,6 +176,7 @@ namespace
         Placement previous{};
         std::unique_ptr<MeshField::Heights> heights;
         SceneAudio::Setting audio;
+        std::unique_ptr<PrefabEdit> prefab;
     };
     std::deque<EditRecord> history;
     bool audioPanel = false;
@@ -182,6 +215,21 @@ namespace
     {
         return axis == 0 ? point.x : axis == 1 ? point.y : point.z;
     }
+
+    float snapCoordinate(float value)
+    {
+        return std::round(value / gridStep) * gridStep;
+    }
+
+    bool snapPlacementToGround(Vector3& point)
+    {
+        if (gridSnap)
+        {
+            point.x = snapCoordinate(point.x);
+            point.z = snapCoordinate(point.z);
+        }
+        return terrain->tryGetHeight(point.x, point.z, point.y);
+    }
     XMVECTOR vec(const Vector3& p) { return XMVectorSet(p.x, p.y, p.z, 0); }
     Vector3 vec(FXMVECTOR v) { return { XMVectorGetX(v), XMVectorGetY(v), XMVectorGetZ(v) }; }
 
@@ -208,7 +256,7 @@ namespace
                 std::string clip;
                 if ((!track.clip.empty() && !modelPath(track.clip, clip)) || !enemy->assignMotion(enemySlot, clip))
                 {
-                    motionStatus = "A saved animation is unavailable for this enemy.";
+                    motionStatus = u8"この敵の保存済みモーションを読み込めません。";
                     enemy->assignMotion(enemySlot, {});
                 }
             }
@@ -352,7 +400,28 @@ namespace
         }
     }
 
-    bool spawn(const Placement& placement)
+    std::unique_ptr<Enemy> prepareEnemyCharacter(Enemy& enemy, const Placement& placement)
+    {
+        std::string model;
+        if (!placement.asset.empty() && !modelPath(placement.asset, model)) return nullptr;
+        std::array<std::string, Enemy::MotionCount> clips;
+        for (size_t i = 0; i < clips.size(); ++i)
+        {
+            const auto& file = placement.motions[i].clip;
+            if (!file.empty() && !modelPath(file, clips[i])) return nullptr;
+        }
+        return enemy.prepareCharacter(model, clips);
+    }
+
+    bool prefabAudioAvailable(const Placement& placement)
+    {
+        for (size_t i = 0; i < Enemy::MotionCount; ++i)
+            for (const auto& marker : placement.motions[i].sounds)
+                if (!marker.file.empty() && !SceneAudio::prepareMarker(marker.file)) return false;
+        return true;
+    }
+
+    bool spawn(const Placement& placement, bool requirePrefabAssets = false)
     {
         if (entries.size() >= maxObjects) return false;
         GameObject* object = nullptr;
@@ -364,7 +433,17 @@ namespace
         {
             auto* enemy = Manager::AddGameObj<Enemy>();
             enemy->Configure(placement.kind == Kind::Boss);
-            if (!enemy->loadCharacter(placement.asset))
+            if (requirePrefabAssets)
+            {
+                auto prepared = prepareEnemyCharacter(*enemy, placement);
+                if (!prepared || !prefabAudioAvailable(placement))
+                {
+                    enemy->SetDestory();
+                    return false;
+                }
+                enemy->adoptCharacter(*prepared);
+            }
+            else if (!enemy->loadCharacter(placement.asset))
             {
                 enemy->SetDestory();
                 return false;
@@ -432,6 +511,99 @@ namespace
         return true;
     }
 
+    bool validPrefabName(const std::string& name)
+    {
+        return !name.empty() && name.size() < sizeof(newPrefabName)
+            && name.front() != ' ' && name.back() != ' '
+            && std::none_of(name.begin(), name.end(), [](unsigned char c) {
+                return c < 32 || c == 127 || c == '#';
+            });
+    }
+
+    bool readPlacement(std::istream& input, int version, Placement& placement)
+    {
+        int kind = 0;
+        auto& t = placement.transform;
+        if (!(input >> kind) || kind < 0 || kind > static_cast<int>(Kind::Model)
+            || !readVector(input, t.position) || !readVector(input, t.rotation) || !readVector(input, t.scale)
+            || !(input >> std::quoted(placement.asset))
+            || t.scale.x < .01f || t.scale.y < .01f || t.scale.z < .01f) return false;
+        placement.kind = static_cast<Kind>(kind);
+        const bool enemy = isEnemy(placement.kind);
+        placement.attack = Enemy::defaultAttackSettings(placement.kind == Kind::Boss);
+        placement.collider = placement.kind == Kind::Box || enemy;
+        if (version >= 2)
+        {
+            int collider = 0, gravity = 0;
+            if (!(input >> collider >> gravity) || (collider != 0 && collider != 1)
+                || (gravity != 0 && gravity != 1)) return false;
+            if (!enemy || version >= 3)
+                placement.collider = (supportsPhysics(placement.kind) || enemy) && collider != 0;
+            placement.gravity = supportsPhysics(placement.kind) && gravity != 0;
+        }
+        if (version >= 5 && !readHurtboxEdits(input, placement.hurtboxes)) return false;
+        if (version >= 6)
+        {
+            for (size_t slot = 0; slot < motionCount(placement.kind); ++slot)
+            {
+                auto& track = placement.motions[slot];
+                size_t markers = 0;
+                if (!(input >> std::quoted(track.clip) >> markers) || markers > 24) return false;
+                for (size_t j = 0; j < markers; ++j)
+                {
+                    SceneAudio::Marker marker;
+                    if (!(input >> marker.time >> marker.volume >> std::quoted(marker.file))
+                        || !(marker.time >= 0 && marker.time <= 3600)
+                        || !(marker.volume >= 0 && marker.volume <= 1)) return false;
+                    track.sounds.push_back(std::move(marker));
+                }
+            }
+        }
+        if (version >= 7 && enemy)
+        {
+            for (const auto& field : attackFields)
+            {
+                auto& value = placement.attack.*field.value;
+                if (!(input >> value) || !(value >= field.minimum && value <= field.maximum)) return false;
+            }
+        }
+        if (version >= 8 && enemy && !(input >> std::quoted(placement.prefab))) return false;
+        return true;
+    }
+
+    void writePlacement(std::ostream& output, const Placement& p, int version)
+    {
+        output << static_cast<int>(p.kind) << ' ';
+        writeVector(output, p.transform.position);
+        writeVector(output, p.transform.rotation);
+        writeVector(output, p.transform.scale);
+        output << std::quoted(p.asset) << ' ' << p.collider << ' ' << p.gravity << '\n';
+        output << p.hurtboxes.size() << '\n';
+        for (const auto& [bone, edit] : p.hurtboxes)
+        {
+            output << std::quoted(bone) << ' ';
+            writeVector(output, edit.offset);
+            output << edit.radiusScale << ' ' << edit.lengthScale << '\n';
+        }
+        for (size_t slot = 0; slot < motionCount(p.kind); ++slot)
+        {
+            const auto& track = p.motions[slot];
+            output << std::quoted(track.clip) << ' ' << track.sounds.size() << '\n';
+            for (const auto& marker : track.sounds)
+                output << marker.time << ' ' << marker.volume << ' ' << std::quoted(marker.file) << '\n';
+        }
+        if (isEnemy(p.kind))
+        {
+            for (size_t i = 0; i < std::size(attackFields); ++i)
+            {
+                if (i > 0) output << ' ';
+                output << p.attack.*attackFields[i].value;
+            }
+            output << '\n';
+            if (version >= 8) output << std::quoted(p.prefab) << '\n';
+        }
+    }
+
     bool loadLayout()
     {
         std::ifstream input(layoutPath);
@@ -447,54 +619,11 @@ namespace
         for (size_t i = 0; i < count; ++i)
         {
             Placement placement{};
-            int kind = 0;
-            auto& t = placement.transform;
-            if (!(input >> kind) || kind < 0 || kind > static_cast<int>(Kind::Model)
-                || !readVector(input, t.position) || !readVector(input, t.rotation) || !readVector(input, t.scale)
-                || !(input >> std::quoted(placement.asset))
-                || t.scale.x < .01f || t.scale.y < .01f || t.scale.z < .01f) return false;
-            placement.kind = static_cast<Kind>(kind);
-            placement.attack = Enemy::defaultAttackSettings(placement.kind == Kind::Boss);
-            placement.collider = placement.kind == Kind::Box || isEnemy(placement.kind);
-            if (version >= 2)
-            {
-                int collider = 0, gravity = 0;
-                if (!(input >> collider >> gravity) || (collider != 0 && collider != 1)
-                    || (gravity != 0 && gravity != 1)) return false;
-                if (!isEnemy(placement.kind) || version >= 3)
-                    placement.collider = (supportsPhysics(placement.kind) || isEnemy(placement.kind)) && collider != 0;
-                placement.gravity = supportsPhysics(placement.kind) && gravity != 0;
-            }
+            if (!readPlacement(input, version, placement)) return false;
             if (placement.kind == Kind::Player) ++playerCount;
             if ((placement.kind == Kind::Model || (isEnemy(placement.kind) && !placement.asset.empty()))
                 && !modelPath(placement.asset, placement.asset)) return false;
-            if (version >= 5 && !readHurtboxEdits(input, placement.hurtboxes)) return false;
-            if (version >= 6)
-            {
-                for (size_t slot = 0; slot < motionCount(placement.kind); ++slot)
-                {
-                    auto& track = placement.motions[slot];
-                    size_t markers = 0;
-                    if (!(input >> std::quoted(track.clip) >> markers) || markers > 24) return false;
-                    for (size_t j = 0; j < markers; ++j)
-                    {
-                        SceneAudio::Marker marker;
-                        if (!(input >> marker.time >> marker.volume >> std::quoted(marker.file))
-                            || !(marker.time >= 0 && marker.time <= 3600)
-                            || !(marker.volume >= 0 && marker.volume <= 1)) return false;
-                        track.sounds.push_back(std::move(marker));
-                    }
-                }
-            }
-            if (version >= 7 && isEnemy(placement.kind))
-            {
-                for (const auto& field : attackFields)
-                {
-                    auto& value = placement.attack.*field.value;
-                    if (!(input >> value) || !(value >= field.minimum && value <= field.maximum)) return false;
-                }
-            }
-            placements.push_back(placement);
+            placements.push_back(std::move(placement));
         }
         MeshField::Heights heights{};
         for (float& height : heights)
@@ -504,6 +633,28 @@ namespace
         {
             std::vector<std::pair<std::string, Enemy::HurtboxAdjustment>> legacyPlayerEdits;
             if (!readHurtboxEdits(input, legacyPlayerEdits)) return false;
+        }
+
+        std::map<std::string, Placement> loadedPrefabs;
+        if (version >= 8)
+        {
+            size_t prefabCount = 0;
+            if (!(input >> prefabCount) || prefabCount > maxPrefabs) return false;
+            for (size_t i = 0; i < prefabCount; ++i)
+            {
+                std::string name;
+                Placement definition{};
+                // A definition has no link of its own. It uses the version 7 placement fields.
+                if (!(input >> std::quoted(name)) || !validPrefabName(name)
+                    || !readPlacement(input, 7, definition) || !isEnemy(definition.kind)
+                    || !loadedPrefabs.emplace(std::move(name), std::move(definition)).second) return false;
+            }
+            for (const auto& placement : placements)
+            {
+                if (placement.prefab.empty()) continue;
+                const auto found = loadedPrefabs.find(placement.prefab);
+                if (found == loadedPrefabs.end() || found->second.kind != placement.kind) return false;
+            }
         }
 
         for (const auto& placement : placements)
@@ -519,6 +670,7 @@ namespace
             if (placement.kind == Kind::Player) spawn(placement);
         std::rotate(entries.begin(), entries.end() - 1, entries.end());
         terrain->setHeights(heights);
+        prefabs.swap(loadedPrefabs);
         return true;
     }
 
@@ -526,45 +678,30 @@ namespace
     {
         std::ofstream output(temporaryPath, std::ios::trunc);
         if (!output) return false;
-        output << "SceneLayout " << layoutVersion << ' ' << entries.size() << ' ' << MeshField::GridSize << '\n';
+        const int version = prefabs.empty() ? 7 : layoutVersion;
+        output << "SceneLayout " << version << ' ' << entries.size() << ' ' << MeshField::GridSize << '\n';
         output << std::setprecision(std::numeric_limits<float>::max_digits10);
-        for (const auto& entry : entries)
-        {
-            const auto& p = entry.placement;
-            output << static_cast<int>(p.kind) << ' ';
-            writeVector(output, p.transform.position);
-            writeVector(output, p.transform.rotation);
-            writeVector(output, p.transform.scale);
-            output << std::quoted(p.asset) << ' ' << p.collider << ' ' << p.gravity << '\n';
-            output << p.hurtboxes.size() << '\n';
-            for (const auto& [bone, edit] : p.hurtboxes)
-            {
-                output << std::quoted(bone) << ' ';
-                writeVector(output, edit.offset);
-                output << edit.radiusScale << ' ' << edit.lengthScale << '\n';
-            }
-            for (size_t slot = 0; slot < motionCount(p.kind); ++slot)
-            {
-                const auto& track = p.motions[slot];
-                output << std::quoted(track.clip) << ' ' << track.sounds.size() << '\n';
-                for (const auto& marker : track.sounds)
-                    output << marker.time << ' ' << marker.volume << ' ' << std::quoted(marker.file) << '\n';
-            }
-            if (isEnemy(p.kind))
-            {
-                for (const auto& field : attackFields)
-                    output << p.attack.*field.value << (&field == &attackFields[std::size(attackFields) - 1] ? '\n' : ' ');
-            }
-        }
+        for (const auto& entry : entries) writePlacement(output, entry.placement, version);
         const auto& heights = terrain->heights();
         for (size_t i = 0; i < heights.size(); ++i)
             output << heights[i] << ((i + 1) % MeshField::GridSize ? ' ' : '\n');
+        if (version >= 8)
+        {
+            output << prefabs.size() << '\n';
+            for (const auto& [name, definition] : prefabs)
+            {
+                output << std::quoted(name) << '\n';
+                writePlacement(output, definition, 7);
+            }
+        }
         output.close();
         return output && MoveFileExA(temporaryPath, layoutPath, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
     }
 
+
     void refreshModels()
     {
+        modelsScanned = true;
         models.clear();
         std::error_code error;
         fs::recursive_directory_iterator it("asset", fs::directory_options::skip_permission_denied, error), end;
@@ -589,6 +726,134 @@ namespace
         activeHurtbox = 0;
     }
 
+    void deleteSelected()
+    {
+        if (selected < 0) return;
+        auto& entry = entries[selected];
+        if (entry.placement.kind == Kind::Player) return;
+
+        stopMotionPreview();
+        remember({ UndoKind::Remove, static_cast<size_t>(selected), entry.placement });
+        entry.object->SetDestory();
+        entries.erase(entries.begin() + selected);
+        select(-1);
+    }
+
+    bool applyPrefabInstances(const PlacementChanges& changes)
+    {
+        std::vector<std::unique_ptr<Enemy>> prepared(changes.size());
+        for (size_t i = 0; i < changes.size(); ++i)
+        {
+            const auto& [index, next] = changes[i];
+            const auto& current = entries[index].placement;
+            bool needsCharacter = current.asset != next.asset;
+            for (size_t slot = 0; slot < Enemy::MotionCount && !needsCharacter; ++slot)
+                needsCharacter = current.motions[slot].clip != next.motions[slot].clip;
+            if (!needsCharacter) continue;
+            prepared[i] = prepareEnemyCharacter(*static_cast<Enemy*>(entries[index].object), next);
+            if (!prepared[i]) return false;
+        }
+
+        stopMotionPreview();
+        for (size_t i = 0; i < changes.size(); ++i)
+        {
+            const auto& [index, next] = changes[i];
+            auto& entry = entries[index];
+            if (prepared[i]) static_cast<Enemy*>(entry.object)->adoptCharacter(*prepared[i]);
+            entry.placement = next;
+            apply(entry);
+            applyMotion(entry);
+        }
+        motionTime = 0;
+        activeHurtbox = 0;
+        return true;
+    }
+
+    void createPrefab(const std::string& name, size_t sourceIndex)
+    {
+        if (!validPrefabName(name) || prefabs.count(name) != 0 || prefabs.size() >= maxPrefabs)
+        {
+            status = u8"重複しない名前を入力してください (1～64バイト。# と前後の空白は使用不可)。";
+            return;
+        }
+        auto& entry = entries[sourceIndex];
+        auto& source = entry.placement;
+        if (!prepareEnemyCharacter(*static_cast<Enemy*>(entry.object), source))
+        {
+            status = u8"プレハブを作成できません。モデルとモーションクリップを確認してください。";
+            return;
+        }
+        if (!prefabAudioAvailable(source))
+        {
+            status = u8"プレハブを作成できません。WAVファイルを確認してください。";
+            return;
+        }
+        EditRecord edit{ UndoKind::Prefab };
+        edit.prefab = std::make_unique<PrefabEdit>();
+        edit.prefab->name = name;
+        edit.prefab->instances.emplace_back(sourceIndex, source);
+        auto definition = source;
+        definition.transform.position = { 0, 0, 0 };
+        definition.prefab.clear();
+        prefabs.emplace(name, std::move(definition));
+        source.prefab = name;
+        prefabChoice = name;
+        remember(std::move(edit));
+        status = u8"プレハブを作成し、選択中の敵にリンクしました。「配置を保存」で保存できます。";
+    }
+
+    void updatePrefab(size_t sourceIndex)
+    {
+        const auto& source = entries[sourceIndex].placement;
+        const auto found = prefabs.find(source.prefab);
+        if (found == prefabs.end() || found->second.kind != source.kind) return;
+        if (!prefabAudioAvailable(source))
+        {
+            status = u8"プレハブを更新できません。WAVファイルを確認してください。";
+            return;
+        }
+        auto definition = source;
+        definition.transform = found->second.transform;
+        definition.prefab.clear();
+
+        EditRecord edit{ UndoKind::Prefab };
+        edit.prefab = std::make_unique<PrefabEdit>();
+        edit.prefab->name = found->first;
+        edit.prefab->previous = found->second;
+        PlacementChanges changes;
+        for (size_t i = 0; i < entries.size(); ++i)
+        {
+            const auto& current = entries[i].placement;
+            if (current.prefab != found->first) continue;
+            auto next = definition;
+            next.transform = current.transform;
+            next.prefab = found->first;
+            edit.prefab->instances.emplace_back(i, current);
+            changes.emplace_back(i, std::move(next));
+        }
+        if (!applyPrefabInstances(changes))
+        {
+            status = u8"プレハブを更新できません。モデルとモーションクリップを確認してください。";
+            return;
+        }
+        found->second = std::move(definition);
+        remember(std::move(edit));
+        status = std::to_string(changes.size()) + u8"体の敵を更新しました。「配置を保存」で変更を保存できます。";
+    }
+
+    bool placePrefab(const std::string& name, const Vector3& position)
+    {
+        const auto found = prefabs.find(name);
+        if (found == prefabs.end()) return false;
+        auto placement = found->second;
+        placement.prefab = name;
+        placement.transform.position = position;
+        if (!spawn(placement, true)) return false;
+        remember({ UndoKind::Add, entries.size() - 1 });
+        select(static_cast<int>(entries.size() - 1));
+        return true;
+    }
+
     void undo()
     {
         if (history.empty()) return;
@@ -600,7 +865,7 @@ namespace
             if (isEnemy(edit.previous.kind)
                 && !static_cast<Enemy*>(entries[edit.index].object)->loadCharacter(edit.previous.asset))
             {
-                status = "Could not restore the previous model.";
+                status = u8"変更前のモデルに戻せませんでした。";
                 return;
             }
             entries[edit.index].placement = edit.previous;
@@ -617,7 +882,7 @@ namespace
         case UndoKind::Remove:
             if (!spawn(edit.previous))
             {
-                status = "Could not restore the object.";
+                status = u8"オブジェクトを復元できませんでした。";
                 return;
             }
             std::rotate(entries.begin() + edit.index, entries.end() - 1, entries.end());
@@ -631,20 +896,37 @@ namespace
             const auto cue = static_cast<SceneAudio::Cue>(edit.index);
             if (SceneAudio::setting(cue).file != edit.audio.file && !SceneAudio::assign(cue, edit.audio.file))
             {
-                audioStatus = "Could not restore the previous audio file.";
+                audioStatus = u8"変更前の音声ファイルに戻せませんでした。";
                 return;
             }
             SceneAudio::setVolume(cue, edit.audio.volume);
             SceneAudio::setEnabled(cue, edit.audio.enabled);
             audioCue = static_cast<int>(edit.index);
-            audioStatus = "Undid the last audio edit.";
+            audioStatus = u8"直前の音声編集を取り消しました。";
+            break;
+        }
+        case UndoKind::Prefab:
+        {
+            const auto& prefabEdit = *edit.prefab;
+            if (!applyPrefabInstances(prefabEdit.instances))
+            {
+                status = u8"プレハブの変更を取り消せません。変更前のモデルとモーションクリップを確認してください。";
+                return;
+            }
+            if (prefabEdit.previous) prefabs.insert_or_assign(prefabEdit.name, *prefabEdit.previous);
+            else
+            {
+                prefabs.erase(prefabEdit.name);
+                if (prefabChoice == prefabEdit.name) prefabChoice.clear();
+                if (prefabToPlace == prefabEdit.name) prefabToPlace.clear();
+            }
             break;
         }
         }
         drag.axis = -1;
         painting = false;
         history.pop_back();
-        status = "Undid the last edit.";
+        status = u8"直前の編集を取り消しました。";
     }
 
     bool recordNumeric(bool changed, const Placement& before)
@@ -659,9 +941,33 @@ namespace
         return changed;
     }
 
+    std::optional<std::string> chooseAsset(const char* label, const char* preview,
+        const std::vector<std::string>& assets, bool allowNone = false)
+    {
+        if (!ImGui::BeginCombo(label, preview)) return std::nullopt;
+        if (ImGui::IsWindowAppearing())
+        {
+            assetSearch.Clear();
+            ImGui::SetKeyboardFocusHere();
+        }
+        assetSearch.Draw(u8"素材を検索##assetSearch", 180.0f);
+        std::optional<std::string> choice;
+        if (allowNone && ImGui::Selectable(u8"なし")) choice = std::string{};
+        bool found = false;
+        for (const auto& path : assets)
+        {
+            if (!assetSearch.PassFilter(path.c_str())) continue;
+            found = true;
+            if (ImGui::Selectable(path.c_str())) choice = path;
+        }
+        if (!found) ImGui::TextDisabled(u8"該当する素材がありません。");
+        ImGui::EndCombo();
+        return choice;
+    }
+
     void editEnemyAttacks(Entry& entry)
     {
-        if (!ImGui::CollapsingHeader("Enemy attack settings")) return;
+        if (!ImGui::CollapsingHeader(u8"敵の攻撃設定")) return;
         const bool boss = entry.placement.kind == Kind::Boss;
         auto& settings = entry.placement.attack;
         for (const auto& field : attackFields)
@@ -674,12 +980,12 @@ namespace
                 "%.2f", ImGuiSliderFlags_AlwaysClamp), entry.placement) && std::isfinite(value))
                 setting = value;
             if (!boss && field.value == &Enemy::AttackSettings::punchStartRange)
-                ImGui::SetItemTooltip("Range at the default enemy scale (0.75).");
+                ImGui::SetItemTooltip(u8"敵の既定のスケール (0.75) での距離です。");
         }
-        ImGui::Checkbox("Show attack ranges", &showAttackRanges);
+        ImGui::Checkbox(u8"攻撃範囲を表示", &showAttackRanges);
         if (showAttackRanges)
-            ImGui::TextWrapped("Blue: detection. Orange: attack start. Gold: charge or shockwave preview.");
-        if (ImGui::Button("Preview attacks"))
+            ImGui::TextWrapped(u8"青は検知範囲、オレンジは攻撃開始距離、金色は突進・衝撃波のプレビューです。");
+        if (ImGui::Button(u8"攻撃をプレビュー"))
         {
             if (!motionPanel) scanAudio();
             motionPanel = true;
@@ -692,7 +998,7 @@ namespace
             }
         }
         ImGui::SameLine();
-        if (ImGui::Button("Reset attack settings"))
+        if (ImGui::Button(u8"攻撃設定を初期化"))
         {
             remember({ UndoKind::Modify, static_cast<size_t>(selected), entry.placement });
             settings = Enemy::defaultAttackSettings(boss);
@@ -701,15 +1007,17 @@ namespace
 
     void editEnemyCharacter(Entry& entry)
     {
-        if (!ImGui::CollapsingHeader("Enemy character and hurtboxes")) return;
+        if (!ImGui::CollapsingHeader(u8"敵モデルと被弾判定")) return;
         auto* enemy = static_cast<Enemy*>(entry.object);
-        ImGui::TextWrapped("%s", entry.placement.asset.empty() ? "Built-in enemy mesh" : entry.placement.asset.c_str());
+        ImGui::TextWrapped("%s", entry.placement.asset.empty() ? u8"内蔵モデル" : entry.placement.asset.c_str());
         static char path[1024]{};
-        ImGui::InputTextWithHint("Character path", "asset/model/enemy.fbx", path, IM_ARRAYSIZE(path));
-        const bool assign = ImGui::Button("Assign rigged model");
+        ImGui::InputTextWithHint(u8"モデルのパス", "asset/model/enemy.fbx", path, IM_ARRAYSIZE(path));
+        if (const auto file = chooseAsset("##enemyModel", u8"モデルを選択", models))
+            strncpy_s(path, file->c_str(), _TRUNCATE);
+        const bool assign = ImGui::Button(u8"リグ付きモデルを適用");
         ImGui::SameLine();
         ImGui::BeginDisabled(!enemy->hasCharacter());
-        const bool reset = ImGui::Button("Use built-in mesh");
+        const bool reset = ImGui::Button(u8"内蔵モデルに戻す");
         ImGui::EndDisabled();
         if (assign || reset)
         {
@@ -726,14 +1034,14 @@ namespace
                     applyMotion(entry);
                     activeHurtbox = 0;
                 }
-                status = assign ? "Enemy model assigned." : "Built-in mesh restored.";
+                status = assign ? u8"敵モデルを適用しました。" : u8"内蔵モデルに戻しました。";
             }
-            else status = "An asset/ model with weighted bones is required.";
+            else status = u8"asset/ 内の、ボーンにウェイトが設定されたモデルを指定してください。";
         }
         if (!enemy->hurtboxCount()) return;
-        ImGui::Checkbox("Show hurtboxes", &showHurtboxes);
+        ImGui::Checkbox(u8"被弾判定を表示", &showHurtboxes);
         if (activeHurtbox >= static_cast<int>(enemy->hurtboxCount())) activeHurtbox = 0;
-        if (ImGui::BeginCombo("Bone", enemy->hurtboxBone(activeHurtbox).c_str()))
+        if (ImGui::BeginCombo(u8"ボーン", enemy->hurtboxBone(activeHurtbox).c_str()))
         {
             for (size_t i = 0; i < enemy->hurtboxCount(); ++i)
                 if (ImGui::Selectable(enemy->hurtboxBone(i).c_str(), activeHurtbox == static_cast<int>(i)))
@@ -746,14 +1054,14 @@ namespace
         auto item = std::find_if(edits.begin(), edits.end(), [&](const auto& e) { return e.first == bone; });
         auto edit = item == edits.end() ? Enemy::HurtboxAdjustment{} : item->second;
         float offset[] = { edit.offset.x, edit.offset.y, edit.offset.z };
-        if (recordNumeric(ImGui::DragFloat3("Offset (bind XYZ)", offset, .005f, -1, 1,
+        if (recordNumeric(ImGui::DragFloat3(u8"オフセット (バインド時のXYZ)", offset, .005f, -1, 1,
             "%.3f", ImGuiSliderFlags_AlwaysClamp), entry.placement))
             edit.offset = { offset[0], offset[1], offset[2] };
-        recordNumeric(ImGui::SliderFloat("Radius scale", &edit.radiusScale, .1f, 4, "%.2f",
+        recordNumeric(ImGui::SliderFloat(u8"半径の倍率", &edit.radiusScale, .1f, 4, "%.2f",
             ImGuiSliderFlags_AlwaysClamp), entry.placement);
-        recordNumeric(ImGui::SliderFloat("Length scale", &edit.lengthScale, .1f, 4, "%.2f",
+        recordNumeric(ImGui::SliderFloat(u8"長さの倍率", &edit.lengthScale, .1f, 4, "%.2f",
             ImGuiSliderFlags_AlwaysClamp), entry.placement);
-        if (ImGui::Button("Reset part") && item != edits.end())
+        if (ImGui::Button(u8"この部位を初期化") && item != edits.end())
         {
             remember({ UndoKind::Modify, static_cast<size_t>(selected), entry.placement });
             edits.erase(item);
@@ -867,7 +1175,7 @@ namespace
         if (hoveredMarker >= 0 && !dragging)
         {
             const auto& marker = sounds[hoveredMarker];
-            ImGui::SetTooltip("%.3f s | %s", marker.time, marker.file.empty() ? "Choose WAV" : marker.file.c_str());
+            ImGui::SetTooltip(u8"%.3f 秒  %s", marker.time, marker.file.empty() ? u8"WAVを選択" : marker.file.c_str());
         }
         if (moved) applyMotion(entry);
         return clicked || dragging;
@@ -878,17 +1186,17 @@ namespace
         if (!motionPanel) return;
         ImGui::SetNextWindowPos({ 390, 360 }, ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize({ 650, 350 }, ImGuiCond_FirstUseEver);
-        if (ImGui::Begin("Motion & SE", &motionPanel))
+        if (ImGui::Begin(u8"モーションとSE", &motionPanel))
         {
             if (selected < 0 || !motionCount(entries[selected].placement.kind))
-                ImGui::TextUnformatted("Select the player or an enemy in the scene.");
+                ImGui::TextUnformatted(u8"シーン内のプレイヤーか敵を選択してください。");
             else
             {
                 auto& entry = entries[selected];
                 const bool enemy = isEnemy(entry.placement.kind);
-                const char* playerMotions[] = { "Idle", "Walk", "Run", "Yawn", "Attack", "Jump", "Running jump", "Land" };
-                const char* enemyMotions[] = { "Idle", "Move", "Punch", "Slam", "Charge" };
-                if (ImGui::Combo("Motion", &motionSlot, enemy ? enemyMotions : playerMotions,
+                const char* playerMotions[] = { u8"待機", u8"歩き", u8"走り", u8"あくび", u8"攻撃", u8"ジャンプ", u8"走りジャンプ", u8"着地" };
+                const char* enemyMotions[] = { u8"待機", u8"移動", u8"パンチ", u8"叩きつけ", u8"突進" };
+                if (ImGui::Combo(u8"モーション", &motionSlot, enemy ? enemyMotions : playerMotions,
                     static_cast<int>(motionCount(entry.placement.kind))))
                 {
                     stopMotionPreview();
@@ -906,12 +1214,14 @@ namespace
                 {
                     if (actor->hasCharacter())
                     {
-                        ImGui::TextWrapped("Clip: %s", track.clip.empty() ? "Embedded / bind pose" : track.clip.c_str());
+                        ImGui::TextWrapped(u8"クリップ  %s", track.clip.empty() ? u8"内蔵モーション／バインドポーズ" : track.clip.c_str());
                         static char path[1024]{};
-                        ImGui::InputTextWithHint("Clip file", "asset/model/EnemyWalk.fbx", path, IM_ARRAYSIZE(path));
-                        const bool assign = ImGui::Button("Assign clip");
+                        ImGui::InputTextWithHint(u8"クリップのパス", "asset/model/EnemyWalk.fbx", path, IM_ARRAYSIZE(path));
+                        if (const auto file = chooseAsset("##enemyClip", u8"クリップを選択", models))
+                            strncpy_s(path, file->c_str(), _TRUNCATE);
+                        const bool assign = ImGui::Button(u8"クリップを適用");
                         ImGui::SameLine();
-                        const bool clear = ImGui::Button("Use default clip");
+                        const bool clear = ImGui::Button(u8"既定のクリップに戻す");
                         if (assign || clear)
                         {
                             std::string file;
@@ -924,12 +1234,12 @@ namespace
                                     stopMotionPreview();
                                     motionTime = 0;
                                 }
-                                motionStatus = "Motion updated.";
+                                motionStatus = u8"モーションを更新しました。";
                             }
-                            else motionStatus = "Use a clip under asset/ with compatible bone names.";
+                            else motionStatus = u8"asset/ 内の、ボーン名が一致するクリップを指定してください。";
                         }
                     }
-                    else ImGui::TextUnformatted("Built-in motion. Assign a rigged model to replace clips.");
+                    else ImGui::TextUnformatted(u8"内蔵モーションを再生します。リグ付きモデルを適用するとクリップを差し替えられます。");
                 }
                 const float duration = enemy ? actor->motionDuration(enemySlot) : player->motionDuration(playerSlot);
                 const auto sample = [&]()
@@ -944,23 +1254,28 @@ namespace
                     const bool canAttack = enemy && (enemySlot == Enemy::Motion::Punch || entry.placement.kind == Kind::Boss);
                     const auto phase = canAttack ? Enemy::attackPhase(enemySlot) : Enemy::AttackPhase{};
                     if (drawMotionTimeline(entry, track.sounds, duration, phase)) sample();
-                    if (phase.name) ImGui::Text("%s  %.2f - %.2f s", phase.name, phase.start, phase.end);
-                    if (ImGui::SliderFloat("Time (s)", &motionTime, 0, duration, "%.3f", ImGuiSliderFlags_AlwaysClamp))
+                    if (phase.name)
+                    {
+                        constexpr const char* phaseLabels[] = { u8"パンチ", u8"衝撃波", u8"突進" };
+                        const auto phaseIndex = motionSlot - static_cast<int>(Enemy::Motion::Punch);
+                        ImGui::Text(u8"%s  %.2f～%.2f 秒", phaseLabels[phaseIndex], phase.start, phase.end);
+                    }
+                    if (ImGui::SliderFloat(u8"再生位置 (秒)", &motionTime, 0, duration, "%.3f", ImGuiSliderFlags_AlwaysClamp))
                     {
                         motionPlaying = false;
                         motionFirstFrame = motionTime == 0;
                         SceneAudio::stopMarkers();
                         sample();
                     }
-                    if (ImGui::Button(motionPlaying ? "Pause" : "Play"))
+                    if (ImGui::Button(motionPlaying ? u8"一時停止" : u8"再生"))
                     {
                         motionPlaying = !motionPlaying;
                         if (motionPlaying && motionTime >= duration) { motionTime = 0; motionFirstFrame = true; }
                     }
                     ImGui::SameLine();
-                    if (ImGui::Button("Stop motion")) { stopMotionPreview(); motionTime = 0; }
+                    if (ImGui::Button(u8"再生を停止")) { stopMotionPreview(); motionTime = 0; }
                     ImGui::SameLine();
-                    if (ImGui::Button("+1 frame"))
+                    if (ImGui::Button(u8"1フレーム進む"))
                     {
                         motionPlaying = false;
                         motionTime = std::min(duration, motionTime + 1.0f / 60.0f);
@@ -968,7 +1283,7 @@ namespace
                         sample();
                     }
                     ImGui::SameLine();
-                    ImGui::Checkbox("Loop preview", &motionLoop);
+                    ImGui::Checkbox(u8"ループ再生", &motionLoop);
                     if (motionPlaying)
                     {
                         const float previous = motionFirstFrame ? -1.0f : motionTime;
@@ -981,12 +1296,12 @@ namespace
                         if (!motionLoop && motionTime >= duration) motionPlaying = false;
                     }
                 }
-                else ImGui::TextUnformatted("This player motion is not available.");
+                else ImGui::TextUnformatted(u8"このプレイヤーモーションは再生できません。");
 
-                if (ImGui::Button("Rescan WAV files")) scanAudio();
+                if (ImGui::Button(u8"WAVを再検索")) scanAudio();
                 ImGui::SameLine();
                 ImGui::BeginDisabled(duration <= 0 || track.sounds.size() >= 24);
-                if (ImGui::Button("Add SE at cursor"))
+                if (ImGui::Button(u8"現在の位置にSEを追加"))
                 {
                     rememberMotion();
                     track.sounds.push_back({ motionTime, {}, 1.0f });
@@ -1001,27 +1316,23 @@ namespace
                     float time = marker.time, volume = marker.volume;
                     ImGui::SetNextItemWidth(90);
                     if (recordNumeric(ImGui::DragFloat("##time", &time, .005f, 0,
-                        std::max(duration, marker.time), "%.3f s", ImGuiSliderFlags_AlwaysClamp), entry.placement))
+                        std::max(duration, marker.time), u8"%.3f 秒", ImGuiSliderFlags_AlwaysClamp), entry.placement))
                     {
                         marker.time = time;
                         changed = true;
                     }
                     ImGui::SameLine();
                     ImGui::SetNextItemWidth(240);
-                    if (ImGui::BeginCombo("##file", marker.file.empty() ? "Choose WAV" : marker.file.c_str()))
+                    if (const auto file = chooseAsset("##file", marker.file.empty() ? u8"WAVを選択" : marker.file.c_str(), audioAssets);
+                        file && *file != marker.file)
                     {
-                        for (const auto& file : audioAssets)
-                            if (ImGui::Selectable(file.c_str(), marker.file == file) && marker.file != file)
-                            {
-                                if (SceneAudio::prepareMarker(file))
-                                {
-                                    rememberMotion();
-                                    marker.file = file;
-                                    changed = true;
-                                }
-                                else motionStatus = "Could not load this WAV.";
-                            }
-                        ImGui::EndCombo();
+                        if (SceneAudio::prepareMarker(*file))
+                        {
+                            rememberMotion();
+                            marker.file = *file;
+                            changed = true;
+                        }
+                        else motionStatus = u8"このWAVを読み込めませんでした。";
                     }
                     ImGui::SameLine();
                     ImGui::SetNextItemWidth(80);
@@ -1032,9 +1343,9 @@ namespace
                         changed = true;
                     }
                     ImGui::SameLine();
-                    if (ImGui::SmallButton("Preview")) SceneAudio::playMarker(marker, true);
+                    if (ImGui::SmallButton(u8"試聴")) SceneAudio::playMarker(marker, true);
                     ImGui::SameLine();
-                    if (ImGui::SmallButton("Delete"))
+                    if (ImGui::SmallButton(u8"削除"))
                     {
                         rememberMotion();
                         track.sounds.erase(track.sounds.begin() + i);
@@ -1057,42 +1368,32 @@ namespace
         if (!audioPanel) return;
         ImGui::SetNextWindowPos({ 382, 14 }, ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize({ 390, 320 }, ImGuiCond_FirstUseEver);
-        if (ImGui::Begin("Scene Audio", &audioPanel))
+        if (ImGui::Begin(u8"シーン音声", &audioPanel))
         {
-            constexpr const char* names[] = { "BGM", "Player jump", "Player landing", "Enemy punch",
-                "Boss slam", "Boss charge" };
+            constexpr const char* names[] = { "BGM", u8"プレイヤーのジャンプ", u8"プレイヤーの着地", u8"敵のパンチ",
+                u8"中ボスの叩きつけ", u8"中ボスの突進" };
             static_assert(IM_ARRAYSIZE(names) == static_cast<int>(SceneAudio::Cue::Count), "Audio cue labels");
-            if (ImGui::Combo("Cue", &audioCue, names, IM_ARRAYSIZE(names))) SceneAudio::stopPreview();
+            if (ImGui::Combo(u8"再生する場面", &audioCue, names, IM_ARRAYSIZE(names))) SceneAudio::stopPreview();
             const auto cue = static_cast<SceneAudio::Cue>(audioCue);
             const auto rememberAudio = [&]()
             {
                 remember({ UndoKind::Audio, static_cast<size_t>(audioCue), {}, {}, SceneAudio::setting(cue) });
             };
             const auto& setting = SceneAudio::setting(cue);
-            if (ImGui::Button("Rescan WAV files")) scanAudio();
-            if (ImGui::BeginCombo("Sound", setting.file.empty() ? "None" : setting.file.c_str()))
+            if (ImGui::Button(u8"WAVを再検索")) scanAudio();
+            if (const auto file = chooseAsset(u8"音声ファイル", setting.file.empty() ? u8"なし" : setting.file.c_str(),
+                    audioAssets, true); file && *file != setting.file)
             {
-                if (ImGui::Selectable("None", setting.file.empty()) && !setting.file.empty())
+                const auto before = setting;
+                if (SceneAudio::assign(cue, *file))
                 {
-                    rememberAudio();
-                    SceneAudio::assign(cue, {});
-                    audioStatus.clear();
+                    remember({ UndoKind::Audio, static_cast<size_t>(audioCue), {}, {}, before });
+                    audioStatus = file->empty() ? u8"音声の割り当てを解除しました。" : u8"音声を割り当てました。";
                 }
-                for (const auto& file : audioAssets)
-                {
-                    if (!ImGui::Selectable(file.c_str(), setting.file == file) || setting.file == file) continue;
-                    const auto before = setting;
-                    if (SceneAudio::assign(cue, file))
-                    {
-                        remember({ UndoKind::Audio, static_cast<size_t>(audioCue), {}, {}, before });
-                        audioStatus = "Sound assigned.";
-                    }
-                    else audioStatus = "Could not load this WAV. Use PCM or compatible float WAV.";
-                }
-                ImGui::EndCombo();
+                else audioStatus = u8"このWAVを読み込めません。PCMまたは対応する浮動小数点形式のWAVを使ってください。";
             }
             float volume = setting.volume * 100.0f;
-            const bool volumeChanged = ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f, "%.0f%%",
+            const bool volumeChanged = ImGui::SliderFloat(u8"音量", &volume, 0.0f, 100.0f, "%.0f%%",
                 ImGuiSliderFlags_AlwaysClamp);
             if (ImGui::IsItemActivated()) audioVolumeRecorded = false;
             if (volumeChanged)
@@ -1104,79 +1405,168 @@ namespace
             if (ImGui::IsItemDeactivated()) audioVolumeRecorded = false;
             bool enabled = setting.enabled;
             ImGui::BeginDisabled(setting.file.empty());
-            if (ImGui::Checkbox(cue == SceneAudio::Cue::Bgm ? "Loop during play" : "Play in game", &enabled))
+            if (ImGui::Checkbox(cue == SceneAudio::Cue::Bgm ? u8"ゲーム中にループ再生" : u8"ゲーム中に再生", &enabled))
             {
                 rememberAudio();
                 SceneAudio::setEnabled(cue, enabled);
             }
-            if (ImGui::Button("Preview"))
-                audioStatus = SceneAudio::preview(cue) ? "Playing preview." : "Could not play this WAV.";
+            if (ImGui::Button(u8"試聴"))
+                audioStatus = SceneAudio::preview(cue) ? u8"試聴中です。" : u8"このWAVを再生できませんでした。";
             ImGui::EndDisabled();
             ImGui::SameLine();
-            if (ImGui::Button("Stop")) { SceneAudio::stopPreview(); audioStatus.clear(); }
-            if (ImGui::Button("Save audio"))
-                audioStatus = SceneAudio::save() ? "Saved asset/scene-audio.txt." : "Could not save audio settings.";
+            if (ImGui::Button(u8"停止")) { SceneAudio::stopPreview(); audioStatus.clear(); }
+            if (ImGui::Button(u8"音声設定を保存"))
+                audioStatus = SceneAudio::save() ? u8"音声設定を asset/scene-audio.txt に保存しました。" : u8"音声設定を保存できませんでした。";
             if (!audioStatus.empty()) ImGui::TextWrapped("%s", audioStatus.c_str());
-            ImGui::TextWrapped("Place new WAV files under asset/Audio/ and rescan.");
+            ImGui::TextWrapped(u8"WAVを追加するには asset/Audio/ に入れ、「WAVを再検索」を押してください。");
         }
         ImGui::End();
         if (!audioPanel) SceneAudio::stopPreview();
+    }
+
+    void drawPrefabPanel()
+    {
+        if (!prefabPanel) return;
+        ImGui::SetNextWindowPos({ 390, 25 }, ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize({ 370, 265 }, ImGuiCond_FirstUseEver);
+        if (ImGui::Begin(u8"敵プレハブ", &prefabPanel))
+        {
+            ImGui::SetNextItemWidth(190);
+            if (ImGui::BeginCombo("##prefab", prefabChoice.empty() ? u8"プレハブを選択" : prefabChoice.c_str()))
+            {
+                for (const auto& prefab : prefabs)
+                    if (ImGui::Selectable(prefab.first.c_str(), prefabChoice == prefab.first)) prefabChoice = prefab.first;
+                ImGui::EndCombo();
+            }
+            ImGui::SameLine();
+            ImGui::BeginDisabled(prefabChoice.empty());
+            if (ImGui::Button(u8"プレハブを配置"))
+            {
+                prefabToPlace = prefabChoice;
+                terrainMode = false;
+                drag.axis = -1;
+            }
+            ImGui::EndDisabled();
+            if (!prefabToPlace.empty())
+            {
+                ImGui::TextWrapped(u8"地面をクリックして「%s」を配置します。", prefabToPlace.c_str());
+                if (ImGui::Button(u8"配置をキャンセル")) prefabToPlace.clear();
+            }
+
+            ImGui::Separator();
+            if (selected >= 0 && isEnemy(entries[selected].placement.kind))
+            {
+                const auto& instance = entries[selected].placement;
+                if (!instance.prefab.empty())
+                {
+                    ImGui::TextWrapped(u8"リンク先  %s", instance.prefab.c_str());
+                    if (ImGui::Button(u8"リンク済みの敵に一括反映")) updatePrefab(static_cast<size_t>(selected));
+                    ImGui::SetItemTooltip(u8"選択中の敵の共通設定を、同じプレハブにリンクしている敵すべてに反映します。");
+                }
+                ImGui::SetNextItemWidth(190);
+                ImGui::InputTextWithHint("##prefabName", u8"新しいプレハブ名", newPrefabName, IM_ARRAYSIZE(newPrefabName));
+                ImGui::SameLine();
+                ImGui::BeginDisabled(newPrefabName[0] == '\0');
+                if (ImGui::Button(u8"プレハブを作成")) createPrefab(newPrefabName, static_cast<size_t>(selected));
+                ImGui::EndDisabled();
+            }
+            else ImGui::TextUnformatted(u8"プレハブを作成・更新するには敵を選択してください。");
+            if (ImGui::Button(u8"配置を保存"))
+                status = saveLayout() ? u8"配置と敵プレハブを保存しました。" : u8"シーンの配置を保存できませんでした。";
+        }
+        ImGui::End();
+        if (!prefabPanel) prefabToPlace.clear();
     }
 
     void inspector()
     {
         ImGui::SetNextWindowPos({ 14, 14 }, ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize({ 350, 620 }, ImGuiCond_FirstUseEver);
-        if (ImGui::Begin("Scene Editor"))
+        if (ImGui::Begin(u8"シーンエディター"))
         {
-            ImGui::TextWrapped("F2: edit/play   WASD: move   Shift: faster");
-            ImGui::TextWrapped("LMB: select   RMB: orbit   MMB: pan   Wheel: zoom");
-            if (ImGui::Button("Audio"))
+            ImGui::TextWrapped(u8"Escで編集を終了  Deleteで選択を削除\nF2で試遊  WASDで移動  Shiftで加速");
+            ImGui::TextWrapped(u8"左クリックで選択  右ドラッグで回転\n中ドラッグで平行移動  ホイールでズーム");
+            if (ImGui::Button(u8"音声"))
             {
                 audioPanel = !audioPanel;
                 if (audioPanel) scanAudio();
                 else SceneAudio::stopPreview();
             }
             ImGui::SameLine();
-            if (ImGui::Button("Motion & SE"))
+            if (ImGui::Button(u8"モーションとSE"))
             {
                 motionPanel = !motionPanel;
                 if (motionPanel) scanAudio();
                 else stopMotionPreview();
             }
-            if (ImGui::Button("Save layout"))
-                status = saveLayout() ? "Saved asset/scene-layout.txt." : "Could not save the scene layout.";
+            ImGui::SameLine();
+            if (ImGui::Button(u8"プレハブ"))
+            {
+                prefabPanel = !prefabPanel;
+                if (!prefabPanel) prefabToPlace.clear();
+            }
+            if (ImGui::Button(u8"配置を保存"))
+                status = saveLayout() ? u8"配置を asset/scene-layout.txt に保存しました。" : u8"シーンの配置を保存できませんでした。";
             ImGui::SameLine();
             ImGui::BeginDisabled(history.empty());
-            if (ImGui::Button("Undo (Ctrl+Z)")) undo();
+            if (ImGui::Button(u8"元に戻す (Ctrl+Z)")) undo();
             ImGui::EndDisabled();
+            if (ImGui::Button(u8"試遊を開始 (F2)")) playModeRequested = true;
+            ImGui::SameLine();
+            ImGui::Checkbox(u8"グリッドスナップ", &gridSnap);
+            if (gridSnap)
+            {
+                float step = gridStep;
+                ImGui::SetNextItemWidth(110.0f);
+                if (ImGui::DragFloat(u8"グリッド間隔", &step, 0.1f, 0.1f, 50.0f, "%.2f",
+                    ImGuiSliderFlags_AlwaysClamp) && std::isfinite(step))
+                    gridStep = step;
+            }
             if (!status.empty()) ImGui::TextWrapped("%s", status.c_str());
             ImGui::Separator();
-            ImGui::Checkbox("Terrain brush", &terrainMode);
+            ImGui::Checkbox(u8"地形ブラシ", &terrainMode);
             if (terrainMode)
             {
-                ImGui::Combo("Brush", &brushMode, "Raise\0Lower\0Flatten\0");
-                ImGui::SliderFloat("Radius", &radius, 2.5f, 25.0f);
-                ImGui::SliderFloat("Strength", &strength, 0.5f, 15.0f);
-                if (brushMode == 2) ImGui::SliderFloat("Height", &flattenHeight, -30.0f, 30.0f);
-                ImGui::TextWrapped("Hold LMB on the ground to sculpt.");
+                ImGui::Combo(u8"ブラシ", &brushMode, u8"盛り上げる\0掘り下げる\0平らにする\0");
+                ImGui::SliderFloat(u8"半径", &radius, 2.5f, 25.0f);
+                ImGui::SliderFloat(u8"強さ", &strength, 0.5f, 15.0f);
+                if (brushMode == 2) ImGui::SliderFloat(u8"高さ", &flattenHeight, -30.0f, 30.0f);
+                ImGui::TextWrapped(u8"地面を左クリックしたままドラッグして地形を編集します。");
             }
             else
             {
-                ImGui::TextUnformatted("Objects");
+                ImGui::TextUnformatted(u8"オブジェクト一覧");
+                hierarchySearch.Draw(u8"名前を検索##hierarchySearch", 125.0f);
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(90.0f);
+                if (ImGui::BeginCombo(u8"種類", hierarchyKind == 0 ? u8"すべて" : labels[hierarchyKind - 1]))
+                {
+                    if (ImGui::Selectable(u8"すべて", hierarchyKind == 0)) hierarchyKind = 0;
+                    for (int i = 0; i < IM_ARRAYSIZE(labels); ++i)
+                        if (ImGui::Selectable(labels[i], hierarchyKind == i + 1)) hierarchyKind = i + 1;
+                    ImGui::EndCombo();
+                }
                 if (ImGui::BeginChild("Hierarchy", { 0, 165 }, true))
                 {
-                    ImGui::TextDisabled("Camera / Terrain / Sky / Score (scene systems)");
+                    if (!hierarchySearch.IsActive() && hierarchyKind == 0)
+                        ImGui::TextDisabled(u8"シーン機能  カメラ／地形／空／スコア");
+                    bool found = false;
                     for (size_t i = 0; i < entries.size(); ++i)
                     {
-                        ImGui::PushID(static_cast<int>(i));
                         const auto& p = entries[i].placement;
+                        const auto kind = static_cast<int>(p.kind);
+                        if (hierarchyKind != 0 && hierarchyKind != kind + 1) continue;
                         auto name = p.kind == Kind::Model ? fs::u8path(p.asset).filename().u8string()
-                            : std::string(labels[static_cast<int>(p.kind)]);
+                            : std::string(labels[kind]);
                         if (p.kind != Kind::Player) name += " (" + std::to_string(i) + ")";
+                        if (!p.prefab.empty()) name += " [" + p.prefab + "]";
+                        if (!hierarchySearch.PassFilter((name + " " + p.asset + " " + labels[kind]).c_str())) continue;
+                        found = true;
+                        ImGui::PushID(static_cast<int>(i));
                         if (ImGui::Selectable(name.c_str(), selected == static_cast<int>(i))) select(static_cast<int>(i));
                         ImGui::PopID();
                     }
+                    if (!found) ImGui::TextDisabled(u8"該当するオブジェクトがありません。");
                 }
                 ImGui::EndChild();
                 if (selected >= 0)
@@ -1184,28 +1574,28 @@ namespace
                     auto& entry = entries[selected];
                     auto& t = entry.placement.transform;
                     float position[] = { t.position.x, t.position.y, t.position.z };
-                    if (recordNumeric(ImGui::DragFloat3("Position", position, 0.1f), entry.placement))
+                    if (recordNumeric(ImGui::DragFloat3(u8"位置", position, 0.1f), entry.placement))
                         t.position = { position[0], position[1], position[2] };
                     if (entry.placement.kind != Kind::Player)
                     {
                         float angle[] = { XMConvertToDegrees(t.rotation.x), XMConvertToDegrees(t.rotation.y), XMConvertToDegrees(t.rotation.z) };
                         float scale[] = { t.scale.x, t.scale.y, t.scale.z };
-                        if (recordNumeric(ImGui::DragFloat3("Rotation (deg)", angle, 0.5f), entry.placement))
+                        if (recordNumeric(ImGui::DragFloat3(u8"回転 (度)", angle, 0.5f), entry.placement))
                             t.rotation = { XMConvertToRadians(angle[0]), XMConvertToRadians(angle[1]), XMConvertToRadians(angle[2]) };
-                        if (recordNumeric(ImGui::DragFloat3("Scale", scale, 0.02f, 0.01f, 1000.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp), entry.placement))
+                        if (recordNumeric(ImGui::DragFloat3(u8"スケール", scale, 0.02f, 0.01f, 1000.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp), entry.placement))
                             t.scale = { scale[0], scale[1], scale[2] };
                     }
                     const bool enemy = isEnemy(entry.placement.kind);
                     if (supportsPhysics(entry.placement.kind) || enemy)
                     {
                         const auto before = entry.placement;
-                        if (ImGui::Checkbox(enemy ? "Mesh collider (auto)" : "Collider (fit to object)", &entry.placement.collider))
+                        if (ImGui::Checkbox(enemy ? u8"メッシュコライダー (自動)" : u8"コライダー (形状に合わせる)", &entry.placement.collider))
                             remember({ UndoKind::Modify, static_cast<size_t>(selected), before });
                     }
                     if (supportsPhysics(entry.placement.kind))
                     {
                         const auto before = entry.placement;
-                        if (ImGui::Checkbox("Use gravity", &entry.placement.gravity))
+                        if (ImGui::Checkbox(u8"重力を使う", &entry.placement.gravity))
                             remember({ UndoKind::Modify, static_cast<size_t>(selected), before });
                     }
                     if (enemy)
@@ -1214,13 +1604,13 @@ namespace
                         editEnemyCharacter(entry);
                     }
                     apply(entry);
-                    if (ImGui::Button("Focus")) focus = t.position + Vector3{ 0, 1, 0 };
+                    if (ImGui::Button(u8"対象に注目")) focus = t.position + Vector3{ 0, 1, 0 };
                     if (entry.placement.kind != Kind::Player)
                     {
                         ImGui::SameLine();
-                        const bool duplicate = ImGui::Button("Duplicate");
+                        const bool duplicate = ImGui::Button(u8"複製");
                         ImGui::SameLine();
-                        const bool remove = ImGui::Button("Delete");
+                        const bool remove = ImGui::Button(u8"削除");
                         if (duplicate)
                         {
                             Placement copy = entry.placement;
@@ -1230,41 +1620,32 @@ namespace
                                 remember({ UndoKind::Add, entries.size() - 1 });
                                 select(static_cast<int>(entries.size() - 1));
                             }
-                            else status = "Could not duplicate this object.";
+                            else status = u8"オブジェクトを複製できませんでした。";
                         }
-                        else if (remove)
-                        {
-                            stopMotionPreview();
-                            remember({ UndoKind::Remove, static_cast<size_t>(selected), entry.placement });
-                            entry.object->SetDestory();
-                            entries.erase(entries.begin() + selected);
-                            select(-1);
-                        }
+                        else if (remove) deleteSelected();
                     }
                 }
                 ImGui::Separator();
                 static char path[1024]{};
-                if (ImGui::Button("Scan models")) refreshModels();
+                if (ImGui::Button(u8"モデルを検索")) refreshModels();
                 ImGui::SameLine();
-                if (ImGui::BeginCombo("##models", "Choose a project model"))
-                {
-                    for (const auto& model : models)
-                        if (ImGui::Selectable(model.c_str())) strncpy_s(path, model.c_str(), _TRUNCATE);
-                    ImGui::EndCombo();
-                }
+                if (const auto file = chooseAsset("##models", u8"モデルを選択", models))
+                    strncpy_s(path, file->c_str(), _TRUNCATE);
                 ImGui::InputTextWithHint("##path", "asset/model/example.fbx", path, IM_ARRAYSIZE(path));
-                if (ImGui::Button("Place model"))
+                if (ImGui::Button(u8"モデルを配置"))
                 {
                     Placement item{ Kind::Model, {}, {}, true };
                     item.transform.position = focus;
-                    terrain->tryGetHeight(focus.x, focus.z, item.transform.position.y);
-                    if (modelPath(path, item.asset) && spawn(item))
+                    const bool onTerrain = snapPlacementToGround(item.transform.position);
+                    if (gridSnap && !onTerrain)
+                        status = u8"グリッド位置が地形の外にあります。";
+                    else if (modelPath(path, item.asset) && spawn(item))
                     {
-                        status = "Model added.";
+                        status = u8"モデルを配置しました。";
                         remember({ UndoKind::Add, entries.size() - 1 });
                         select(static_cast<int>(entries.size() - 1));
                     }
-                    else status = "Could not load the model. Use FBX, OBJ or glTF under asset/.";
+                    else status = u8"モデルを読み込めません。asset/ 内のFBX、OBJ、glTFを指定してください。";
                 }
             }
         }
@@ -1311,6 +1692,24 @@ namespace
         }
     }
 
+    void drawRangeRing(const Vector3& origin, float radius, ImU32 color, float thickness,
+        FXMMATRIX vp, const ImVec2& size, ImDrawList& overlay)
+    {
+        if (radius <= 0.0f) return;
+        ImVec2 previous{};
+        bool wasVisible = false;
+        for (int i = 0; i <= 48; ++i)
+        {
+            const float angle = i * XM_2PI / 48;
+            const auto point = origin + Vector3{ radius * cosf(angle), 0, radius * sinf(angle) };
+            ImVec2 pixel;
+            const bool visible = project(point, vp, size, pixel);
+            if (wasVisible && visible) overlay.AddLine(previous, pixel, color, thickness);
+            if (visible) previous = pixel;
+            wasVisible = visible;
+        }
+    }
+
     void drawAttackRanges(Enemy& enemy, Kind kind, FXMMATRIX vp, const ImVec2& size, ImDrawList& overlay)
     {
         auto motion = static_cast<Enemy::Motion>(motionSlot);
@@ -1321,19 +1720,7 @@ namespace
         const auto origin = enemy.GetPosition() + Vector3{ 0, 0.07f, 0 };
         const auto ring = [&](float radius, ImU32 color, float thickness)
         {
-            if (radius <= 0.0f) return;
-            ImVec2 previous{};
-            bool wasVisible = false;
-            for (int i = 0; i <= 48; ++i)
-            {
-                const float angle = i * XM_2PI / 48;
-                const auto point = origin + Vector3{ radius * cosf(angle), 0, radius * sinf(angle) };
-                ImVec2 pixel;
-                const bool visible = project(point, vp, size, pixel);
-                if (wasVisible && visible) overlay.AddLine(previous, pixel, color, thickness);
-                if (visible) previous = pixel;
-                wasVisible = visible;
-            }
+            drawRangeRing(origin, radius, color, thickness, vp, size, overlay);
         };
         constexpr ImU32 gold = IM_COL32(255, 218, 95, 240);
         ring(enemy.attackSettings().detectionDistance, IM_COL32(90, 167, 255, 220), 1.5f);
@@ -1403,6 +1790,28 @@ namespace
         return false;
     }
 
+    void drawPlacementGrid(FXMMATRIX vp, const ImVec2& size, ImDrawList& overlay)
+    {
+        constexpr int halfCells = 12;
+        const float span = halfCells * gridStep;
+        Vector3 center{ snapCoordinate(focus.x), 0, snapCoordinate(focus.z) };
+        terrain->tryGetHeight(center.x, center.z, center.y);
+        center.y += 0.03f;
+        const auto line = [&](const Vector3& from, const Vector3& to, ImU32 color)
+        {
+            ImVec2 start, end;
+            if (project(center + from, vp, size, start) && project(center + to, vp, size, end))
+                overlay.AddLine(start, end, color);
+        };
+        for (int i = -halfCells; i <= halfCells; ++i)
+        {
+            const float offset = i * gridStep;
+            const ImU32 color = i == 0 ? IM_COL32(177, 200, 225, 140) : IM_COL32(145, 173, 201, 80);
+            line({ offset, 0, -span }, { offset, 0, span }, color);
+            line({ -span, 0, offset }, { span, 0, offset }, color);
+        }
+    }
+
     void viewport()
     {
         auto& io = ImGui::GetIO();
@@ -1442,6 +1851,31 @@ namespace
         SceneEditor::cameraMatrices(eye, view, projection);
         const XMMATRIX vp = view * projection;
         auto* overlay = ImGui::GetBackgroundDrawList();
+        if (gridSnap && !terrainMode) drawPlacementGrid(vp, size, *overlay);
+
+        if (!prefabToPlace.empty())
+        {
+            if (terrainMode)
+                prefabToPlace.clear();
+            else if (overScene)
+            {
+                Vector3 hit;
+                if (terrainHit(viewRay(io.MousePos, size, vp), hit) && snapPlacementToGround(hit))
+                {
+                    ImVec2 cursor;
+                    if (project(hit, vp, size, cursor))
+                        overlay->AddCircle(cursor, 7.0f, IM_COL32(255, 210, 80, 255), 16, 2.0f);
+                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                    {
+                        const bool placed = placePrefab(prefabToPlace, hit);
+                        status = placed ? u8"プレハブを配置しました。" : u8"プレハブを配置できません。素材とオブジェクト数の上限を確認してください。";
+                        if (placed) prefabToPlace.clear();
+                        return;
+                    }
+                }
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) return;
+            }
+        }
 
         if (terrainMode)
         {
@@ -1489,8 +1923,14 @@ namespace
             auto& entry = entries[selected];
             auto& position = entry.placement.transform.position;
             Vector3 next = drag.start;
-            axisValue(next, drag.axis) += ((io.MousePos.x - drag.mouse.x) * drag.unit.x
-                + (io.MousePos.y - drag.mouse.y) * drag.unit.y) / drag.screenUnits;
+            const float movement = (io.MousePos.x - drag.mouse.x) * drag.unit.x
+                + (io.MousePos.y - drag.mouse.y) * drag.unit.y;
+            auto& coordinate = axisValue(next, drag.axis);
+            if (!gridSnap || drag.recorded || fabsf(movement) >= 2.0f)
+            {
+                coordinate += movement / drag.screenUnits;
+                if (gridSnap) coordinate = snapCoordinate(coordinate);
+            }
             if (!drag.recorded && next != drag.start)
             {
                 remember({ UndoKind::Modify, static_cast<size_t>(selected), entry.placement });
@@ -1516,7 +1956,18 @@ namespace
             const auto& entry = entries[selected];
             const auto& point = entry.placement.transform.position;
             if (showAttackRanges && isEnemy(entry.placement.kind))
+            {
                 drawAttackRanges(*static_cast<Enemy*>(entry.object), entry.placement.kind, vp, size, *overlay);
+                if (!entry.placement.prefab.empty())
+                    for (const auto& linked : entries)
+                    {
+                        if (&linked == &entry || linked.placement.prefab != entry.placement.prefab) continue;
+                        const auto* enemy = static_cast<const Enemy*>(linked.object);
+                        drawRangeRing(linked.placement.transform.position + Vector3{ 0, .07f, 0 },
+                            enemy->attackSettings().detectionDistance,
+                            IM_COL32(90, 167, 255, 165), 1.5f, vp, size, *overlay);
+                    }
+            }
             if (entry.placement.kind == Kind::Player)
             {
                 const float centers[] = { Player::BodyLowerCenter, Player::BodyUpperCenter };
@@ -1639,7 +2090,7 @@ void SceneEditor::init(Player& scenePlayer, MeshField& sceneTerrain)
     if (!loadLayout())
     {
         defaults();
-        if (exists) status = "Saved layout could not be loaded. Using default placements.";
+        if (exists) status = u8"配置を読み込めなかったため、初期配置を使います。";
     }
     focus = player->GetPosition() + Vector3{ 0, 1, 6 };
 }
@@ -1648,6 +2099,11 @@ void SceneEditor::shutdown()
 {
     stopMotionPreview();
     history.clear();
+    prefabs.clear();
+    prefabPanel = false;
+    prefabChoice.clear();
+    prefabToPlace.clear();
+    newPrefabName[0] = '\0';
     audioAssets.clear();
     audioStatus.clear();
     audioPanel = false;
@@ -1657,7 +2113,15 @@ void SceneEditor::shutdown()
     motionStatus.clear();
     motionLoop = false;
     entries.clear();
+    editWorld.reset();
+    playModeRequested = false;
     models.clear();
+    modelsScanned = false;
+    hierarchySearch.Clear();
+    hierarchyKind = 0;
+    assetSearch.Clear();
+    gridSnap = false;
+    gridStep = 1.0f;
     status.clear();
     player = nullptr;
     terrain = nullptr;
@@ -1671,17 +2135,94 @@ void SceneEditor::shutdown()
 
 bool SceneEditor::isAvailable() { return player && terrain; }
 bool SceneEditor::isOpen() { return open; }
+bool SceneEditor::isPlaying() { return editWorld.has_value(); }
 
 void SceneEditor::toggle()
 {
     if (!isAvailable()) return;
-    if (open) stopMotionPreview();
-    open = !open;
-    SceneAudio::setEditing(open);
+    if (open || editWorld)
+    {
+        playModeRequested = true;
+        return;
+    }
+    open = true;
+    SceneAudio::setEditing(true);
+    if (!modelsScanned) refreshModels();
+    for (auto& entry : entries) apply(entry);
+}
+
+void SceneEditor::close()
+{
+    if (!open) return;
+    stopMotionPreview();
+    prefabToPlace.clear();
+    playModeRequested = false;
     drag.axis = -1;
     painting = false;
-    if (open)
-        for (auto& entry : entries) apply(entry);
+    open = false;
+    SceneAudio::setEditing(false);
+}
+
+void SceneEditor::processPlayMode()
+{
+    if (!playModeRequested) return;
+    playModeRequested = false;
+    const auto restore = []()
+    {
+        Manager::endEditorPlay();
+        player = editWorld->player;
+        terrain = editWorld->terrain;
+        entries.swap(editWorld->entries);
+        editWorld.reset();
+        open = true;
+        SceneAudio::setEditing(true);
+        Input::SetMouseCapture(false);
+    };
+    if (editWorld)
+    {
+        restore();
+        status = u8"試遊を終了し、開始前の編集状態に戻りました。";
+        return;
+    }
+    if (!open) return;
+
+    const auto orbit = Manager::GetGameObj<Camera>()->orbitSettings();
+    stopMotionPreview();
+    if (!Manager::beginEditorPlay()) return;
+    editWorld.emplace(EditWorld{ player, terrain, {} });
+    entries.swap(editWorld->entries);
+    const auto [playPlayer, playTerrain] = Game::createWorld();
+    player = playPlayer;
+    terrain = playTerrain;
+    player->setDodgeSettings(editWorld->player->dodgeSettings());
+    player->toonSettings() = editWorld->player->toonSettings();
+    Manager::GetGameObj<Camera>()->orbitSettings() = orbit;
+    terrain->setHeights(editWorld->terrain->heights());
+    for (const auto& entry : editWorld->entries)
+    {
+        if (spawn(entry.placement)) continue;
+        restore();
+        status = u8"試遊を開始できません。シーンが参照しているモデルを確認してください。";
+        return;
+    }
+    prefabToPlace.clear();
+    drag.axis = -1;
+    painting = false;
+    open = false;
+    SceneAudio::setEditing(false);
+    Input::SetMouseCapture(GetFocus() == GetWindow());
+}
+
+void SceneEditor::drawPlayMode()
+{
+    if (!editWorld) return;
+    constexpr char label[] = u8"試遊中  F2／Escで編集に戻る";
+    const float x = std::max(12.0f, ImGui::GetIO().DisplaySize.x - ImGui::CalcTextSize(label).x - 24.0f);
+    ImGui::SetNextWindowPos({ x, 12 });
+    constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize
+        | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoSavedSettings;
+    if (ImGui::Begin("##editorPlayMode", nullptr, flags)) ImGui::TextUnformatted(label);
+    ImGui::End();
 }
 
 bool SceneEditor::cameraMatrices(Vector3& eye, XMMATRIX& view, XMMATRIX& projection)
@@ -1698,9 +2239,14 @@ void SceneEditor::draw()
 {
     if (!ImGui::IsAnyItemActive()) numericRecorded = false;
     const auto& io = ImGui::GetIO();
-    if (io.KeyCtrl && !io.WantTextInput && !ImGui::IsAnyItemActive()
-        && ImGui::IsKeyPressed(ImGuiKey_Z, false)) undo();
+    if (!io.WantTextInput && !ImGui::IsAnyItemActive()
+        && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup))
+    {
+        if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z, false)) undo();
+        else if (ImGui::IsKeyPressed(ImGuiKey_Delete, false)) deleteSelected();
+    }
     inspector();
+    drawPrefabPanel();
     drawAudioPanel();
     drawMotionPanel();
     viewport();

@@ -27,7 +27,7 @@
 #include "Result.h"
 
 
-void Game::Init()
+std::pair<Player*, MeshField*> Game::createWorld()
 {
 
 
@@ -41,9 +41,15 @@ void Game::Init()
 	// 外観を読み込み、開始時は標準の三人称カメラを使う。
 	ToonPreset::loadAppearance(player->toonSettings());
 
-	SceneAudio::init();
-	SceneEditor::init(*player, *terrain);
 	Manager::AddGameObj<Score>()->SetPosition({ 100.0f,100.0f,0.0f });
+    return { player, terrain };
+}
+
+void Game::Init()
+{
+    const auto world = createWorld();
+    SceneAudio::init();
+    SceneEditor::init(*world.first, *world.second);
 }
 
 
