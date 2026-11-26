@@ -15,6 +15,7 @@ namespace ToonPanel
     void init(HWND window, bool previewMode);
     void uninit();
     bool isOpen();
+    bool isPauseMenuOpen();
     bool isAttackDebugOpen();
     void closeAttackDebug();
     LRESULT handleMessage(HWND window, UINT message, WPARAM wParam, LPARAM lParam);

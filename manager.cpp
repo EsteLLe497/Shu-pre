@@ -17,6 +17,7 @@
 #include "planetarium.h"
 
 std::list<GameObject*> Manager::m_GameObjects;
+std::list<GameObject*> Manager::m_EditObjects;
 Scene* Manager::m_Scene = nullptr;
 Scene* Manager::m_NextScene = nullptr;
 float Manager::m_ChangeTime = 0.0f;
@@ -26,6 +27,17 @@ float Manager::m_hitStopRemaining = 0.0f;
 namespace
 {
     bool previewWorkspace = false;
+
+    void clearObjects(std::list<GameObject*>& objects)
+    {
+        for (auto* object : objects)
+        {
+            if (!object) continue;
+            object->Uninit();
+            delete object;
+        }
+        objects.clear();
+    }
 }
 
 
@@ -52,14 +64,8 @@ void Manager::Uninit()
 	if (m_Scene != nullptr)
 		m_Scene->Uninit();
 
-	for (GameObject* obj : m_GameObjects) {
-		if (obj != nullptr) {
-			obj->Uninit();
-			delete obj;
-			obj = nullptr;
-		}
-	}
-	m_GameObjects.clear();
+	clearObjects(m_GameObjects);
+    clearObjects(m_EditObjects);
     delete m_Scene;
     delete m_NextScene;
     m_Scene = nullptr;
@@ -70,6 +76,24 @@ void Manager::Uninit()
     planetarium::uninit();
 	Renderer::Uninit();
 	Input::Uninit();
+}
+
+bool Manager::beginEditorPlay()
+{
+    if (m_NextScene || !m_EditObjects.empty() || !dynamic_cast<Game*>(m_Scene)) return false;
+    m_EditObjects.swap(m_GameObjects);
+    planetarium::reset();
+    m_hitStopRemaining = 0.0f;
+    return true;
+}
+
+void Manager::endEditorPlay()
+{
+    if (m_EditObjects.empty()) return;
+    clearObjects(m_GameObjects);
+    m_GameObjects.swap(m_EditObjects);
+    planetarium::reset();
+    m_hitStopRemaining = 0.0f;
 }
 
 void Manager::requestHitStop(float seconds)
@@ -84,7 +108,9 @@ void Manager::Update(float frameSeconds)
 	// •`‰æ•‰‰×‚É‚æ‚éÄ¶‚Ì’x‚ê‚ð–h‚¬A’·‚¢’†’f‚©‚ç‚Ì•œ‹A‚Å‚Í‹}‚É”ò‚Î‚³‚È‚¢B
 	m_animationDeltaSeconds = fminf(frameSeconds, 0.1f);
 	float dt = 1.0f / 60.0f;
+	SceneEditor::processPlayMode();
 	Input::Update(!ToonPanel::isOpen());
+    if (ToonPanel::isPauseMenuOpen()) return;
 
     const bool editing = SceneEditor::isOpen();
     const bool stopping = m_hitStopRemaining > 0.0f;
@@ -122,16 +148,7 @@ void Manager::Update(float frameSeconds)
 				delete m_Scene;
 			}
 
-			for (GameObject* obj : m_GameObjects)
-			{
-				if (obj != nullptr) {
-					obj->Uninit();
-					delete obj;
-					obj = nullptr;
-				}
-			}
-
-			m_GameObjects.clear();
+			clearObjects(m_GameObjects);
             planetarium::reset();
             m_hitStopRemaining = 0.0f;
 
@@ -208,6 +225,7 @@ void Manager::Draw()
 	}
     for (auto* enemy : GetGameObjs<Enemy>()) enemy->drawHealthBar();
     if (editing) SceneEditor::draw();
+    else SceneEditor::drawPlayMode();
     ToonPanel::draw();
 	Renderer::End();
 }

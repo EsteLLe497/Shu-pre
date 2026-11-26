@@ -57,6 +57,7 @@ private:
     float poseTime() const;
     const char* motionClip(Motion motion) const;
     void sampleCharacterMotion(Motion motion, float time);
+    bool loadCharacter(const std::string& path, Enemy* modelOwner);
     static constexpr float PunchWindupEnd = 0.30f;
     static constexpr float PunchStrikeEnd = 0.48f;
     static constexpr float ChaseSpeed = 2.4f;
@@ -113,6 +114,7 @@ public:
         m_AttackTime = time;
         m_GaitPhase = time * 4.0f;
     }
+    ~Enemy() override;
     static AttackSettings defaultAttackSettings(bool midBoss);
     void setAttackSettings(const AttackSettings& settings) { m_attackSettings = settings; }
     const AttackSettings& attackSettings() const { return m_attackSettings; }
@@ -126,6 +128,9 @@ public:
     void previewMotion(Motion motion, float time);
     void clearMotionPreview();
     bool loadCharacter(const std::string& path);
+    std::unique_ptr<Enemy> prepareCharacter(const std::string& path,
+        const std::array<std::string, MotionCount>& clips);
+    void adoptCharacter(Enemy& prepared);
     bool hasCharacter() const { return m_character != nullptr; }
     size_t hurtboxCount() const { return m_capsules.size(); }
     const std::string& hurtboxBone(size_t i) const { return m_capsules[i].bone; }

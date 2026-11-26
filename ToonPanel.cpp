@@ -1,7 +1,7 @@
-// =========================================================
-// ƒtƒ@ƒCƒ‹‚Ìî•ñ[ToonPanel.cpp]
+ï»¿// =========================================================
+// ãƒ•ã‚¡ã‚¤ãƒ«ã®æƒ…å ±[ToonPanel.cpp]
 //
-// §ìÒ:Masatora Tanaka        “ú•tF2026/11/11
+// åˆ¶ä½œè€…:Masatora Tanaka        æ—¥ä»˜ï¼š2026/11/11
 // =========================================================
 #include "main.h"
 #include "renderer.h"
@@ -22,10 +22,53 @@ namespace
     bool panelOpen = false;
     bool attackDebugOpen = false;
     bool previewWorkspace = false;
+    bool pauseMenuOpen = false;
     const char* presetStatus = nullptr;
     constexpr ImGuiSliderFlags sliderFlags = ImGuiSliderFlags_AlwaysClamp;
 
-    // ƒpƒlƒ‹‚Í“x”•\¦A•`‰æ‚Æ•Û‘¶‚Å‚Íƒ‰ƒWƒAƒ“‚ğg‚¤B
+    void updateUiInput(HWND window)
+    {
+        const bool uiOpen = ToonPanel::isOpen();
+        Input::SetMouseCapture(!uiOpen && GetFocus() == window);
+        if (uiOpen)
+        {
+            SetCursor(LoadCursor(nullptr, IDC_ARROW));
+            return;
+        }
+
+        if (GetCapture() == window) ReleaseCapture();
+        auto& io = ImGui::GetIO();
+        io.ClearEventsQueue();
+        io.ClearInputKeys();
+        io.ClearInputMouse();
+        if (Input::IsMouseCaptured()) SetCursor(nullptr);
+    }
+
+    void drawPauseMenu()
+    {
+        if (!pauseMenuOpen || SceneEditor::isOpen()) return;
+        const auto size = ImGui::GetIO().DisplaySize;
+        ImGui::GetBackgroundDrawList()->AddRectFilled({ 0, 0 }, size, IM_COL32(0, 0, 0, 165));
+        ImGui::SetNextWindowPos({ size.x * 0.5f, size.y * 0.5f }, ImGuiCond_Always, { 0.5f, 0.5f });
+        ImGui::SetNextWindowSize({ 260, 0 });
+        constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove
+            | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse;
+        bool resume = false;
+        if (ImGui::Begin(u8"ãƒãƒ¼ã‚ºãƒ¡ãƒ‹ãƒ¥ãƒ¼", nullptr, flags))
+        {
+            resume = ImGui::Button(u8"ã‚²ãƒ¼ãƒ ã«æˆ»ã‚‹", { -1, 36 });
+            if (ImGui::Button(u8"ã‚²ãƒ¼ãƒ çµ‚äº†", { -1, 36 }))
+                PostMessageW(GetWindow(), WM_CLOSE, 0, 0);
+        }
+        ImGui::End();
+        if (resume)
+        {
+            pauseMenuOpen = false;
+            updateUiInput(GetWindow());
+        }
+    }
+
+    // ãƒ‘ãƒãƒ«ã¯åº¦æ•°è¡¨ç¤ºã€æç”»ã¨ä¿å­˜ã§ã¯ãƒ©ã‚¸ã‚¢ãƒ³ã‚’ä½¿ã†ã€‚
     void editAngle(const char* label, float& angle, float minimum, float maximum)
     {
         float degrees = XMConvertToDegrees(angle);
@@ -129,7 +172,7 @@ namespace
 }
 
 // =========================================================
-// Win32EDirectX 11 ‚Ì ImGui ƒoƒbƒNƒGƒ“ƒh‚ğ‰Šú‰»
+// Win32ãƒ»DirectX 11 ã® ImGui ãƒãƒƒã‚¯ã‚¨ãƒ³ãƒ‰ã‚’åˆæœŸåŒ–
 // =========================================================
 void ToonPanel::init(HWND window, bool previewMode)
 {
@@ -139,15 +182,19 @@ void ToonPanel::init(HWND window, bool previewMode)
     ImGui::StyleColorsDark();
     auto& io = ImGui::GetIO();
     io.IniFilename = nullptr;
-    // ImGui‚Ì•\¦•¶š—ñ‚ÍUTF-8B“ú–{Œê‚ÌšŒ`‚ÍWindows•W€ƒtƒHƒ“ƒg‚©‚ç“Ç‚İ‚ŞB
+    // ImGuiã®è¡¨ç¤ºæ–‡å­—åˆ—ã¯UTF-8ã€‚æ—¥æœ¬èªã®å­—å½¢ã¯Windowsæ¨™æº–ãƒ•ã‚©ãƒ³ãƒˆã‹ã‚‰èª­ã¿è¾¼ã‚€ã€‚
     char windowsDirectory[MAX_PATH]{};
     const UINT length = GetWindowsDirectoryA(windowsDirectory, MAX_PATH);
     if (length > 0 && length < MAX_PATH)
     {
-        const std::string fontPath = std::string(windowsDirectory) + "/Fonts/meiryo.ttc";
-        if (GetFileAttributesA(fontPath.c_str()) != INVALID_FILE_ATTRIBUTES)
-            io.FontDefault = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), 14.0f, nullptr,
-                io.Fonts->GetGlyphRangesJapanese());
+        const std::string fontsDirectory = std::string(windowsDirectory, length) + "/Fonts/";
+        for (const char* font : { "meiryo.ttc", "YuGothM.ttc", "msgothic.ttc", "NotoSansJP-Regular.otf" })
+        {
+            const auto path = fontsDirectory + font;
+            if (GetFileAttributesA(path.c_str()) == INVALID_FILE_ATTRIBUTES) continue;
+            io.FontDefault = io.Fonts->AddFontFromFileTTF(path.c_str(), 14.0f);
+            if (io.FontDefault) break;
+        }
     }
     if (!io.FontDefault) io.Fonts->AddFontDefault();
 
@@ -174,6 +221,7 @@ void ToonPanel::uninit()
     ImGui::DestroyContext();
     panelOpen = false;
     attackDebugOpen = false;
+    pauseMenuOpen = false;
 }
 
 bool ToonPanel::isAttackDebugOpen()
@@ -190,11 +238,16 @@ void ToonPanel::closeAttackDebug()
 
 bool ToonPanel::isOpen()
 {
-    return panelOpen || attackDebugOpen || previewWorkspace || SceneEditor::isOpen();
+    return panelOpen || attackDebugOpen || previewWorkspace || pauseMenuOpen || SceneEditor::isOpen();
+}
+
+bool ToonPanel::isPauseMenuOpen()
+{
+    return pauseMenuOpen;
 }
 
 // =========================================================
-// F1 ‚Ì‰Ÿ‰º‚Åƒpƒlƒ‹‚ğŠJ•Â‚µAƒ}ƒEƒX‚ğƒJƒƒ‰‚ÆØ‚è‘Ö‚¦‚é
+// F1 ã®æŠ¼ä¸‹ã§ãƒ‘ãƒãƒ«ã‚’é–‹é–‰ã—ã€ãƒã‚¦ã‚¹ã‚’ã‚«ãƒ¡ãƒ©ã¨åˆ‡ã‚Šæ›¿ãˆã‚‹
 // =========================================================
 LRESULT ToonPanel::handleMessage(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -204,16 +257,34 @@ LRESULT ToonPanel::handleMessage(HWND window, UINT message, WPARAM wParam, LPARA
     if (previewWorkspace && message == WM_SYSCOMMAND && (wParam & 0xfff0) == SC_KEYMENU)
         return 1;
 
+    constexpr LPARAM previousKeyState = 1L << 30;
+    if (!previewWorkspace && message == WM_KEYDOWN && wParam == VK_ESCAPE)
+    {
+        if ((lParam & previousKeyState) == 0)
+        {
+            if (SceneEditor::isOpen())
+                SceneEditor::close();
+            else if (panelOpen || attackDebugOpen)
+                panelOpen = attackDebugOpen = false;
+            else if (SceneEditor::isPlaying())
+                SceneEditor::toggle();
+            else
+                pauseMenuOpen = !pauseMenuOpen;
+
+            updateUiInput(window);
+        }
+        return 1;
+    }
     if (!previewWorkspace && message == WM_KEYDOWN
         && (wParam == VK_F1 || ((wParam == VK_F2 || wParam == VK_F4) && SceneEditor::isAvailable())))
     {
-        constexpr LPARAM previousKeyState = 1L << 30;
+        if (pauseMenuOpen) return 1;
         if ((lParam & previousKeyState) == 0)
         {
             if (wParam == VK_F4)
             {
                 panelOpen = false;
-                if (SceneEditor::isOpen()) SceneEditor::toggle();
+                SceneEditor::close();
                 attackDebugOpen = !attackDebugOpen;
             }
             else if (wParam == VK_F2)
@@ -225,24 +296,10 @@ LRESULT ToonPanel::handleMessage(HWND window, UINT message, WPARAM wParam, LPARA
             else
             {
                 attackDebugOpen = false;
-                if (SceneEditor::isOpen()) SceneEditor::toggle();
+                SceneEditor::close();
                 panelOpen = !panelOpen;
             }
-            Input::SetMouseCapture(!isOpen() && GetFocus() == window);
-            if (isOpen())
-                SetCursor(LoadCursor(nullptr, IDC_ARROW));
-            else
-            {
-                if (GetCapture() == window)
-                    ReleaseCapture();
-
-                ImGuiIO& io = ImGui::GetIO();
-                io.ClearEventsQueue();
-                io.ClearInputKeys();
-                io.ClearInputMouse();
-                if (Input::IsMouseCaptured())
-                    SetCursor(nullptr);
-            }
+            updateUiInput(window);
         }
         return 1;
     }
@@ -254,14 +311,14 @@ LRESULT ToonPanel::handleMessage(HWND window, UINT message, WPARAM wParam, LPARA
 }
 
 // =========================================================
-// •`‰æ‘O‚É’²®’l‚ğXV‚µA‚»‚ÌƒtƒŒ[ƒ€‚Ìƒ‚ƒfƒ‹‚É”½‰f
+// æç”»å‰ã«èª¿æ•´å€¤ã‚’æ›´æ–°ã—ã€ãã®ãƒ•ãƒ¬ãƒ¼ãƒ ã®ãƒ¢ãƒ‡ãƒ«ã«åæ˜ 
 // =========================================================
 void ToonPanel::beginFrame()
 {
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
 
-    // ƒXƒƒbƒvƒ`ƒF[ƒ“‚Ì‰ğ‘œ“x‚ÍŒÅ’èBƒEƒBƒ“ƒhƒE‚ÌŠgk‚É‡‚í‚¹‚Ä•â³‚·‚éB
+    // ã‚¹ãƒ¯ãƒƒãƒ—ãƒã‚§ãƒ¼ãƒ³ã®è§£åƒåº¦ã¯å›ºå®šã€‚ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®æ‹¡ç¸®ã«åˆã‚ã›ã¦è£œæ­£ã™ã‚‹ã€‚
     ImGuiIO& io = ImGui::GetIO();
     if (io.DisplaySize.x > 0.0f && io.DisplaySize.y > 0.0f)
         io.DisplayFramebufferScale = ImVec2(SCREEN_WIDTH / io.DisplaySize.x, SCREEN_HEIGHT / io.DisplaySize.y);
@@ -295,7 +352,7 @@ void ToonPanel::beginFrame(ToonSettings* settings, CameraOrbit* orbit)
 }
 
 // =========================================================
-// 3D •`‰æ‚ªŠ®—¹‚µ‚½ŒãAPresent ‚Ì‘O‚Éƒpƒlƒ‹‚ğ•`‰æ
+// 3D æç”»ãŒå®Œäº†ã—ãŸå¾Œã€Present ã®å‰ã«ãƒ‘ãƒãƒ«ã‚’æç”»
 // =========================================================
 void ToonPanel::editAppearance(ToonSettings& settings)
 {
@@ -307,6 +364,7 @@ void ToonPanel::editAppearance(ToonSettings& settings)
 
 void ToonPanel::draw()
 {
+    drawPauseMenu();
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
