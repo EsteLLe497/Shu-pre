@@ -5,6 +5,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <functional>
 #include "MorphTarget.h"
 
 #include "assimp/cimport.h"
@@ -69,6 +70,7 @@ private:
     };
 
     std::vector<MorphLayer> m_morphLayers;
+    MorphLayer m_overlayMorph;
     std::size_t m_activeMorphLayerCount = 0;
     unsigned int m_missingTextures = 0;
     XMFLOAT3 m_staticHalfExtents{};
@@ -102,6 +104,8 @@ private:
     std::string m_sampledClip;
     RootTravel m_sampledRootTravel = RootTravel::authored;
     float m_transitionElapsed = 0.0f;
+    std::function<void(AnimationModel&)> m_poseModifier;
+    std::vector<std::pair<BONE*, aiMatrix4x4>> m_poseRestore;
 
     const aiNode* m_landingArmature = nullptr;
     const aiNode* m_landingLeftFoot = nullptr;
@@ -139,6 +143,7 @@ public:
     bool hasAnimation(const char* name) const;
     void unloadAnimation(const char* name);
     void setMorph(const std::string& name, float weight);
+    void setOverlayMorph(const std::string& name, float weight);
     void setMorphBlend(const std::string& base, const std::string& target, float blend,
         const std::vector<MorphTarget>& extraMorphs = {}, float time = 0.0f);
     const std::vector<std::string>& morphNames() const { return m_morphNames; }
@@ -153,5 +158,9 @@ public:
     std::vector<std::string> dominantSkinBones(size_t limit) const;
     bool loadEmbeddedClip(const char* name);
     void applyBindPose();
+    void refreshPose();
+    void setPoseModifier(const std::function<void(AnimationModel&)>& modifier) { m_poseModifier = modifier; }
+    bool boneModelTransform(const char* name, aiMatrix4x4& transform) const;
+    bool rotateBoneModelSpace(const char* name, const aiMatrix4x4& rotation);
     XMMATRIX capsulePose(const BoneCapsule& capsule) const;
 };

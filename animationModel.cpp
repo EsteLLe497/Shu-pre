@@ -9,6 +9,8 @@
 #include <wrl/client.h>
 #include "ActionSequence.h"
 #include "assimp/config.h"
+#include "BonePoseRotation.h"
+#include "MorphOverlay.h"
 
 // =========================================================
 // キー時刻の前後を二分探索し、途中の姿勢を補間
@@ -562,6 +564,11 @@ void AnimationModel::setMorph(const std::string& name, float weight)
     setMorphLayer(m_morphLayers[0], name, weight);
 }
 
+void AnimationModel::setOverlayMorph(const std::string& name, float weight)
+{
+    setMorphLayer(m_overlayMorph, name, weight);
+}
+
 void AnimationModel::setMorphBlend(const std::string& base, const std::string& target, float blend,
     const std::vector<MorphTarget>& extraMorphs, float time)
 {
@@ -646,6 +653,8 @@ void AnimationModel::CreateBone(aiNode* node)
 		delete[] m_DeformVertex;
 
 
+        m_poseModifier = {};
+        m_poseRestore.clear();
         m_opaqueParts.clear();
         m_transparentParts.clear();
         for (const auto& entry : m_textures)
@@ -676,6 +685,7 @@ void AnimationModel::CreateBone(aiNode* node)
         m_landingRightFoot = nullptr;
         m_morphNames.clear();
         m_morphLayers.clear();
+        m_overlayMorph = MorphLayer{};
         m_activeMorphLayerCount = 0;
         m_missingTextures = 0;
         m_VertexBuffer = nullptr;
@@ -773,7 +783,43 @@ void AnimationModel::applyPose(const aiAnimation& animation, double tick, RootTr
     }
 
     // FBXのボーンオフセットを使ってスキニング行列を求める。
+    refreshPose();
+}
+
+void AnimationModel::refreshPose()
+{
+    if (!m_AiScene) return;
+    m_poseRestore.clear();
+    if (m_poseModifier) m_poseModifier(*this);
     uploadPose();
+    // Keep FK for the next transition; do not accumulate the procedural correction.
+    for (const auto& original : m_poseRestore) original.first->AnimationMatrix = original.second;
+    m_poseRestore.clear();
+}
+
+bool AnimationModel::boneModelTransform(const char* name, aiMatrix4x4& transform) const
+{
+    if (!m_AiScene || !name) return false;
+    const auto* node = m_AiScene->mRootNode->FindNode(name);
+    if (!node) return false;
+    aiMatrix4x4 unit;
+    unit.a1 = unit.b2 = unit.c3 = m_skeletonUnitScale;
+    transform = unit * poseMatrix(node);
+    return true;
+}
+
+bool AnimationModel::rotateBoneModelSpace(const char* name, const aiMatrix4x4& rotation)
+{
+    if (!m_AiScene || !name) return false;
+    const auto* node = m_AiScene->mRootNode->FindNode(name);
+    const auto found = m_Bone.find(name);
+    if (!node || found == m_Bone.end()) return false;
+    auto& bone = found->second;
+    if (std::none_of(m_poseRestore.begin(), m_poseRestore.end(), [&bone](const auto& value) { return value.first == &bone; }))
+        m_poseRestore.emplace_back(&bone, bone.AnimationMatrix);
+    const auto parent = poseMatrix(node->mParent);
+    bone.AnimationMatrix = BonePoseRotation::apply(parent, bone.AnimationMatrix, rotation);
+    return true;
 }
 
 void AnimationModel::applyBindPose()
@@ -812,6 +858,8 @@ void AnimationModel::uploadPose()
             if (layer.weight > 0.0f && !layer.name.empty() && layer.meshes[meshIndex])
                 morphs[morphCount++] = { layer.meshes[meshIndex], layer.weight };
         }
+        const auto* overlay = m_overlayMorph.weight > 0 && meshIndex < m_overlayMorph.meshes.size()
+            ? m_overlayMorph.meshes[meshIndex] : nullptr;
         VERTEX_3D* vertex = static_cast<VERTEX_3D*>(mapped.pData);
         for (unsigned int v = 0; v < mesh->mNumVertices; v++)
         {
@@ -827,6 +875,14 @@ void AnimationModel::uploadPose()
                 deformVertex.Position += (morph->mVertices[v] - mesh->mVertices[v]) * weight;
                 if (morph->mNormals)
                     deformVertex.Normal += (morph->mNormals[v] - mesh->mNormals[v]) * weight;
+            }
+
+            if (overlay && MorphOverlay::affects(mesh->mVertices[v], overlay->mVertices[v]))
+            {
+                deformVertex.Position = MorphOverlay::blend(mesh->mVertices[v], overlay->mVertices[v],
+                    deformVertex.Position, m_overlayMorph.weight);
+                if (overlay->mNormals)
+                    deformVertex.Normal += (overlay->mNormals[v] - deformVertex.Normal) * m_overlayMorph.weight;
             }
 
             if (deformVertex.BoneNum > 0)

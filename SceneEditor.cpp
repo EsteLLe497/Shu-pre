@@ -3176,10 +3176,10 @@ void SceneEditor::resolvePlayerCollision(const Vector3& previous, Vector3& posit
     }
 }
 
-bool SceneEditor::blocksEnemy(const Vector3& position, float radius)
+bool SceneEditor::blocksEnemy(const Vector3& position, float radius, const GameObject* exclude)
 {
     const BoundingSphere body({ position.x, position.y + radius + 0.02f, position.z }, radius);
     bool blocked = false;
-    forEachCollider(nullptr, [&](const BoundingOrientedBox& box) { blocked = blocked || box.Intersects(body); });
+    forEachCollider(exclude, [&](const BoundingOrientedBox& box) { blocked = blocked || box.Intersects(body); });
     return blocked;
 }
