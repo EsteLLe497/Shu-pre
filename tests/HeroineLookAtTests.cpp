@@ -1,5 +1,6 @@
 #include "../HeroineLookAt.h"
 #include "../BonePoseRotation.h"
+#include "../MorphOverlay.h"
 #include "../assimp/cimport.h"
 #include "../assimp/scene.h"
 #include "../assimp/postprocess.h"
@@ -57,6 +58,17 @@ int main()
                 && powf(gaze.eyeYaw() / (8 * rad), 2) + powf(gaze.eyePitch() / (4 * rad), 2) <= 1.00001f;
         }
     check(bounded, "joint limits hold for all target directions");
+    settle(gaze, 50);
+    check(gaze.tracking() && close(gaze.headYaw(), 20 * rad) && close(gaze.eyeYaw(), 8 * rad), "side target stays acquired without enlarging joint limits");
+    settle(gaze, -50);
+    check(gaze.tracking() && close(gaze.headYaw(), -20 * rad) && close(gaze.eyeYaw(), -8 * rad), "wide acquisition is symmetric");
+    settle(gaze, 65);
+    check(!gaze.tracking() && fabsf(gaze.headYaw()) < 0.0001f && fabsf(gaze.eyeYaw()) < 0.0001f, "configured side boundary releases");
+    gaze.settings.viewYawDegrees = 40; settle(gaze, 50);
+    check(!gaze.tracking(), "narrow acquisition setting is respected");
+    gaze.settings.viewYawDegrees = 75; settle(gaze, 60);
+    check(gaze.tracking(), "wider acquisition setting is respected");
+    gaze.settings.viewYawDegrees = 65;
     gaze.settings.headEnabled = false; settle(gaze, 6);
     check(close(gaze.headYaw(), 0) && close(gaze.eyeYaw(), 6 * rad), "eyes-only mode");
     gaze.settings.headEnabled = true; gaze.settings.eyesEnabled = false; settle(gaze, 20);
@@ -66,7 +78,26 @@ int main()
     check(gaze.headYaw() < prior && gaze.headYaw() > 0 && !gaze.tracking(), "behind target releases smoothly");
     settle(gaze, 180);
     check(fabsf(gaze.headYaw()) < 0.0001f && fabsf(gaze.eyeYaw()) < 0.0001f, "behind target returns to authored pose");
-    settle(gaze, 20, 0, 0.1f); check(!gaze.tracking(), "near target is ignored");
+    settle(gaze, 20, 0, 0.1f); check(gaze.tracking(), "near target remains acquired");
+    check(gaze.eyeClosure() > 0.9f, "near contact closes eyes");
+    settle(gaze, 0, 75, 0.2f); check(gaze.tracking(), "steep near vertical target stays acquired");
+    check(fabsf(gaze.headPitch()) <= 8 * rad && fabsf(gaze.eyePitch()) <= 4 * rad, "near vertical gaze stays within joint limits");
+    settle(gaze, 20);
+    gaze.update(20 * rad, 0, 0.2f, true, 1.0f / 60, 0.01f);
+    check(gaze.eyeClosure() > 0 && gaze.eyeClosure() < 1, "eyelids blend smoothly on approach");
+    for (int i = 0; i < 120; ++i) gaze.update(20 * rad, 0, 0.2f, true, 1.0f / 60, 0);
+    check(gaze.eyeClosure() == 1 && gaze.tracking(), "horizontal body contact closes eyes despite eye height difference");
+    const float heldHead = gaze.headYaw(), heldEyes = gaze.eyeYaw();
+    gaze.update(0, 0, 0, true, 0.1f);
+    check(gaze.tracking() && gaze.headYaw() == heldHead && gaze.eyeYaw() == heldEyes, "zero distance holds last valid direction");
+    gaze.update(0, 0, 2, true, 1.0f / 60);
+    check(gaze.eyeClosure() > 0 && gaze.eyeClosure() < 1, "eyelids blend open after separation");
+    settle(gaze, 20); check(gaze.eyeClosure() == 0, "separation reopens eyes");
+    gaze.update(0, 0, 10, true, 0.1f, 0);
+    check(!gaze.tracking() && gaze.eyeClosure() == 0, "far vertical target cannot trigger contact from horizontal distance alone");
+    gaze.settings.closeEyesWhenNear = false; settle(gaze, 20, 0, 0.01f);
+    check(gaze.eyeClosure() == 0 && gaze.tracking(), "closure can be disabled without releasing near gaze");
+    gaze.settings.closeEyesWhenNear = true;
     settle(gaze, 20, 0, 10); check(!gaze.tracking() && fabsf(gaze.eyeYaw()) < 0.0001f, "far target releases");
     settle(gaze, 25); gaze.settings.enabled = false;
     settle(gaze, 25); check(!gaze.tracking() && fabsf(gaze.headYaw()) < 0.0001f, "disabled releases");
@@ -99,6 +130,14 @@ int main()
     check(loaded.read(input) && !loaded.headEnabled && loaded.headYawDegrees == 14.25f, "settings round trip");
     std::ostringstream savedAgain; loaded.write(savedAgain);
     check(savedAgain.str() == saved.str(), "all settings preserved");
+    check(loaded.closeEyesWhenNear && close(loaded.fullyClosedDistance, 0.08f), "version 2 closure settings round trip");
+    HeroineLookAtSettings closePreset;
+    closePreset.closeEyesWhenNear = false; closePreset.fullyClosedDistance = 0.04f; closePreset.eyelidResponse = 20;
+    std::ostringstream closedSaved; closePreset.write(closedSaved);
+    std::istringstream closedInput(closedSaved.str());
+    HeroineLookAtSettings closeLoaded;
+    check(closeLoaded.read(closedInput) && !closeLoaded.closeEyesWhenNear && close(closeLoaded.fullyClosedDistance, 0.04f)
+        && closeLoaded.eyelidResponse == 20, "custom closure configuration persists");
     for (const auto& invalid : { std::string("heroineLookAt 2"), std::string("heroineLookAt 1 1"), saved.str() + "garbage" })
     {
         std::istringstream bad(invalid); check(!loaded.read(bad), "malformed settings rejected");
@@ -108,6 +147,7 @@ int main()
     HeroineLookAtSettings migrated;
     check(migrated.read(legacy) && migrated.eyeYawDegrees == 12 && migrated.eyePitchDegrees == 6, "legacy wide preset is bounded on load");
     check(migrated.headYawDegrees == 20 && migrated.eyeOnlyYawDegrees <= migrated.eyeYawDegrees, "migration keeps head limits and valid eye dead zone");
+    check(migrated.closeEyesWhenNear && close(migrated.fullyClosedDistance, 0.08f), "version 1 enables default contact closure");
     HeroineLookAt lowered;
     settle(lowered, 28);
     lowered.settings.eyeYawDegrees = 2; lowered.settings.eyePitchDegrees = 1; lowered.settings.constrainEyes();
@@ -139,7 +179,8 @@ int main()
     deltaL.a4 = deltaL.b4 = deltaL.c4 = 0; deltaR.a4 = deltaR.b4 = deltaR.c4 = 0;
     check(difference(deltaL, rotation) < 0.00001f && difference(deltaR, rotation) < 0.00001f, "both eyes rotate identically despite different FBX axes");
     check(difference(BonePoseRotation::apply(parent, left->mTransformation, aiMatrix4x4()), left->mTransformation) < 0.00001f, "zero correction preserves authored eye pose");
-    unsigned int leftWeights = 0, rightWeights = 0;
+    unsigned int leftWeights = 0, rightWeights = 0, closeVertices = 0;
+    bool closeBlendCorrect = true;
     for (unsigned int m = 0; m < scene->mNumMeshes; ++m)
         for (unsigned int b = 0; b < scene->mMeshes[m]->mNumBones; ++b)
         {
@@ -148,6 +189,28 @@ int main()
             if (bone->mName == right->mName) rightWeights += bone->mNumWeights;
         }
     check(leftWeights > 0 && rightWeights > 0, "both eye bones deform real vertices");
+    for (unsigned int m = 0; m < scene->mNumMeshes; ++m)
+    {
+        const auto* mesh = scene->mMeshes[m];
+        for (unsigned int a = 0; a < mesh->mNumAnimMeshes; ++a)
+        {
+            const auto* shape = mesh->mAnimMeshes[a];
+            if (shape->mName != aiString("Fcl_EYE_Close") || !shape->mVertices) continue;
+            for (unsigned int v = 0; v < mesh->mNumVertices; ++v)
+                if (MorphOverlay::affects(mesh->mVertices[v], shape->mVertices[v]))
+                {
+                    ++closeVertices;
+                    const auto closed = MorphOverlay::blend(mesh->mVertices[v], shape->mVertices[v], shape->mVertices[v], 1);
+                    closeBlendCorrect = closeBlendCorrect && (closed - shape->mVertices[v]).SquareLength() < 0.000000000001f;
+                }
+        }
+    }
+    check(closeBlendCorrect, "already closed eyelid is not closed twice");
+    check(closeVertices > 0, "actual FBX provides a working eye-close morph");
+    const aiVector3D base(0, 0, 0), closed(0, -1, 0), expression(1, 0, 0);
+    check((MorphOverlay::blend(base, base, expression, 1) - expression).SquareLength() == 0, "unaffected mouth expression is preserved");
+    check((MorphOverlay::blend(base, closed, expression, 0) - expression).SquareLength() == 0, "zero overlay preserves expression");
+    check((MorphOverlay::blend(base, closed, expression, 0.5f) - aiVector3D(0.5f, -0.5f, 0)).SquareLength() < 0.00001f, "eyelid overlay interpolates over existing expression");
     aiReleaseImport(scene);
     std::printf("HeroineLookAt: %d checks passed\n", checks);
 }

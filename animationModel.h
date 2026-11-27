@@ -70,6 +70,7 @@ private:
     };
 
     std::vector<MorphLayer> m_morphLayers;
+    MorphLayer m_overlayMorph;
     std::size_t m_activeMorphLayerCount = 0;
     unsigned int m_missingTextures = 0;
     XMFLOAT3 m_staticHalfExtents{};
@@ -141,6 +142,7 @@ public:
     bool hasAnimation(const char* name) const;
     void unloadAnimation(const char* name);
     void setMorph(const std::string& name, float weight);
+    void setOverlayMorph(const std::string& name, float weight);
     void setMorphBlend(const std::string& base, const std::string& target, float blend,
         const std::vector<MorphTarget>& extraMorphs = {}, float time = 0.0f);
     const std::vector<std::string>& morphNames() const { return m_morphNames; }

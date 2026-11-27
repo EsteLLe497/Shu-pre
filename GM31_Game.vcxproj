@@ -16,6 +16,7 @@
     <ClCompile Include="HeroineLookAt.cpp" />
     <ClInclude Include="HeroineLookAt.h" />
     <ClInclude Include="BonePoseRotation.h" />
+    <ClInclude Include="MorphOverlay.h" />
     <ClCompile Include="DebugPanel.cpp" />
     <ClInclude Include="HeroineMovement.h" />
     <ClInclude Include="DebugPanel.h" />

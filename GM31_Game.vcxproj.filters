@@ -6,6 +6,7 @@
     <ClCompile Include="HeroineLookAt.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClInclude Include="HeroineLookAt.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="BonePoseRotation.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="MorphOverlay.h"><Filter>Header Files</Filter></ClInclude>
     <ClCompile Include="DebugPanel.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClInclude Include="HeroineMovement.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="DebugPanel.h"><Filter>Header Files</Filter></ClInclude>

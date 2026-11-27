@@ -10,6 +10,7 @@
 #include "ActionSequence.h"
 #include "assimp/config.h"
 #include "BonePoseRotation.h"
+#include "MorphOverlay.h"
 
 // =========================================================
 // ƒL[‚Ì‘OŒã‚ğ“ñ•ª’Tõ‚µA“r’†‚Ìp¨‚ğ•âŠÔ
@@ -544,6 +545,11 @@ void AnimationModel::setMorph(const std::string& name, float weight)
     setMorphLayer(m_morphLayers[0], name, weight);
 }
 
+void AnimationModel::setOverlayMorph(const std::string& name, float weight)
+{
+    setMorphLayer(m_overlayMorph, name, weight);
+}
+
 void AnimationModel::setMorphBlend(const std::string& base, const std::string& target, float blend,
     const std::vector<MorphTarget>& extraMorphs, float time)
 {
@@ -662,6 +668,7 @@ void AnimationModel::CreateBone(aiNode* node)
         m_landingRightFoot = nullptr;
         m_morphNames.clear();
         m_morphLayers.clear();
+        m_overlayMorph = MorphLayer{};
         m_activeMorphLayerCount = 0;
         m_missingTextures = 0;
         m_VertexBuffer = nullptr;
@@ -833,6 +840,8 @@ void AnimationModel::uploadPose()
             if (layer.weight > 0.0f && !layer.name.empty() && layer.meshes[meshIndex])
                 morphs[morphCount++] = { layer.meshes[meshIndex], layer.weight };
         }
+        const auto* overlay = m_overlayMorph.weight > 0 && meshIndex < m_overlayMorph.meshes.size()
+            ? m_overlayMorph.meshes[meshIndex] : nullptr;
         VERTEX_3D* vertex = static_cast<VERTEX_3D*>(mapped.pData);
         for (unsigned int v = 0; v < mesh->mNumVertices; v++)
         {
@@ -848,6 +857,14 @@ void AnimationModel::uploadPose()
                 deformVertex.Position += (morph->mVertices[v] - mesh->mVertices[v]) * weight;
                 if (morph->mNormals)
                     deformVertex.Normal += (morph->mNormals[v] - mesh->mNormals[v]) * weight;
+            }
+
+            if (overlay && MorphOverlay::affects(mesh->mVertices[v], overlay->mVertices[v]))
+            {
+                deformVertex.Position = MorphOverlay::blend(mesh->mVertices[v], overlay->mVertices[v],
+                    deformVertex.Position, m_overlayMorph.weight);
+                if (overlay->mNormals)
+                    deformVertex.Normal += (overlay->mNormals[v] - deformVertex.Normal) * m_overlayMorph.weight;
             }
 
             if (deformVertex.BoneNum > 0)

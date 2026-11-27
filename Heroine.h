@@ -25,6 +25,7 @@ private:
     HeroineMovement m_movement;
     HeroineLookAt m_lookAt;
     std::array<std::string, 4> m_lookBones;
+    std::string m_closeEyeMorph;
     bool m_fixedLookTarget = false;
     Vector3 m_lookTarget{ 0, 1.6f, 0 };
     Vector3 m_lookOrigin{ 0, 1.4f, 3 };
@@ -58,6 +59,7 @@ public:
     HeroineLookAt& lookAt() { return m_lookAt; }
     const std::array<std::string, 4>& lookBones() const { return m_lookBones; }
     bool eyesReady() const { return !m_lookBones[2].empty() && !m_lookBones[3].empty(); }
+    bool eyelidsReady() const { return !m_closeEyeMorph.empty(); }
     bool usesFixedLookTarget() const { return m_fixedLookTarget; }
     bool setLookTarget(const Vector3& target);
     void lookAtPlayer() { m_fixedLookTarget = false; }

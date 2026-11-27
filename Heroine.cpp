@@ -278,6 +278,9 @@ void Heroine::initLookAt()
     std::ifstream file("asset/heroine-look-at.txt");
     file.imbue(std::locale::classic());
     m_lookAt.settings.read(file);
+    for (const char* name : { "Fcl_EYE_Close", "Blink", "EyesClosed" })
+        if (std::find(m_AnimationModel->morphNames().begin(), m_AnimationModel->morphNames().end(), name)
+            != m_AnimationModel->morphNames().end()) { m_closeEyeMorph = name; break; }
     if (!eyesReady()) m_lookAt.settings.eyesEnabled = false;
     m_AnimationModel->setPoseModifier([this](AnimationModel& model) { updateLookAt(model); });
 }
@@ -292,6 +295,7 @@ bool Heroine::setLookTarget(const Vector3& target)
 
 void Heroine::updateLookAt(AnimationModel& model)
 {
+    model.setOverlayMorph(m_closeEyeMorph, 0);
     if (m_lookBones[1].empty() || SceneEditor::isOpen() || m_poseDeltaSeconds <= 0)
     {
         m_lookAt.reset();
@@ -331,7 +335,12 @@ void Heroine::updateLookAt(AnimationModel& model)
     aiVector3D right = up ^ forward;
     right.Normalize(); up = forward ^ right; up.Normalize();
     const float x = direction * right, y = direction * up, z = direction * forward;
-    m_lookAt.update(atan2f(x, z), atan2f(y, hypotf(x, z)), (m_lookTarget - m_lookOrigin).lenght(), available, m_poseDeltaSeconds);
+    const float distance = (m_lookTarget - m_lookOrigin).lenght();
+    // Player proximity uses horizontal body distance so differing eye heights do
+    // not prevent closure at contact. Fixed debug targets use true 3D distance.
+    const float proximity = m_fixedLookTarget ? distance : hypotf(m_lookTarget.x - m_Position.x, m_lookTarget.z - m_Position.z);
+    m_lookAt.update(atan2f(x, z), atan2f(y, hypotf(x, z)), distance, available, m_poseDeltaSeconds, proximity);
+    if (eyelidsReady()) model.setOverlayMorph(m_closeEyeMorph, m_lookAt.eyeClosure());
 
     const float neck = m_lookBones[0].empty() ? 0 : m_lookAt.settings.neckWeight;
     if (neck > 0) model.rotateBoneModelSpace(m_lookBones[0].c_str(),

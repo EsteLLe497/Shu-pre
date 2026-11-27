@@ -47,6 +47,7 @@ bool HeroineLookAtSettings::valid() const
         && range(eyeYawDegrees, 0, maxEyeYawDegrees) && range(eyePitchDegrees, 0, maxEyePitchDegrees)
         && range(eyeOnlyYawDegrees, 0, eyeYawDegrees) && range(eyeOnlyPitchDegrees, 0, eyePitchDegrees)
         && range(viewYawDegrees, 20, 85) && range(nearDistance, 0.1f, 2)
+        && range(fullyClosedDistance, 0, nearDistance - 0.01f) && range(eyelidResponse, 2, 30)
         && range(maxDistance, nearDistance + 0.5f, 30)
         && range(headResponse, 1, 12) && range(eyeResponse, 2, 30) && range(neckWeight, 0, 0.5f);
 }
@@ -62,14 +63,16 @@ void HeroineLookAtSettings::constrainEyes()
 bool HeroineLookAtSettings::read(std::istream& input)
 {
     std::string format;
-    int version = 0, on = 0, eyes = 0, head = 0;
+    int version = 0, on = 0, eyes = 0, head = 0, closeEyes = 1;
     HeroineLookAtSettings candidate;
-    if (!(input >> format >> version) || format != "heroineLookAt" || version != 1
+    if (!(input >> format >> version) || format != "heroineLookAt" || (version != 1 && version != 2)
         || !(input >> on >> eyes >> head >> candidate.headYawDegrees >> candidate.headPitchDegrees
             >> candidate.eyeYawDegrees >> candidate.eyePitchDegrees >> candidate.eyeOnlyYawDegrees >> candidate.eyeOnlyPitchDegrees
             >> candidate.viewYawDegrees >> candidate.nearDistance >> candidate.maxDistance
             >> candidate.headResponse >> candidate.eyeResponse >> candidate.neckWeight)
+        || (version == 2 && !(input >> closeEyes >> candidate.fullyClosedDistance >> candidate.eyelidResponse))
         || (on != 0 && on != 1) || (eyes != 0 && eyes != 1) || (head != 0 && head != 1)
+        || (closeEyes != 0 && closeEyes != 1)
         || !range(candidate.eyeYawDegrees, 0, 35) || !range(candidate.eyePitchDegrees, 0, 25)
         || !range(candidate.eyeOnlyYawDegrees, 0, candidate.eyeYawDegrees)
         || !range(candidate.eyeOnlyPitchDegrees, 0, candidate.eyePitchDegrees)
@@ -80,6 +83,7 @@ bool HeroineLookAtSettings::read(std::istream& input)
     candidate.enabled = on != 0;
     candidate.eyesEnabled = eyes != 0;
     candidate.headEnabled = head != 0;
+    candidate.closeEyesWhenNear = closeEyes != 0;
     *this = candidate;
     return true;
 }
@@ -87,19 +91,21 @@ bool HeroineLookAtSettings::read(std::istream& input)
 void HeroineLookAtSettings::write(std::ostream& output) const
 {
     output << std::setprecision(std::numeric_limits<float>::max_digits10)
-        << "heroineLookAt 1\n" << enabled << ' ' << eyesEnabled << ' ' << headEnabled << '\n'
+        << "heroineLookAt 2\n" << enabled << ' ' << eyesEnabled << ' ' << headEnabled << '\n'
         << headYawDegrees << ' ' << headPitchDegrees << ' ' << eyeYawDegrees << ' ' << eyePitchDegrees << '\n'
         << eyeOnlyYawDegrees << ' ' << eyeOnlyPitchDegrees << ' ' << viewYawDegrees << '\n'
-        << nearDistance << ' ' << maxDistance << ' ' << headResponse << ' ' << eyeResponse << ' ' << neckWeight << '\n';
+        << nearDistance << ' ' << maxDistance << ' ' << headResponse << ' ' << eyeResponse << ' ' << neckWeight << '\n'
+        << closeEyesWhenNear << ' ' << fullyClosedDistance << ' ' << eyelidResponse << '\n';
 }
 
 void HeroineLookAt::reset()
 {
     m_headYaw = m_headPitch = m_eyeYaw = m_eyePitch = 0;
     m_tracking = false;
+    m_eyeClosure = 0;
 }
 
-void HeroineLookAt::update(float yaw, float pitch, float distance, bool targetAvailable, float dt)
+void HeroineLookAt::update(float yaw, float pitch, float distance, bool targetAvailable, float dt, float proximityDistance)
 {
     if (!settings.valid()) { reset(); return; }
     if (!std::isfinite(dt) || dt <= 0) return;
@@ -108,12 +114,31 @@ void HeroineLookAt::update(float yaw, float pitch, float distance, bool targetAv
     const float headPitchLimit = settings.headEnabled ? settings.headPitchDegrees * radians : 0;
     const float eyeYawLimit = settings.eyesEnabled ? settings.eyeYawDegrees * radians : 0;
     const float eyePitchLimit = settings.eyesEnabled ? settings.eyePitchDegrees * radians : 0;
-    float weight = 0;
-    if (settings.enabled && targetAvailable && std::isfinite(yaw) && std::isfinite(pitch) && std::isfinite(distance)
-        && distance >= settings.nearDistance)
+    const bool available = settings.enabled && targetAvailable && std::isfinite(yaw) && std::isfinite(pitch)
+        && std::isfinite(distance) && distance >= 0;
+    const float proximity = proximityDistance == -1.0f ? distance : proximityDistance;
+    const bool near = available && distance <= settings.maxDistance && std::isfinite(proximity) && proximity >= 0;
+    const float closure = near && settings.closeEyesWhenNear
+        ? fade(proximity, settings.fullyClosedDistance, settings.nearDistance) : 0;
+    m_eyeClosure = smooth(m_eyeClosure, closure, settings.eyelidResponse, dt);
+    if (fabsf(m_eyeClosure - closure) < 0.0001f) m_eyeClosure = closure;
+    if (available && (distance <= 0.0001f || (near && proximity <= settings.fullyClosedDistance)))
     {
-        const float yawRange = std::min(settings.viewYawDegrees * radians, headYawLimit + eyeYawLimit + 10 * radians);
-        const float pitchRange = std::min(70 * radians, headPitchLimit + eyePitchLimit + 10 * radians);
+        // A coincident target has no direction. Hold the last gaze while closing,
+        // instead of flipping through atan2(0, 0) or releasing at personal-space distance.
+        m_tracking = true;
+        m_headYaw = clamp(m_headYaw, headYawLimit);
+        m_headPitch = clamp(m_headPitch, headPitchLimit);
+        limitEyes(m_eyeYaw, m_eyePitch, eyeYawLimit, eyePitchLimit);
+        return;
+    }
+    float weight = 0;
+    if (available)
+    {
+        // Acquisition range is independent of joint limits: a side target should
+        // keep the bounded gaze at its limit, rather than force it back to neutral.
+        const float yawRange = settings.viewYawDegrees * radians;
+        const float pitchRange = 90 * radians;
         weight = fade(fabsf(yaw), std::max(0.0f, yawRange - 10 * radians), yawRange)
             * fade(fabsf(pitch), std::max(0.0f, pitchRange - 10 * radians), pitchRange)
             * fade(distance, settings.maxDistance * 0.8f, settings.maxDistance);

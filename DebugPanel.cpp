@@ -226,13 +226,26 @@ namespace
             ImGui::SliderFloat(u8"首への配分", &settings.neckWeight, 0, 0.5f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
             ImGui::TextDisabled(u8"首・頭をOFFにすると瞳だけが追従します。");
         }
+        if (ImGui::CollapsingHeader(u8"近距離・閉眼", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            ImGui::BeginDisabled(!heroine.eyelidsReady());
+            ImGui::Checkbox(u8"密着したら目を閉じる", &settings.closeEyesWhenNear);
+            ImGui::SliderFloat(u8"閉じ始める距離", &settings.nearDistance, 0.1f, 2, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+            settings.fullyClosedDistance = std::min(settings.fullyClosedDistance, settings.nearDistance - 0.01f);
+            settings.maxDistance = std::max(settings.nearDistance + 0.5f, settings.maxDistance);
+            ImGui::SliderFloat(u8"全閉になる距離", &settings.fullyClosedDistance, 0, settings.nearDistance - 0.01f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SliderFloat(u8"まぶたの開閉速度", &settings.eyelidResponse, 2, 30, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::EndDisabled();
+            ImGui::TextWrapped(u8"近距離でも追従を維持し、密着時は直前の向きを保ちます。プレイヤーは水平距離、固定座標は3D距離で閉眼を判定します。");
+            if (!heroine.eyelidsReady()) ImGui::TextWrapped(u8"閉眼モーフが見つかりません。閉眼表示は無効です。");
+        }
         if (ImGui::CollapsingHeader(u8"追従をやめる範囲"))
         {
             ImGui::SliderFloat(u8"左右の追従範囲", &settings.viewYawDegrees, 20, 85, "%.1f deg", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SliderFloat(u8"近すぎる距離", &settings.nearDistance, 0.1f, 2, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::TextWrapped(u8"正面から左右それぞれの角度。首・瞳の回転上限は保ち、端の10度で追従を弱めます。");
             settings.maxDistance = std::max(settings.nearDistance + 0.5f, settings.maxDistance);
             ImGui::SliderFloat(u8"最大距離", &settings.maxDistance, settings.nearDistance + 0.5f, 30, "%.1f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::TextWrapped(u8"関節の可動範囲より外や、遠方では追従を弱めて元のアニメーションへ戻します。遮蔽判定はまだ行いません。");
+            ImGui::TextWrapped(u8"左右の追従範囲外や遠方では元のアニメーションへ戻します。首・瞳の回転上限は維持します。遮蔽判定はまだ行いません。");
         }
         ImGui::Separator();
         if (ImGui::Button(u8"視線設定を保存"))
@@ -257,6 +270,7 @@ namespace
         ImGui::Text(u8"状態: %s", gaze.tracking() ? u8"追従中" : u8"正面へ戻る / 範囲外");
         ImGui::Text(u8"首＋頭: 左右 %.1f / 上下 %.1f deg", XMConvertToDegrees(gaze.headYaw()), XMConvertToDegrees(gaze.headPitch()));
         ImGui::Text(u8"瞳: 左右 %.1f / 上下 %.1f deg", XMConvertToDegrees(gaze.eyeYaw()), XMConvertToDegrees(gaze.eyePitch()));
+        ImGui::Text(u8"閉眼: %.0f%%", gaze.eyeClosure() * 100);
         if (ImGui::CollapsingHeader(u8"検出したボーン"))
         {
             for (const auto& bone : heroine.lookBones()) ImGui::TextUnformatted(bone.empty() ? u8"未検出" : bone.c_str());
