@@ -2,6 +2,8 @@
 #include "renderer.h"
 #include "DebugPanel.h"
 #include "Heroine.h"
+#include "HeroineConversation.h"
+#include "AI/DialoguePanel.h"
 #include "Player.h"
 #include "Camera.h"
 #include "MeshField.h"
@@ -336,6 +338,12 @@ void DebugPanel::draw()
             {
                 if (auto* heroine = Manager::GetGameObj<Heroine>()) drawLookAt(*heroine);
                 else ImGui::TextUnformatted(u8"ヒロインがいません。");
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem(u8"AI会話"))
+            {
+                if (auto* conversation = Manager::GetGameObj<HeroineConversation>()) AI::DialoguePanel::draw(*conversation);
+                else ImGui::TextUnformatted(u8"会話システムがありません。");
                 ImGui::EndTabItem();
             }
             ImGui::EndTabBar();
