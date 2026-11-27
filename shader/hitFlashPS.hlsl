@@ -10,5 +10,5 @@ float4 main(PS_IN input) : SV_TARGET
     if (Material.TextureEnable)
         alpha *= BaseTexture.Sample(BaseSampler, input.TexCoord).a;
     clip(alpha - Material.AlphaCutoff);
-    return float4(1, 1, 1, Material.AlphaBlend ? alpha : 1);
+    return float4(1, 1, 1, (Material.AlphaBlend ? alpha : 1) * objectOpacity());
 }

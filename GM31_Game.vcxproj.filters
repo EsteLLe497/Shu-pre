@@ -343,6 +343,9 @@
     <None Include="shader\toonCommon.hlsli">
       <Filter>Shader</Filter>
     </None>
+    <None Include="shader\WaterCommon.hlsli">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="imgui\LICENSE.txt">
       <Filter>Dear ImGui</Filter>
     </None>

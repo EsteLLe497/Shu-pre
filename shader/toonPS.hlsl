@@ -38,6 +38,8 @@ float4 main(PS_IN pixel) : SV_Target
     if (!Material.AlphaBlend)
         color.a = 1.0f;
 
+    color.a *= objectOpacity();
+
     if (outlineWidth > 0.0f)
         return float4(outlineColor.rgb, color.a);
 

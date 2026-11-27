@@ -15,10 +15,20 @@ protected:
 
 	std::list<Component*> m_Components;
 	GameObject* m_Parent = nullptr;
+    bool m_alphaBlend = false;
+    float m_opacity = 1.0f;
 public:
     virtual ~GameObject() = default;
 
 	const int GetLayer() const { return m_Layer; }
+
+    bool usesAlphaBlend() const { return m_alphaBlend; }
+    float opacity() const { return m_opacity; }
+    void setAlphaBlend(bool enabled, float opacity)
+    {
+        m_alphaBlend = enabled;
+        m_opacity = opacity;
+    }
 
 	float GetCameraZ() const { return m_CameraZ; }
 	void CalcCameraZ(Vector3 CamPos, Vector3 CamForward)

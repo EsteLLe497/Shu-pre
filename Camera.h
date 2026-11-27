@@ -49,6 +49,7 @@ public:
 
     XMMATRIX GetViewMatrix() { return m_viewMatrix; }
     XMMATRIX projectionMatrix() const { return m_projectionMatrix; }
+    const Vector3& renderPosition() const { return m_renderPosition; }
     Vector3 GetFoward() override;
     Vector3 GetRight() override;
     void Shake(Vector3 shake);

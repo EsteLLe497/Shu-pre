@@ -13,11 +13,14 @@ public:
     static constexpr int GridSize = 101;
     using Heights = std::array<float, GridSize * GridSize>;
     const Heights& heights() const { return m_heights; }
+    XMFLOAT4 worldGrid() const;
+    unsigned int revision() const { return m_revision; }
     void setHeights(const Heights& heights);
     void sculpt(float x, float z, float radius, float amount, const float* targetHeight);
 
 private:
     Heights m_heights{};
+    unsigned int m_revision = 0;
     void updateVertices();
 	ID3D11Buffer* m_VertexBuffer = nullptr;
 	ID3D11Buffer* m_IndexBuffer;

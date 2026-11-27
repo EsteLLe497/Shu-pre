@@ -5,6 +5,9 @@
 #include "Camera.h"
 #include "input.h"
 
+#include <algorithm>
+#include <array>
+
 
 void Particle::Init()
 {
@@ -158,8 +161,11 @@ void  Particle::Draw()
 
     Renderer::GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-    Renderer::SetDepthEnable(false);
-    Renderer::SetAddBlendEnable(true);
+    if (!usesAlphaBlend())
+    {
+        Renderer::SetDepthEnable(false);
+        Renderer::SetAddBlendEnable(true);
+    }
 
     MATERIAL material{};
     material.Diffuse = { 1.0f, 0.2f, 0.2f, 1.0f };
@@ -167,12 +173,27 @@ void  Particle::Draw()
     material.TextureEnable = true;
     Renderer::SetMaterial(material);
 
-    for (int i = 0; i < PARTICLE_MAX; i++)
+    std::array<const PARTICLE*, PARTICLE_MAX> visible{};
+    size_t count = 0;
+    for (const auto& particle : m_Particle)
+        if (particle.Enable)
+            visible[count++] = &particle;
+    if (usesAlphaBlend())
     {
-        if (!m_Particle[i].Enable)
-            continue;
-
-        if (m_Particle[i].Type == PARTICLE_LAUNCH)
+        const auto depth = [&view](const PARTICLE* particle)
+        {
+            const auto& p = particle->Position;
+            return XMVectorGetZ(XMVector3TransformCoord(XMVectorSet(p.x, p.y, p.z, 1.0f), view));
+        };
+        std::stable_sort(visible.begin(), visible.begin() + count, [&depth](const PARTICLE* a, const PARTICLE* b)
+        {
+            return depth(a) > depth(b);
+        });
+    }
+    for (size_t i = 0; i < count; ++i)
+    {
+        const auto& particle = *visible[i];
+        if (particle.Type == PARTICLE_LAUNCH)
         {
             Renderer::GetDeviceContext()->
                 PSSetShaderResources(0, 1, &m_LaunchTexture);
@@ -185,7 +206,7 @@ void  Particle::Draw()
 
         XMMATRIX world, scale, trans;
         scale = XMMatrixScaling(m_Scale.x, m_Scale.y, m_Scale.z);
-        trans = XMMatrixTranslation(m_Particle[i].Position.x, m_Particle[i].Position.y, m_Particle[i].Position.z);
+        trans = XMMatrixTranslation(particle.Position.x, particle.Position.y, particle.Position.z);
         world = scale * invView * trans;
 
         Renderer::SetWorldMatrix(world);
@@ -193,8 +214,11 @@ void  Particle::Draw()
         Renderer::GetDeviceContext()->Draw(4, 0);
     }
 
-    Renderer::SetDepthEnable(true);
-    Renderer::SetAddBlendEnable(false);
+    if (!usesAlphaBlend())
+    {
+        Renderer::SetDepthEnable(true);
+        Renderer::SetAddBlendEnable(false);
+    }
     
 }
 
