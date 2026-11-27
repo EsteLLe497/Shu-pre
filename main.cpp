@@ -8,11 +8,12 @@
 #include <thread>
 #include <shellapi.h>
 #include <cstdio>
+#include <string>
 #pragma comment(lib, "shell32.lib")
 
 
 const char* CLASS_NAME = "AppClass";
-const char* WINDOW_NAME = "DX11ƒQ[ƒ€";
+const char* WINDOW_NAME = "DX11ã‚²ãƒ¼ãƒ ";
 
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -58,7 +59,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	CoInitializeEx(nullptr, COINITBASE_MULTITHREADED);
 
 
-    // ƒRƒ}ƒ“ƒhƒ‰ƒCƒ“‚ÅƒvƒŒƒrƒ…[‚ð‘I‚ÔB
+    // ã‚³ãƒžãƒ³ãƒ‰ãƒ©ã‚¤ãƒ³ã§ãƒ—ãƒ¬ãƒ“ãƒ¥ãƒ¼ã‚’é¸ã¶ã€‚
     int argumentCount = 0;
     wchar_t** arguments = CommandLineToArgvW(GetCommandLineW(), &argumentCount);
     bool previewMode = false;
@@ -75,6 +76,30 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	if (ruralMap && !previewMode) SceneEditor::useRuralMap();
     Manager::Init(previewMode);
+    // Locate project assets when launched outside Visual Studio or StartPreview.cmd.
+    if (GetFileAttributesW(L"asset") == INVALID_FILE_ATTRIBUTES)
+    {
+        wchar_t executable[MAX_PATH]{};
+        const DWORD length = GetModuleFileNameW(nullptr, executable, MAX_PATH);
+        if (length > 0 && length < MAX_PATH)
+        {
+            std::wstring directory(executable);
+            for (int level = 0; level < 3; ++level)
+            {
+                const auto separator = directory.find_last_of(L"\\/");
+                if (separator == std::wstring::npos) break;
+                directory.resize(separator);
+                if (GetFileAttributesW((directory + L"/asset").c_str()) != INVALID_FILE_ATTRIBUTES
+                    && GetFileAttributesW((directory + L"/shader").c_str()) != INVALID_FILE_ATTRIBUTES)
+                {
+                    SetCurrentDirectoryW(directory.c_str());
+                    break;
+                }
+            }
+        }
+    }
+
+	Manager::Init(previewMode);
 
     const char* windowTitle = previewMode ? "GM31 Asset Preview"
         : ruralMap ? "Shu-pre - Summer Countryside" : WINDOW_NAME;
@@ -129,7 +154,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
             Manager::Draw();
 
 #ifdef _DEBUG
-            // •`‰æ‚ðI‚¦‚½ƒtƒŒ[ƒ€‚ð”‚¦A0.5•b‚²‚Æ‚É•½‹ÏFPS‚ð•\Ž¦‚·‚éB
+            // æç”»ã‚’çµ‚ãˆãŸãƒ•ãƒ¬ãƒ¼ãƒ ã‚’æ•°ãˆã€0.5ç§’ã”ã¨ã«å¹³å‡FPSã‚’è¡¨ç¤ºã™ã‚‹ã€‚
             ++frameCount;
             const DWORD now = timeGetTime();
             const DWORD sampleMs = now - fpsStart;

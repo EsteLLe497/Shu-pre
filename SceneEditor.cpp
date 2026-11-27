@@ -9,13 +9,13 @@
 #include "MeshField.h"
 #include "Wave.h"
 #include "Player.h"
+#include "Heroine.h"
 #include "Enemy.h"
 #include "Box.h"
 #include "Grass.h"
 #include "Particle.h"
 #include "Camera.h"
 #include "SkyDome.h"
-#include "Score.h"
 #include "animationModel.h"
 #include "imgui/imgui.h"
 #include <filesystem>
@@ -40,8 +40,8 @@ namespace
     constexpr size_t maxAmbientZones = 32;
     constexpr size_t maxPrefabs = 128;
 
-    enum class Kind { Player, Enemy, Boss, Box, Grass, Particle, Model };
-    const char* const labels[] = { u8"プレイヤー開始地点", u8"敵", u8"中ボス", u8"箱", u8"草", u8"パーティクル", u8"モデル" };
+    enum class Kind { Player, Enemy, Boss, Box, Grass, Particle, Model, Heroine };
+    const char* const labels[] = { u8"プレイヤー開始地点", u8"敵", u8"中ボス", u8"箱", u8"草", u8"パーティクル", u8"モデル", u8"ヒロイン" };
 
     struct Transform
     {
@@ -54,7 +54,7 @@ namespace
         std::string clip;
         SceneAudio::Timeline sounds;
     };
-    constexpr size_t playerMotionCount = static_cast<size_t>(PlayerActionKind::count);
+    constexpr size_t heroineMotionCount = static_cast<size_t>(HeroineActionKind::count);
     struct Placement
     {
         Kind kind;
@@ -63,7 +63,7 @@ namespace
         bool collider = false;
         bool gravity = false;
         std::vector<std::pair<std::string, Enemy::HurtboxAdjustment>> hurtboxes;
-        std::array<MotionTrack, playerMotionCount> motions;
+        std::array<MotionTrack, 8> motions;
         Enemy::AttackSettings attack = Enemy::defaultAttackSettings(kind == Kind::Boss);
         std::string prefab;
         bool alphaBlend = false;
@@ -106,11 +106,13 @@ namespace
     };
 
     Player* player = nullptr;
+    Heroine* heroine = nullptr;
     MeshField* terrain = nullptr;
     std::vector<Entry> entries;
     struct EditWorld
     {
         Player* player;
+        Heroine* heroine;
         MeshField* terrain;
         std::vector<Entry> entries;
     };
@@ -161,7 +163,6 @@ namespace
     std::optional<Vector3> previousMaterialHit;
     bool numericRecorded = false;
     bool showHurtboxes = false;
-    bool showAttackRanges = false;
     int activeHurtbox = 0;
 
     struct AttackField
@@ -295,7 +296,7 @@ namespace
 
     size_t motionCount(Kind kind)
     {
-        if (kind == Kind::Player) return playerMotionCount;
+        if (kind == Kind::Heroine) return heroineMotionCount;
         return isEnemy(kind) ? Enemy::MotionCount : 0;
     }
 
@@ -304,7 +305,7 @@ namespace
         for (size_t i = 0; i < motionCount(entry.placement.kind); ++i)
         {
             const auto& track = entry.placement.motions[i];
-            const auto playerSlot = static_cast<PlayerActionKind>(i);
+            const auto heroineSlot = static_cast<HeroineActionKind>(i);
             const auto enemySlot = static_cast<Enemy::Motion>(i);
             auto* enemy = isEnemy(entry.placement.kind) ? static_cast<Enemy*>(entry.object) : nullptr;
             if (enemy)
@@ -316,14 +317,14 @@ namespace
                     enemy->assignMotion(enemySlot, {});
                 }
             }
-            auto* playerActor = enemy ? nullptr : static_cast<Player*>(entry.object);
-            const float duration = enemy ? enemy->motionDuration(enemySlot) : playerActor->motionDuration(playerSlot);
+            auto* heroineActor = enemy ? nullptr : static_cast<Heroine*>(entry.object);
+            const float duration = enemy ? enemy->motionDuration(enemySlot) : heroineActor->motionDuration(heroineSlot);
             SceneAudio::Timeline ready;
             for (const auto& marker : track.sounds)
                 if (duration > 0 && marker.time <= duration && SceneAudio::prepareMarker(marker.file))
                     ready.push_back(marker);
             if (enemy) enemy->setMotionSounds(enemySlot, ready);
-            else playerActor->setMotionSounds(playerSlot, ready);
+            else heroineActor->setMotionSounds(heroineSlot, ready);
         }
     }
 
@@ -333,7 +334,7 @@ namespace
         {
             const auto& entry = entries[selected];
             if (isEnemy(entry.placement.kind)) static_cast<Enemy*>(entry.object)->clearMotionPreview();
-            else if (entry.placement.kind == Kind::Player) static_cast<Player*>(entry.object)->clearMotionPreview();
+            else if (entry.placement.kind == Kind::Heroine) static_cast<Heroine*>(entry.object)->clearMotionPreview();
         }
         motionWasSampled = false;
         motionPlaying = false;
@@ -383,6 +384,7 @@ namespace
             half = { size.x, size.y, size.z };
             break;
         }
+        case Kind::Heroine:
         case Kind::Player: center.y = 0.9f; half = { 0.48f, 0.9f, 0.42f }; break;
         case Kind::Enemy:
         case Kind::Boss: center.y = 1.1f; half = { 1.65f, 1.1f, 0.68f }; break;
@@ -481,10 +483,13 @@ namespace
     bool spawn(const Placement& placement, bool requirePrefabAssets = false)
     {
         if (entries.size() >= maxObjects) return false;
+        if ((placement.kind == Kind::Player || placement.kind == Kind::Heroine)
+            && std::any_of(entries.begin(), entries.end(), [&](const Entry& e) { return e.placement.kind == placement.kind; })) return false;
         GameObject* object = nullptr;
         switch (placement.kind)
         {
         case Kind::Player: object = player; break;
+        case Kind::Heroine: object = heroine; break;
         case Kind::Enemy:
         case Kind::Boss:
         {
@@ -523,6 +528,7 @@ namespace
             break;
         }
         }
+        if (!object) return false;
         entries.push_back({ placement, object });
         apply(entries.back());
         applyMotion(entries.back());
@@ -532,10 +538,6 @@ namespace
     void defaults()
     {
         spawn({ Kind::Player, { player->GetPosition(), player->GetRotation(), player->GetScale() }, {} });
-        spawn({ Kind::Enemy, { { -2.4f, 0, 5.4f }, { 0, XM_PI, 0 }, { .75f, .75f, .75f } }, {}, true });
-        spawn({ Kind::Enemy, { { 0, 0, 5 }, { 0, XM_PI, 0 }, { .75f, .75f, .75f } }, {}, true });
-        spawn({ Kind::Enemy, { { 2.4f, 0, 5.4f }, { 0, XM_PI, 0 }, { .75f, .75f, .75f } }, {}, true });
-        spawn({ Kind::Boss, { { -1, 0, 15 }, { 0, XM_PI, 0 }, { 1.55f, 1.55f, 1.55f } }, {}, true });
         spawn({ Kind::Box, { { 5, 0, 5 }, { 0, 0, 0 }, { 2, 1, 2 } }, {}, true });
         spawn({ Kind::Grass, { { 10, 0, -5 } }, {} });
         spawn({ Kind::Particle, { { -2, 1, -1 } }, {} });
@@ -581,7 +583,7 @@ namespace
     {
         int kind = 0;
         auto& t = placement.transform;
-        if (!(input >> kind) || kind < 0 || kind > static_cast<int>(Kind::Model)
+        if (!(input >> kind) || kind < 0 || kind > static_cast<int>(version >= 11 ? Kind::Heroine : Kind::Model)
             || !readVector(input, t.position) || !readVector(input, t.rotation) || !readVector(input, t.scale)
             || !(input >> std::quoted(placement.asset))
             || t.scale.x < .01f || t.scale.y < .01f || t.scale.z < .01f) return false;
@@ -601,7 +603,7 @@ namespace
         if (version >= 5 && !readHurtboxEdits(input, placement.hurtboxes)) return false;
         if (version >= 6)
         {
-            for (size_t slot = 0; slot < motionCount(placement.kind); ++slot)
+            for (size_t slot = 0; slot < (version <= 10 && placement.kind == Kind::Player ? 8 : motionCount(placement.kind)); ++slot)
             {
                 auto& track = placement.motions[slot];
                 size_t markers = 0;
@@ -696,12 +698,13 @@ namespace
             || size != MeshField::GridSize) return false;
 
         std::vector<Placement> placements;
-        int playerCount = 0;
+        int playerCount = 0, heroineCount = 0;
         for (size_t i = 0; i < count; ++i)
         {
             Placement placement{};
             if (!readPlacement(input, version, placement)) return false;
             if (placement.kind == Kind::Player) ++playerCount;
+            if (placement.kind == Kind::Heroine) ++heroineCount;
             if ((placement.kind == Kind::Model || (isEnemy(placement.kind) && !placement.asset.empty()))
                 && !modelPath(placement.asset, placement.asset)) return false;
             placements.push_back(std::move(placement));
@@ -709,7 +712,7 @@ namespace
         MeshField::Heights heights{};
         for (float& height : heights)
             if (!(input >> height) || !std::isfinite(height) || fabsf(height) > 30.0f) return false;
-        if (playerCount != 1) return false;
+        if (playerCount != 1 || heroineCount > 1) return false;
         if (version == 4)
         {
             std::vector<std::pair<std::string, Enemy::HurtboxAdjustment>> legacyPlayerEdits;
@@ -841,7 +844,7 @@ namespace
     {
         if (selected < 0) return;
         auto& entry = entries[selected];
-        if (entry.placement.kind == Kind::Player) return;
+        if (entry.placement.kind == Kind::Player || entry.placement.kind == Kind::Heroine) return;
 
         stopMotionPreview();
         remember({ UndoKind::Remove, static_cast<size_t>(selected), entry.placement });
@@ -1102,45 +1105,7 @@ namespace
         return choice;
     }
 
-    void editEnemyAttacks(Entry& entry)
-    {
-        if (!ImGui::CollapsingHeader(u8"敵の攻撃設定")) return;
-        const bool boss = entry.placement.kind == Kind::Boss;
-        auto& settings = entry.placement.attack;
-        for (const auto& field : attackFields)
-        {
-            if (field.bossOnly && !boss) continue;
-            auto& setting = settings.*field.value;
-            float value = setting;
-            ImGui::SetNextItemWidth(110.0f);
-            if (recordNumeric(ImGui::DragFloat(field.label, &value, .05f, field.minimum, field.maximum,
-                "%.2f", ImGuiSliderFlags_AlwaysClamp), entry.placement) && std::isfinite(value))
-                setting = value;
-            if (!boss && field.value == &Enemy::AttackSettings::punchStartRange)
-                ImGui::SetItemTooltip(u8"敵の既定のスケール (0.75) での距離です。");
-        }
-        ImGui::Checkbox(u8"攻撃範囲を表示", &showAttackRanges);
-        if (showAttackRanges)
-            ImGui::TextWrapped(u8"青は検知範囲、オレンジは攻撃開始距離、金色は突進・衝撃波のプレビューです。");
-        if (ImGui::Button(u8"攻撃をプレビュー"))
-        {
-            if (!motionPanel) scanAudio();
-            motionPanel = true;
-            showAttackRanges = true;
-            if (motionSlot < static_cast<int>(Enemy::Motion::Punch))
-            {
-                stopMotionPreview();
-                motionSlot = static_cast<int>(Enemy::Motion::Punch);
-                motionTime = 0;
-            }
-        }
-        ImGui::SameLine();
-        if (ImGui::Button(u8"攻撃設定を初期化"))
-        {
-            remember({ UndoKind::Modify, static_cast<size_t>(selected), entry.placement });
-            settings = Enemy::defaultAttackSettings(boss);
-        }
-    }
+
 
     void editEnemyCharacter(Entry& entry)
     {
@@ -1326,22 +1291,22 @@ namespace
         if (ImGui::Begin(u8"モーションとSE", &motionPanel))
         {
             if (selected < 0 || !motionCount(entries[selected].placement.kind))
-                ImGui::TextUnformatted(u8"シーン内のプレイヤーか敵を選択してください。");
+                ImGui::TextUnformatted(u8"シーン内のヒロインか配置キャラクターを選択してください。");
             else
             {
                 auto& entry = entries[selected];
                 const bool enemy = isEnemy(entry.placement.kind);
-                const char* playerMotions[] = { u8"待機", u8"歩き", u8"走り", u8"あくび", u8"攻撃", u8"ジャンプ", u8"走りジャンプ", u8"着地" };
+                const char* heroineMotions[] = { u8"待機", u8"歩き", u8"走り", u8"あくび" };
                 const char* enemyMotions[] = { u8"待機", u8"移動", u8"パンチ", u8"叩きつけ", u8"突進" };
-                if (ImGui::Combo(u8"モーション", &motionSlot, enemy ? enemyMotions : playerMotions,
-                    static_cast<int>(motionCount(entry.placement.kind))))
+                if (ImGui::Combo(u8"モーション", &motionSlot, enemy ? enemyMotions : heroineMotions,
+                    static_cast<int>(enemy ? 2 : motionCount(entry.placement.kind))))
                 {
                     stopMotionPreview();
                     motionTime = 0;
                 }
                 auto& track = entry.placement.motions[motionSlot];
                 const auto enemySlot = static_cast<Enemy::Motion>(motionSlot);
-                const auto playerSlot = static_cast<PlayerActionKind>(motionSlot);
+                const auto heroineSlot = static_cast<HeroineActionKind>(motionSlot);
                 auto* actor = enemy ? static_cast<Enemy*>(entry.object) : nullptr;
                 const auto rememberMotion = [&]()
                 {
@@ -1378,17 +1343,17 @@ namespace
                     }
                     else ImGui::TextUnformatted(u8"内蔵モーションを再生します。リグ付きモデルを適用するとクリップを差し替えられます。");
                 }
-                const float duration = enemy ? actor->motionDuration(enemySlot) : player->motionDuration(playerSlot);
+                const float duration = enemy ? actor->motionDuration(enemySlot) : heroine->motionDuration(heroineSlot);
                 const auto sample = [&]()
                 {
                     if (enemy) actor->previewMotion(enemySlot, motionTime);
-                    else player->previewMotion(playerSlot, motionTime);
+                    else heroine->previewMotion(heroineSlot, motionTime);
                     motionWasSampled = true;
                 };
                 if (duration > 0.0f)
                 {
                     motionTime = std::min(motionTime, duration);
-                    const bool canAttack = enemy && (enemySlot == Enemy::Motion::Punch || entry.placement.kind == Kind::Boss);
+                    const bool canAttack = false;
                     const auto phase = canAttack ? Enemy::attackPhase(enemySlot) : Enemy::AttackPhase{};
                     if (drawMotionTimeline(entry, track.sounds, duration, phase)) sample();
                     if (phase.name)
@@ -1433,7 +1398,7 @@ namespace
                         if (!motionLoop && motionTime >= duration) motionPlaying = false;
                     }
                 }
-                else ImGui::TextUnformatted(u8"このプレイヤーモーションは再生できません。");
+                else ImGui::TextUnformatted(u8"このヒロインのモーションは再生できません。");
 
                 if (ImGui::Button(u8"WAVを再検索")) scanAudio();
                 ImGui::SameLine();
@@ -1982,7 +1947,7 @@ namespace
                 if (ImGui::BeginChild("Hierarchy", { 0, 165 }, true))
                 {
                     if (!hierarchySearch.IsActive() && hierarchyKind == 0)
-                        ImGui::TextDisabled(u8"シーン機能  カメラ／地形／空／スコア");
+                        ImGui::TextDisabled(u8"シーン機能  カメラ／地形／空");
                     bool found = false;
                     for (size_t i = 0; i < entries.size(); ++i)
                     {
@@ -2046,12 +2011,11 @@ namespace
                     }
                     if (enemy)
                     {
-                        editEnemyAttacks(entry);
                         editEnemyCharacter(entry);
                     }
                     apply(entry);
                     if (ImGui::Button(u8"対象に注目")) focus = t.position + Vector3{ 0, 1, 0 };
-                    if (entry.placement.kind != Kind::Player)
+                    if (entry.placement.kind != Kind::Player && entry.placement.kind != Kind::Heroine)
                     {
                         ImGui::SameLine();
                         const bool duplicate = ImGui::Button(u8"複製");
@@ -2158,45 +2122,7 @@ namespace
         }
     }
 
-    void drawAttackRanges(Enemy& enemy, Kind kind, FXMMATRIX vp, const ImVec2& size, ImDrawList& overlay)
-    {
-        auto motion = static_cast<Enemy::Motion>(motionSlot);
-        if (!motionPanel || !Enemy::attackPhase(motion).name || kind == Kind::Enemy)
-            motion = Enemy::Motion::Punch;
-        const auto phase = Enemy::attackPhase(motion);
-        const bool active = motionPanel && motionWasSampled && motionTime >= phase.start && motionTime <= phase.end;
-        const auto origin = enemy.GetPosition() + Vector3{ 0, 0.07f, 0 };
-        const auto ring = [&](float radius, ImU32 color, float thickness)
-        {
-            drawRangeRing(origin, radius, color, thickness, vp, size, overlay);
-        };
-        constexpr ImU32 gold = IM_COL32(255, 218, 95, 240);
-        ring(enemy.attackSettings().detectionDistance, IM_COL32(90, 167, 255, 220), 1.5f);
-        ring(enemy.attackStartRange(motion), IM_COL32(255, 141, 60, 235), 1.5f);
-        if (motion == Enemy::Motion::Slam)
-        {
-            ring(enemy.attackSettings().shockwaveRadius, IM_COL32(255, 218, 95, 150), 1.0f);
-            if (active) ring(enemy.shockwaveRadiusAt(motionTime), gold, 2.5f);
-        }
-        if (motion == Enemy::Motion::Charge)
-        {
-            const auto forward = enemy.GetFoward();
-            const auto pointAt = [&](float time)
-            {
-                return origin + Vector3{ forward.x, 0, forward.z } * enemy.chargeOffsetAt(time);
-            };
-            ImVec2 start, end;
-            if (project(pointAt(phase.start), vp, size, start) && project(pointAt(phase.end), vp, size, end))
-            {
-                overlay.AddLine(start, end, gold, 2.0f);
-                overlay.AddCircle(start, 4.0f, gold);
-                overlay.AddCircleFilled(end, 4.0f, gold);
-            }
-            ImVec2 cursor;
-            if (active && project(pointAt(motionTime), vp, size, cursor))
-                overlay.AddCircleFilled(cursor, 5.0f, IM_COL32(255, 255, 255, 255));
-        }
-    }
+
 
     struct ViewRay { XMVECTOR origin; XMVECTOR direction; };
 
@@ -2722,19 +2648,7 @@ namespace
         {
             const auto& entry = entries[selected];
             const auto& point = entry.placement.transform.position;
-            if (showAttackRanges && isEnemy(entry.placement.kind))
-            {
-                drawAttackRanges(*static_cast<Enemy*>(entry.object), entry.placement.kind, vp, size, *overlay);
-                if (!entry.placement.prefab.empty())
-                    for (const auto& linked : entries)
-                    {
-                        if (&linked == &entry || linked.placement.prefab != entry.placement.prefab) continue;
-                        const auto* enemy = static_cast<const Enemy*>(linked.object);
-                        drawRangeRing(linked.placement.transform.position + Vector3{ 0, .07f, 0 },
-                            enemy->attackSettings().detectionDistance,
-                            IM_COL32(90, 167, 255, 165), 1.5f, vp, size, *overlay);
-                    }
-            }
+
             if (entry.placement.kind == Kind::Player)
             {
                 const float centers[] = { Player::BodyLowerCenter, Player::BodyUpperCenter };
@@ -2858,12 +2772,21 @@ void SceneEditor::useRuralMap()
 void SceneEditor::init(Player& scenePlayer, MeshField& sceneTerrain)
 {
     player = &scenePlayer;
+    heroine = Manager::GetGameObj<Heroine>();
     terrain = &sceneTerrain;
     const bool exists = GetFileAttributesA(layoutPath) != INVALID_FILE_ATTRIBUTES;
     if (!loadLayout())
     {
         defaults();
         if (exists) status = u8"配置を読み込めなかったため、初期配置を使います。";
+    }
+    if (heroine && std::none_of(entries.begin(), entries.end(), [](const Entry& e) { return e.placement.kind == Kind::Heroine; }))
+    {
+        Placement placement{ Kind::Heroine, { heroine->GetPosition(), heroine->GetRotation(), heroine->GetScale() }, {} };
+        const auto previous = std::find_if(entries.begin(), entries.end(), [](const Entry& e) { return e.placement.kind == Kind::Player; });
+        if (previous != entries.end())
+            for (size_t i = 0; i < heroineMotionCount; ++i) placement.motions[i] = previous->placement.motions[i];
+        spawn(placement);
     }
     focus = player->GetPosition() + Vector3{ 0, 1, 6 };
 }
@@ -2903,6 +2826,7 @@ void SceneEditor::shutdown()
     gridStep = 1.0f;
     status.clear();
     player = nullptr;
+    heroine = nullptr;
     terrain = nullptr;
     open = false;
     terrainMode = false;
@@ -2915,7 +2839,6 @@ void SceneEditor::shutdown()
     waterBrushRadius = 4.0f;
     stopWaterEdit();
     showHurtboxes = false;
-    showAttackRanges = false;
     activeHurtbox = 0;
     select(-1);
 }
@@ -2961,6 +2884,7 @@ void SceneEditor::processPlayMode()
     {
         Manager::endEditorPlay();
         player = editWorld->player;
+        heroine = editWorld->heroine;
         terrain = editWorld->terrain;
         entries.swap(editWorld->entries);
         editWorld.reset();
@@ -2980,13 +2904,13 @@ void SceneEditor::processPlayMode()
     stopMotionPreview();
     stopWaterEdit();
     if (!Manager::beginEditorPlay()) return;
-    editWorld.emplace(EditWorld{ player, terrain, {} });
+    editWorld.emplace(EditWorld{ player, heroine, terrain, {} });
     entries.swap(editWorld->entries);
     const auto [playPlayer, playTerrain] = Game::createWorld();
     player = playPlayer;
     terrain = playTerrain;
-    player->setDodgeSettings(editWorld->player->dodgeSettings());
-    player->toonSettings() = editWorld->player->toonSettings();
+    heroine = Manager::GetGameObj<Heroine>();
+    heroine->toonSettings() = editWorld->heroine->toonSettings();
     Manager::GetGameObj<Camera>()->orbitSettings() = orbit;
     terrain->setHeights(editWorld->terrain->heights());
     terrain->setMaterialPaint(editWorld->terrain->materialPaint());

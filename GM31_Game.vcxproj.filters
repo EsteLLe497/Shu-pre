@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="Heroine.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="HeroineAnimationAssets.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClInclude Include="Heroine.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="HeroineActionSet.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="HeroineAnimationAssets.h"><Filter>Header Files</Filter></ClInclude>
+
     <Filter Include="Source Files">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
@@ -22,8 +28,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="attack.cpp" />
-    <ClCompile Include="AttackWeapon.cpp" />
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -65,12 +69,6 @@
     <ClCompile Include="ActionSequence.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PlayerAnimationAssets.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="PlayerActions.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="constellation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -84,9 +82,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Enemy.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Bullet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ToonPanel.cpp">
@@ -149,9 +144,6 @@
     <ClCompile Include="Result.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Score.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="audio.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -169,8 +161,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="attack.h" />
-    <ClInclude Include="AttackWeapon.h" />
     <ClInclude Include="main.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -206,9 +196,6 @@
     <ClInclude Include="modelRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PlayerAnimationAssets.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="PreviewCamera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -227,9 +214,6 @@
     <ClInclude Include="ActionSequence.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PlayerActionSet.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="constellation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -243,9 +227,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Enemy.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Bullet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ToonPanel.h">
@@ -314,9 +295,6 @@
     <ClInclude Include="Result.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Score.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="audio.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -360,12 +338,6 @@
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="shader\planetariumPS.hlsl">
-      <Filter>Shader</Filter>
-    </FxCompile>
-    <FxCompile Include="shader\weaponEndVS.hlsl">
-      <Filter>Shader</Filter>
-    </FxCompile>
-    <FxCompile Include="shader\weaponEndPS.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="shader\common.hlsl">

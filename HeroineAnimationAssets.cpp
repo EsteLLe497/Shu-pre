@@ -1,18 +1,18 @@
 // =========================================================
-// ファイルの情報[PlayerAnimationAssets.cpp]
+// ファイルの情報[HeroineAnimationAssets.cpp]
 //
 // 制作者:Masatora Tanaka        日付：2026/11/11
 // =========================================================
 #include "main.h"
 #include "renderer.h"
 #include "animationModel.h"
-#include "PlayerAnimationAssets.h"
+#include "HeroineAnimationAssets.h"
 
 namespace
 {
-    const PlayerAnimationAssets::Clip* findBuiltIn(const std::string& name)
+    const HeroineAnimationAssets::Clip* findBuiltIn(const std::string& name)
     {
-        for (const auto& clip : PlayerAnimationAssets::clips)
+        for (const auto& clip : HeroineAnimationAssets::clips)
         {
             if (_stricmp(clip.name, name.c_str()) == 0)
                 return &clip;
@@ -25,7 +25,7 @@ namespace
 // =========================================================
 // モーション名をファイル名として安全に扱える形式に限定する
 // =========================================================
-bool PlayerAnimationAssets::isMotionName(const std::string& name)
+bool HeroineAnimationAssets::isMotionName(const std::string& name)
 {
     if (name.empty() || name.size() > 64 || name.front() == ' ' || name.back() == ' ')
         return false;
@@ -36,12 +36,12 @@ bool PlayerAnimationAssets::isMotionName(const std::string& name)
     });
 }
 
-bool PlayerAnimationAssets::isBuiltInMotion(const std::string& name)
+bool HeroineAnimationAssets::isBuiltInMotion(const std::string& name)
 {
     return findBuiltIn(name) != nullptr;
 }
 
-std::string PlayerAnimationAssets::canonicalMotionName(const std::string& name)
+std::string HeroineAnimationAssets::canonicalMotionName(const std::string& name)
 {
     const auto* builtIn = findBuiltIn(name);
     return builtIn ? builtIn->name : name;
@@ -50,14 +50,14 @@ std::string PlayerAnimationAssets::canonicalMotionName(const std::string& name)
 // =========================================================
 // 一覧にはファイル名だけを取得し、FBX は選ばれたときに読む
 // =========================================================
-std::vector<std::string> PlayerAnimationAssets::listMotions()
+std::vector<std::string> HeroineAnimationAssets::listMotions()
 {
     std::vector<std::string> names;
     for (const auto& clip : clips)
         names.emplace_back(clip.name);
 
     const auto customStart = names.size();
-    for (const char* directory : { motionsDirectory, attackMotionsDirectory })
+    for (const char* directory : { motionsDirectory })
     {
         WIN32_FIND_DATAA data{};
         const std::string pattern = std::string(directory) + "/*.fbx";
@@ -86,7 +86,7 @@ std::vector<std::string> PlayerAnimationAssets::listMotions()
     return names;
 }
 
-bool PlayerAnimationAssets::loadMotion(AnimationModel& model, const std::string& name)
+bool HeroineAnimationAssets::loadMotion(AnimationModel& model, const std::string& name)
 {
     if (!isMotionName(name))
         return false;
@@ -105,14 +105,13 @@ bool PlayerAnimationAssets::loadMotion(AnimationModel& model, const std::string&
     if (builtIn)
         return path != builtIn->path && model.LoadAnimation(builtIn->path, key);
 
-    const std::string attackPath = std::string(attackMotionsDirectory) + "/" + key + ".fbx";
-    return model.LoadAnimation(attackPath.c_str(), key);
+    return false;
 }
 
 // =========================================================
 // 本編とプレビューで同じ FBX とモーションの検証を行う
 // =========================================================
-PlayerAnimationAssets::LoadResult PlayerAnimationAssets::loadCharacter(AnimationModel& model, const char* path)
+HeroineAnimationAssets::LoadResult HeroineAnimationAssets::loadCharacter(AnimationModel& model, const char* path)
 {
     if (!model.tryLoad(path))
         return LoadResult::modelFailed;

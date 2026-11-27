@@ -9,7 +9,6 @@
 #include <memory>
 #include <cstdint>
 
-class Player;
 
 // Visual prototype built from simple meshes.
 class Enemy : public GameObject
@@ -88,8 +87,6 @@ private:
     Attack m_NextAttack = Attack::Punch;
     bool m_LeftHand = true;
     float m_AttackTime = 0.0f;
-    std::uint64_t m_attackHitId = 0;
-    void submitAttackHit(Player& player, float previousTime, const Vector3& previousPosition);
     float m_PunchCooldown = 0.0f;
     float m_attackCooldown = 0.0f;
     bool m_ChargeBlocked = false;
@@ -98,7 +95,6 @@ private:
 
     float AttackPose(float ready, float strike) const;
     float JumpHeight() const;
-    bool MoveOnGround(const Vector3& displacement, const Player* player);
     void DrawPart(const Vector3& scale, const DirectX::XMMATRIX& transform,
         const DirectX::XMFLOAT4& color, bool shockwave = false);
     void VisitBodyParts(const std::function<void(const Vector3&, const DirectX::XMMATRIX&,
