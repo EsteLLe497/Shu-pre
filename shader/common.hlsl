@@ -19,6 +19,23 @@ cbuffer CameraBuffer : register(b5)
 	float4 CameraPosition;
 }
 
+cbuffer ObjectOpacityBuffer : register(b11)
+{
+    float ObjectFade;
+}
+
+float objectOpacity()
+{
+    return 1.0f - ObjectFade;
+}
+
+struct UNLIT_PS_IN
+{
+    float4 Position : SV_POSITION;
+    float4 Diffuse : COLOR0;
+    float2 TexCoord : TEXCOORD0;
+};
+
 
 
 

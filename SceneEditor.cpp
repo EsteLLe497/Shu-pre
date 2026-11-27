@@ -7,6 +7,7 @@
 #include "SceneEditor.h"
 #include "SceneAudio.h"
 #include "MeshField.h"
+#include "Wave.h"
 #include "Player.h"
 #include "Enemy.h"
 #include "Box.h"
@@ -35,7 +36,7 @@ namespace
     constexpr char layoutPath[] = "asset/scene-layout.txt";
     constexpr char temporaryPath[] = "asset/scene-layout.txt.tmp";
     constexpr size_t maxObjects = 512;
-    constexpr int layoutVersion = 8;
+    constexpr int layoutVersion = 10;
     constexpr size_t maxPrefabs = 128;
 
     enum class Kind { Player, Enemy, Boss, Box, Grass, Particle, Model };
@@ -64,6 +65,8 @@ namespace
         std::array<MotionTrack, playerMotionCount> motions;
         Enemy::AttackSettings attack = Enemy::defaultAttackSettings(kind == Kind::Boss);
         std::string prefab;
+        bool alphaBlend = false;
+        float opacity = 1.0f;
     };
     struct Entry
     {
@@ -126,6 +129,21 @@ namespace
     int selected = -1;
     bool open = false;
     bool terrainMode = false;
+    Wave waterRenderer;
+    Wave::Layout water;
+    Wave::River riverDefaults;
+    bool waterMode = false;
+    int waterTool = 0;
+    const char* basinMessage = nullptr;
+    int selectedRiver = -1;
+    float waterBrushRadius = 4.0f;
+    bool waterStroke = false;
+    bool waterUndoRecorded = false;
+    std::optional<Vector3> previousWaterHit;
+    std::vector<XMFLOAT2> riverDraft;
+    int riverPoint = -1;
+    bool riverDragging = false;
+    bool riverMovementRecorded = false;
     bool gridSnap = false;
     float gridStep = 1.0f;
     int brushMode = 0;
@@ -161,7 +179,7 @@ namespace
         { u8"衝撃波の最大半径", &Enemy::AttackSettings::shockwaveRadius, 0.1f, 30.0f, true },
     };
 
-    enum class UndoKind { Modify, Add, Remove, Terrain, Audio, Prefab };
+    enum class UndoKind { Modify, Add, Remove, Terrain, Audio, Prefab, Water, Appearance };
     using PlacementChanges = std::vector<std::pair<size_t, Placement>>;
     struct PrefabEdit
     {
@@ -177,6 +195,7 @@ namespace
         std::unique_ptr<MeshField::Heights> heights;
         SceneAudio::Setting audio;
         std::unique_ptr<PrefabEdit> prefab;
+        std::unique_ptr<Wave::Layout> water;
     };
     std::deque<EditRecord> history;
     bool audioPanel = false;
@@ -199,6 +218,25 @@ namespace
         constexpr size_t limit = 64;
         if (history.size() == limit) history.pop_front();
         history.push_back(std::move(edit));
+    }
+
+    void rememberWater()
+    {
+        EditRecord edit{ UndoKind::Water };
+        edit.water = std::make_unique<Wave::Layout>(water);
+        remember(std::move(edit));
+    }
+
+    void stopWaterEdit()
+    {
+        basinMessage = nullptr;
+        waterStroke = false;
+        waterUndoRecorded = false;
+        previousWaterHit.reset();
+        riverDraft.clear();
+        riverPoint = -1;
+        riverDragging = false;
+        riverMovementRecorded = false;
     }
 
     struct AxisDrag
@@ -292,6 +330,7 @@ namespace
         entry.object->SetPosition(t.position);
         entry.object->SetRotation(t.rotation);
         entry.object->SetScale(t.scale);
+        entry.object->setAlphaBlend(entry.placement.alphaBlend, entry.placement.opacity);
         if (isEnemy(entry.placement.kind))
         {
             auto* enemy = static_cast<Enemy*>(entry.object);
@@ -568,6 +607,13 @@ namespace
             }
         }
         if (version >= 8 && enemy && !(input >> std::quoted(placement.prefab))) return false;
+        if (version >= 10)
+        {
+            int alpha = 0;
+            if (!(input >> alpha >> placement.opacity) || (alpha != 0 && alpha != 1)
+                || !(placement.opacity >= 0.0f && placement.opacity <= 1.0f)) return false;
+            placement.alphaBlend = alpha != 0;
+        }
         return true;
     }
 
@@ -602,6 +648,7 @@ namespace
             output << '\n';
             if (version >= 8) output << std::quoted(p.prefab) << '\n';
         }
+        if (version >= 10) output << p.alphaBlend << ' ' << p.opacity << '\n';
     }
 
     bool loadLayout()
@@ -644,9 +691,9 @@ namespace
             {
                 std::string name;
                 Placement definition{};
-                // A definition has no link of its own. It uses the version 7 placement fields.
+                // Older prefab definitions use the version 7 placement fields.
                 if (!(input >> std::quoted(name)) || !validPrefabName(name)
-                    || !readPlacement(input, 7, definition) || !isEnemy(definition.kind)
+                    || !readPlacement(input, version >= 10 ? 10 : 7, definition) || !isEnemy(definition.kind)
                     || !loadedPrefabs.emplace(std::move(name), std::move(definition)).second) return false;
             }
             for (const auto& placement : placements)
@@ -656,6 +703,8 @@ namespace
                 if (found == loadedPrefabs.end() || found->second.kind != placement.kind) return false;
             }
         }
+        Wave::Layout loadedWater;
+        if (version >= 9 && !loadedWater.read(input)) return false;
 
         for (const auto& placement : placements)
         {
@@ -671,6 +720,10 @@ namespace
         std::rotate(entries.begin(), entries.end() - 1, entries.end());
         terrain->setHeights(heights);
         prefabs.swap(loadedPrefabs);
+        water = std::move(loadedWater);
+        selectedRiver = -1;
+        stopWaterEdit();
+        waterRenderer.invalidate();
         return true;
     }
 
@@ -678,7 +731,15 @@ namespace
     {
         std::ofstream output(temporaryPath, std::ios::trunc);
         if (!output) return false;
-        const int version = prefabs.empty() ? 7 : layoutVersion;
+        const auto hasAppearance = [](const Placement& placement)
+        {
+            return placement.alphaBlend || placement.opacity != 1.0f;
+        };
+        const bool editsAppearance = std::any_of(entries.begin(), entries.end(),
+            [&](const Entry& entry) { return hasAppearance(entry.placement); })
+            || std::any_of(prefabs.begin(), prefabs.end(),
+                [&](const auto& prefab) { return hasAppearance(prefab.second); });
+        const int version = editsAppearance ? 10 : water.edited() ? 9 : prefabs.empty() ? 7 : 8;
         output << "SceneLayout " << version << ' ' << entries.size() << ' ' << MeshField::GridSize << '\n';
         output << std::setprecision(std::numeric_limits<float>::max_digits10);
         for (const auto& entry : entries) writePlacement(output, entry.placement, version);
@@ -691,9 +752,10 @@ namespace
             for (const auto& [name, definition] : prefabs)
             {
                 output << std::quoted(name) << '\n';
-                writePlacement(output, definition, 7);
+                writePlacement(output, definition, version >= 10 ? 10 : 7);
             }
         }
+        if (version >= 9) water.write(output);
         output.close();
         return output && MoveFileExA(temporaryPath, layoutPath, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
     }
@@ -873,6 +935,15 @@ namespace
             applyMotion(entries[edit.index]);
             select(static_cast<int>(edit.index));
             break;
+        case UndoKind::Appearance:
+        {
+            auto& entry = entries[edit.index];
+            entry.placement.alphaBlend = edit.previous.alphaBlend;
+            entry.placement.opacity = edit.previous.opacity;
+            entry.object->setAlphaBlend(entry.placement.alphaBlend, entry.placement.opacity);
+            select(static_cast<int>(edit.index));
+            break;
+        }
         case UndoKind::Add:
             stopMotionPreview();
             entries[edit.index].object->SetDestory();
@@ -890,6 +961,12 @@ namespace
             break;
         case UndoKind::Terrain:
             terrain->setHeights(*edit.heights);
+            break;
+        case UndoKind::Water:
+            water = *edit.water;
+            if (selectedRiver >= static_cast<int>(water.rivers.size())) selectedRiver = -1;
+            stopWaterEdit();
+            waterRenderer.invalidate();
             break;
         case UndoKind::Audio:
         {
@@ -929,12 +1006,12 @@ namespace
         status = u8"直前の編集を取り消しました。";
     }
 
-    bool recordNumeric(bool changed, const Placement& before)
+    bool recordNumeric(bool changed, const Placement& before, UndoKind kind = UndoKind::Modify)
     {
         if (ImGui::IsItemActivated()) numericRecorded = false;
         if (changed && !numericRecorded)
         {
-            remember({ UndoKind::Modify, static_cast<size_t>(selected), before });
+            remember({ kind, static_cast<size_t>(selected), before });
             numericRecorded = true;
         }
         if (ImGui::IsItemDeactivated()) numericRecorded = false;
@@ -1444,6 +1521,8 @@ namespace
             {
                 prefabToPlace = prefabChoice;
                 terrainMode = false;
+                waterMode = false;
+                stopWaterEdit();
                 drag.axis = -1;
             }
             ImGui::EndDisabled();
@@ -1476,6 +1555,153 @@ namespace
         }
         ImGui::End();
         if (!prefabPanel) prefabToPlace.clear();
+    }
+
+    void waterValue(const char* label, float& value, float step, float min, float max,
+        bool record = true, bool rebuild = true)
+    {
+        float next = value;
+        const bool changed = ImGui::DragFloat(label, &next, step, min, max, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+        if (ImGui::IsItemActivated()) numericRecorded = false;
+        if (changed && std::isfinite(next))
+        {
+            if (record && !numericRecorded)
+            {
+                rememberWater();
+                numericRecorded = true;
+            }
+            value = next;
+            if (rebuild) waterRenderer.invalidate();
+        }
+        if (ImGui::IsItemDeactivated()) numericRecorded = false;
+    }
+
+    void finishRiver()
+    {
+        auto river = riverDefaults;
+        river.points = riverDraft;
+        if (water.rivers.size() >= Wave::MaxRivers)
+        {
+            status = u8"これ以上は川を追加できません。";
+            return;
+        }
+        if (!river.valid())
+        {
+            status = u8"位置が離れた点を2つ以上指定してください。";
+            return;
+        }
+        rememberWater();
+        water.rivers.push_back(std::move(river));
+        selectedRiver = static_cast<int>(water.rivers.size()) - 1;
+        stopWaterEdit();
+        waterRenderer.invalidate();
+        status = u8"川を配置しました。";
+    }
+
+    void editWater()
+    {
+        if (ImGui::Combo(u8"水域ツール", &waterTool, u8"池を塗る\0池を消す\0川を配置・編集\0くぼみを満たす\0"))
+            stopWaterEdit();
+        bool blend = water.alphaBlend;
+        if (ImGui::Checkbox(u8"アルファブレンド", &blend))
+        {
+            rememberWater();
+            water.alphaBlend = blend;
+        }
+        ImGui::BeginDisabled(!water.alphaBlend);
+        waterValue(u8"不透明度", water.opacity, 0.01f, 0.0f, 1.0f, true, false);
+        ImGui::EndDisabled();
+        waterValue(u8"反射の強さ", water.reflection, 0.01f, 0.0f, 1.0f, true, false);
+        ImGui::TextWrapped(u8"Q で下降  E で上昇");
+        if (waterTool != 2)
+        {
+            waterValue(u8"池の水位", water.pondHeight, 0.05f, -30.0f, 30.0f);
+            if (waterTool == 3)
+            {
+                ImGui::TextWrapped(u8"水位を底と岸の間に設定し、くぼみの底を左クリックします。Shift＋左クリックでその池を取り除けます。");
+                if (!water.basins.empty() && ImGui::Button(u8"くぼみに入れた水をすべて除去"))
+                {
+                    rememberWater();
+                    water.basins.clear();
+                    basinMessage = nullptr;
+                    waterRenderer.invalidate();
+                }
+                if (basinMessage) ImGui::TextWrapped("%s", basinMessage);
+            }
+            else
+            {
+                waterValue(u8"ブラシ半径", waterBrushRadius, 0.1f, 1.0f, 25.0f, false, false);
+                ImGui::TextWrapped(u8"地面をドラッグして範囲を指定します。水面は水位より低い地形に沿います。");
+            }
+            return;
+        }
+
+        const auto riverName = [](int index)
+        {
+            return index < 0 ? std::string(u8"新しい川") : u8"川 " + std::to_string(index + 1);
+        };
+        if (ImGui::BeginCombo(u8"川を選択", riverName(selectedRiver).c_str()))
+        {
+            for (int i = -1; i < static_cast<int>(water.rivers.size()); ++i)
+                if (ImGui::Selectable(riverName(i).c_str(), selectedRiver == i))
+                {
+                    selectedRiver = i;
+                    stopWaterEdit();
+                }
+            ImGui::EndCombo();
+        }
+        const bool existing = selectedRiver >= 0;
+        auto& river = existing ? water.rivers[selectedRiver] : riverDefaults;
+        waterValue(u8"川幅", river.width, 0.1f, 0.5f, 40.0f, existing, existing);
+        waterValue(u8"川の水位", river.height, 0.05f, -30.0f, 30.0f, existing, existing);
+        waterValue(u8"流速", river.speed, 0.05f, 0.0f, 12.0f, existing, existing);
+        if (existing)
+        {
+            if (ImGui::Button(u8"流れを反転"))
+            {
+                rememberWater();
+                std::reverse(river.points.begin(), river.points.end());
+                if (riverPoint >= 0) riverPoint = static_cast<int>(river.points.size()) - 1 - riverPoint;
+                waterRenderer.invalidate();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button(u8"川を削除"))
+            {
+                rememberWater();
+                water.rivers.erase(water.rivers.begin() + selectedRiver);
+                selectedRiver = -1;
+                stopWaterEdit();
+                waterRenderer.invalidate();
+                return;
+            }
+            ImGui::BeginDisabled(riverPoint < 0 || river.points.size() <= 2);
+            if (ImGui::Button(u8"選択点を削除"))
+            {
+                auto next = river;
+                next.points.erase(next.points.begin() + riverPoint);
+                if (next.valid())
+                {
+                    rememberWater();
+                    river = std::move(next);
+                    riverPoint = -1;
+                    waterRenderer.invalidate();
+                }
+            }
+            ImGui::EndDisabled();
+            ImGui::TextWrapped(u8"点をドラッグして形を変更します。Shift＋左クリックで下流に点を追加します。");
+        }
+        else
+        {
+            ImGui::TextWrapped(u8"上流から順に点をクリックし、Enterで配置を確定します。");
+            ImGui::BeginDisabled(riverDraft.size() < 2);
+            if (ImGui::Button(u8"川を確定")) finishRiver();
+            ImGui::EndDisabled();
+            if (!riverDraft.empty())
+            {
+                ImGui::SameLine();
+                if (ImGui::Button(u8"最後の点を取り消す")) riverDraft.pop_back();
+            }
+        }
     }
 
     void inspector()
@@ -1524,8 +1750,24 @@ namespace
             }
             if (!status.empty()) ImGui::TextWrapped("%s", status.c_str());
             ImGui::Separator();
-            ImGui::Checkbox(u8"地形ブラシ", &terrainMode);
-            if (terrainMode)
+            if (ImGui::Checkbox(u8"地形ブラシ", &terrainMode) && terrainMode)
+            {
+                waterMode = false;
+                stopWaterEdit();
+            }
+            ImGui::SameLine();
+            if (ImGui::Checkbox(u8"ウォーターブラシ", &waterMode))
+            {
+                stopWaterEdit();
+                if (waterMode)
+                {
+                    terrainMode = false;
+                    painting = false;
+                    prefabToPlace.clear();
+                }
+            }
+            if (waterMode) editWater();
+            else if (terrainMode)
             {
                 ImGui::Combo(u8"ブラシ", &brushMode, u8"盛り上げる\0掘り下げる\0平らにする\0");
                 ImGui::SliderFloat(u8"半径", &radius, 2.5f, 25.0f);
@@ -1586,6 +1828,19 @@ namespace
                             t.scale = { scale[0], scale[1], scale[2] };
                     }
                     const bool enemy = isEnemy(entry.placement.kind);
+                    bool alphaBlend = entry.placement.alphaBlend;
+                    if (ImGui::Checkbox(u8"アルファブレンド", &alphaBlend))
+                    {
+                        remember({ UndoKind::Appearance, static_cast<size_t>(selected), entry.placement });
+                        entry.placement.alphaBlend = alphaBlend;
+                    }
+                    ImGui::BeginDisabled(!entry.placement.alphaBlend);
+                    float opacity = entry.placement.opacity * 100.0f;
+                    const bool opacityChanged = ImGui::SliderFloat(u8"不透明度", &opacity,
+                        0.0f, 100.0f, "%.0f%%", ImGuiSliderFlags_AlwaysClamp);
+                    if (recordNumeric(opacityChanged && std::isfinite(opacity), entry.placement, UndoKind::Appearance))
+                        entry.placement.opacity = opacity / 100.0f;
+                    ImGui::EndDisabled();
                     if (supportsPhysics(entry.placement.kind) || enemy)
                     {
                         const auto before = entry.placement;
@@ -1812,6 +2067,247 @@ namespace
         }
     }
 
+    void paintWaterStroke(const Vector3& hit)
+    {
+        auto before = waterUndoRecorded ? nullptr : std::make_unique<Wave::Layout>(water);
+        const auto start = previousWaterHit.value_or(hit);
+        const auto delta = hit - start;
+        const int steps = std::max(1, static_cast<int>(std::ceil(std::hypot(delta.x, delta.z)
+            / (waterBrushRadius * 0.5f))));
+        bool changed = false;
+        for (int i = 1; i <= steps; ++i)
+        {
+            const auto point = start + delta * (static_cast<float>(i) / steps);
+            changed = water.paintPond(point.x, point.z, waterBrushRadius, waterTool == 0) || changed;
+        }
+        previousWaterHit = hit;
+        if (!changed) return;
+        if (before)
+        {
+            EditRecord edit{ UndoKind::Water };
+            edit.water = std::move(before);
+            remember(std::move(edit));
+            waterUndoRecorded = true;
+        }
+        waterRenderer.invalidate();
+    }
+
+    void drawRiverGuide(const Wave::River& river, FXMMATRIX vp, const ImVec2& size, ImDrawList& overlay)
+    {
+        const auto sections = river.sections();
+        if (sections.empty()) return;
+        const float half = river.width * 0.5f;
+        const auto projectSection = [&](const XMFLOAT2& point, ImVec2& screen)
+        {
+            return project({ point.x, river.height + .07f, point.y }, vp, size, screen);
+        };
+        const auto color = IM_COL32(88, 229, 255, 245);
+        const auto fill = IM_COL32(49, 201, 237, 42);
+        float nextArrow = std::min(4.0f, sections.back().distance * 0.45f);
+        for (size_t i = 0; i < sections.size(); ++i)
+        {
+            const auto& section = sections[i];
+            ImVec2 left, right;
+            if (!projectSection(section.across(-half), left) || !projectSection(section.across(half), right))
+                continue;
+            if (i > 0)
+            {
+                ImVec2 previousLeft, previousRight;
+                if (projectSection(sections[i - 1].across(-half), previousLeft)
+                    && projectSection(sections[i - 1].across(half), previousRight))
+                {
+                    // ImGui's filled shapes use clockwise screen winding for antialiasing.
+                    const float area = (right.x - left.x) * (previousLeft.y - left.y)
+                        - (right.y - left.y) * (previousLeft.x - left.x);
+                    const auto flags = overlay.Flags;
+                    overlay.Flags &= ~ImDrawListFlags_AntiAliasedFill;
+                    if (area >= 0) overlay.AddQuadFilled(left, right, previousRight, previousLeft, fill);
+                    else overlay.AddQuadFilled(left, previousLeft, previousRight, right, fill);
+                    overlay.Flags = flags;
+                    overlay.AddLine(previousLeft, left, color, 1.6f);
+                    overlay.AddLine(previousRight, right, color, 1.6f);
+                }
+            }
+            if (i == 0 || i + 1 == sections.size()) overlay.AddLine(left, right, color, 1.6f);
+            if (section.distance < nextArrow) continue;
+            ImVec2 center, ahead;
+            if (!projectSection(section.center, center)
+                || !projectSection({ section.center.x + section.tangent.x, section.center.y + section.tangent.y }, ahead))
+                continue;
+            const float dx = ahead.x - center.x, dy = ahead.y - center.y;
+            const float length = std::hypot(dx, dy);
+            if (length > 1.0f)
+            {
+                const float ux = dx / length, uy = dy / length;
+                overlay.AddTriangleFilled({ center.x + ux * 6, center.y + uy * 6 },
+                    { center.x - ux * 5 - uy * 4, center.y - uy * 5 + ux * 4 },
+                    { center.x - ux * 5 + uy * 4, center.y - uy * 5 - ux * 4 }, color);
+            }
+            nextArrow += 7.0f;
+        }
+    }
+
+    int drawRiverPoints(const std::vector<XMFLOAT2>& points, FXMMATRIX vp, const ImVec2& size, ImDrawList& overlay)
+    {
+        const ImVec2 mouse = ImGui::GetIO().MousePos;
+        int hovered = -1;
+        float nearest = 12.0f * 12.0f;
+        for (size_t i = 0; i < points.size(); ++i)
+        {
+            Vector3 point{ points[i].x, 0, points[i].y };
+            if (!terrain->tryGetHeight(point.x, point.z, point.y)) continue;
+            point.y += 0.10f;
+            ImVec2 screen;
+            if (!project(point, vp, size, screen)) continue;
+            const float dx = mouse.x - screen.x, dy = mouse.y - screen.y;
+            const float distance = dx * dx + dy * dy;
+            if (distance < nearest)
+            {
+                nearest = distance;
+                hovered = static_cast<int>(i);
+            }
+            overlay.AddCircleFilled(screen, 6.0f, IM_COL32(12, 30, 37, 230));
+            overlay.AddCircleFilled(screen, 4.0f, static_cast<int>(i) == riverPoint
+                ? IM_COL32(255, 179, 90, 255) : IM_COL32(88, 229, 255, 255));
+        }
+        return hovered;
+    }
+
+    bool appendRiverPoint(std::vector<XMFLOAT2>& points, const XMFLOAT2& point)
+    {
+        if (points.size() >= Wave::MaxRiverPoints || (!points.empty()
+            && std::hypot(point.x - points.back().x, point.y - points.back().y) < 0.5f)) return false;
+        points.push_back(point);
+        return true;
+    }
+
+    void waterViewport(bool overScene, FXMMATRIX vp, const ImVec2& size, ImDrawList& overlay)
+    {
+        const bool click = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
+        Vector3 hit{};
+        bool hasHit = overScene && terrainHit(viewRay(ImGui::GetIO().MousePos, size, vp), hit);
+        if (waterTool == 3)
+        {
+            if (!hasHit) return;
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+            {
+                const bool fill = !ImGui::GetIO().KeyShift;
+                auto before = std::make_unique<Wave::Layout>(water);
+                if (water.editBasin(*terrain, hit.x, hit.z, fill))
+                {
+                    EditRecord edit{ UndoKind::Water };
+                    edit.water = std::move(before);
+                    remember(std::move(edit));
+                    basinMessage = nullptr;
+                    waterRenderer.invalidate();
+                }
+                else
+                {
+                    basinMessage = fill
+                        ? u8"現在の水位で満たせる新しいくぼみがありません。水位と岸の高さを確認してください。"
+                        : u8"この位置に除去できるくぼみの水はありません。";
+                }
+            }
+            drawRangeRing(hit + Vector3{ 0, .06f, 0 }, .35f, hit.y < water.pondHeight
+                ? IM_COL32(88, 229, 255, 245) : IM_COL32(255, 160, 90, 245), 2.0f, vp, size, overlay);
+            return;
+        }
+        if (waterTool != 2)
+        {
+            if (click)
+            {
+                waterStroke = hasHit;
+                waterUndoRecorded = false;
+                previousWaterHit.reset();
+            }
+            if (!ImGui::IsMouseDown(ImGuiMouseButton_Left)) waterStroke = false;
+            if (!hasHit) { previousWaterHit.reset(); return; }
+            if (waterStroke) paintWaterStroke(hit);
+            drawRangeRing(hit + Vector3{ 0, .06f, 0 }, waterBrushRadius,
+                waterTool == 0 ? IM_COL32(88, 229, 255, 245) : IM_COL32(255, 160, 90, 245),
+                2.0f, vp, size, overlay);
+            return;
+        }
+        if (hasHit && gridSnap) hasHit = snapPlacementToGround(hit);
+        const XMFLOAT2 point{ hit.x, hit.z };
+        if (selectedRiver >= 0)
+        {
+            auto& river = water.rivers[selectedRiver];
+            drawRiverGuide(river, vp, size, overlay);
+            const int hovered = drawRiverPoints(river.points, vp, size, overlay);
+            if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
+            {
+                riverDragging = false;
+                riverMovementRecorded = false;
+            }
+            if (overScene && click)
+            {
+                if (hasHit && ImGui::GetIO().KeyShift)
+                {
+                    auto next = river;
+                    if (appendRiverPoint(next.points, point) && next.valid())
+                    {
+                        rememberWater();
+                        river = std::move(next);
+                        riverPoint = static_cast<int>(river.points.size()) - 1;
+                        waterRenderer.invalidate();
+                    }
+                }
+                else
+                {
+                    riverPoint = hovered;
+                    riverDragging = hovered >= 0;
+                    riverMovementRecorded = false;
+                }
+            }
+            if (riverDragging && hasHit && !click)
+            {
+                const auto previous = river.points[riverPoint];
+                if (std::hypot(previous.x - point.x, previous.y - point.y) >= 0.01f)
+                {
+                    auto next = river;
+                    next.points[riverPoint] = point;
+                    if (next.valid())
+                    {
+                        if (!riverMovementRecorded)
+                        {
+                            rememberWater();
+                            riverMovementRecorded = true;
+                        }
+                        river = std::move(next);
+                        waterRenderer.invalidate();
+                    }
+                }
+            }
+            return;
+        }
+
+        if (!ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive() && riverDraft.size() >= 2
+            && ImGui::IsKeyPressed(ImGuiKey_Enter, false))
+        {
+            finishRiver();
+            return;
+        }
+
+        auto preview = riverDefaults;
+        preview.points = riverDraft;
+        if (hasHit)
+        {
+            ImVec2 cursor;
+            if (project(hit, vp, size, cursor))
+                overlay.AddCircle(cursor, 5.0f, IM_COL32(88, 229, 255, 245), 16, 2.0f);
+            const bool appended = appendRiverPoint(preview.points, point);
+            if (click && appended) riverDraft.push_back(point);
+            else if (click && riverDraft.size() >= Wave::MaxRiverPoints)
+                status = u8"川に配置できる点は32個までです。";
+            if (preview.points.size() == 1)
+                drawRangeRing({ point.x, riverDefaults.height + .07f, point.y }, riverDefaults.width * 0.5f,
+                    IM_COL32(88, 229, 255, 210), 1.5f, vp, size, overlay);
+        }
+        drawRiverGuide(preview, vp, size, overlay);
+        drawRiverPoints(riverDraft, vp, size, overlay);
+    }
+
     void viewport()
     {
         auto& io = ImGui::GetIO();
@@ -1822,7 +2318,7 @@ namespace
         if (overScene && ImGui::IsMouseDown(ImGuiMouseButton_Right))
         {
             yaw = XMScalarModAngle(yaw - io.MouseDelta.x * 0.008f);
-            pitch = std::max(-0.15f, std::min(1.48f, pitch + io.MouseDelta.y * 0.008f));
+            pitch = std::max(waterMode ? -1.48f : -0.15f, std::min(1.48f, pitch + io.MouseDelta.y * 0.008f));
         }
         if (overScene && ImGui::IsMouseDown(ImGuiMouseButton_Middle))
         {
@@ -1836,11 +2332,12 @@ namespace
         {
             const float forward = float(ImGui::IsKeyDown(ImGuiKey_W)) - float(ImGui::IsKeyDown(ImGuiKey_S));
             const float right = float(ImGui::IsKeyDown(ImGuiKey_D)) - float(ImGui::IsKeyDown(ImGuiKey_A));
-            const float magnitude = hypotf(forward, right);
+            const float lift = waterMode ? float(ImGui::IsKeyDown(ImGuiKey_E)) - float(ImGui::IsKeyDown(ImGuiKey_Q)) : 0.0f;
+            const float magnitude = sqrtf(forward * forward + right * right + lift * lift);
             if (magnitude > 0.0f)
             {
                 const float speed = io.KeyShift ? 24.0f : 8.0f;
-                focus += (Vector3{ sinf(yaw), 0, cosf(yaw) } * forward
+                focus += (Vector3{ 0, lift, 0 } + Vector3{ sinf(yaw), 0, cosf(yaw) } * forward
                     + Vector3{ cosf(yaw), 0, -sinf(yaw) } * right)
                     * (speed * std::min(io.DeltaTime, 0.05f) / magnitude);
             }
@@ -1852,6 +2349,13 @@ namespace
         const XMMATRIX vp = view * projection;
         auto* overlay = ImGui::GetBackgroundDrawList();
         if (gridSnap && !terrainMode) drawPlacementGrid(vp, size, *overlay);
+
+        if (waterMode)
+        {
+            drag.axis = -1;
+            waterViewport(overScene, vp, size, *overlay);
+            return;
+        }
 
         if (!prefabToPlace.empty())
         {
@@ -2127,6 +2631,14 @@ void SceneEditor::shutdown()
     terrain = nullptr;
     open = false;
     terrainMode = false;
+    water = {};
+    waterRenderer.reset();
+    riverDefaults = {};
+    waterMode = false;
+    waterTool = 0;
+    selectedRiver = -1;
+    waterBrushRadius = 4.0f;
+    stopWaterEdit();
     showHurtboxes = false;
     showAttackRanges = false;
     activeHurtbox = 0;
@@ -2155,6 +2667,7 @@ void SceneEditor::close()
 {
     if (!open) return;
     stopMotionPreview();
+    stopWaterEdit();
     prefabToPlace.clear();
     playModeRequested = false;
     drag.axis = -1;
@@ -2188,6 +2701,7 @@ void SceneEditor::processPlayMode()
 
     const auto orbit = Manager::GetGameObj<Camera>()->orbitSettings();
     stopMotionPreview();
+    stopWaterEdit();
     if (!Manager::beginEditorPlay()) return;
     editWorld.emplace(EditWorld{ player, terrain, {} });
     entries.swap(editWorld->entries);
@@ -2223,6 +2737,12 @@ void SceneEditor::drawPlayMode()
         | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoSavedSettings;
     if (ImGui::Begin("##editorPlayMode", nullptr, flags)) ImGui::TextUnformatted(label);
     ImGui::End();
+}
+
+void SceneEditor::drawWater(const Vector3& eye, FXMMATRIX viewProjection, float dt)
+{
+    if (!terrain) return;
+    waterRenderer.draw(water, *terrain, eye, viewProjection, dt);
 }
 
 bool SceneEditor::cameraMatrices(Vector3& eye, XMMATRIX& view, XMMATRIX& projection)

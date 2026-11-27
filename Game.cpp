@@ -8,7 +8,6 @@
 #include "Camera.h"
 //#include "field.h"
 #include "MeshField.h"
-#include "Wave.h"
 #include "Player.h"
 #include "SceneAudio.h"
 #include "SceneEditor.h"
@@ -34,7 +33,6 @@ std::pair<Player*, MeshField*> Game::createWorld()
 	Manager::AddGameObj<Camera>();
 	//Manager::AddGameObj<field>();
 	MeshField* terrain = Manager::AddGameObj<MeshField>();
-	//Manager::AddGameObj<Wave>();
 	Manager::AddGameObj<SkyDome>();
 
 	Player* player = Manager::AddGameObj<Player>();

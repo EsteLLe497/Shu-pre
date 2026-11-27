@@ -47,13 +47,20 @@ constexpr float fieldHeight[21][21] =
 // =========================================================
 // 描画と同じ三角形を使って地形の高さを補間
 // =========================================================
+XMFLOAT4 MeshField::worldGrid() const
+{
+    const float stepX = m_Scale.x * cellSize, stepZ = -m_Scale.z * cellSize;
+    return { m_Position.x - gridCenter * stepX, m_Position.z - gridCenter * stepZ, stepX, stepZ };
+}
+
 bool MeshField::tryGetHeight(float worldX, float worldZ, float& height) const
 {
     if (m_Scale.x == 0.0f || m_Scale.z == 0.0f)
         return false;
 
-    const float gridX = (worldX - m_Position.x) / (m_Scale.x * cellSize) + gridCenter;
-    const float gridZ = gridCenter - (worldZ - m_Position.z) / (m_Scale.z * cellSize);
+    const auto grid = worldGrid();
+    const float gridX = (worldX - grid.x) / grid.z;
+    const float gridZ = (worldZ - grid.y) / grid.w;
     if (!(gridX >= 0.0f && gridX <= cellCount && gridZ >= 0.0f && gridZ <= cellCount))
         return false;
 
@@ -166,6 +173,7 @@ void MeshField::Init()
 }
 void MeshField::updateVertices()
 {
+    ++m_revision;
     std::vector<VERTEX_3D> vertices(vertexCount * vertexCount);
     const auto sample = [&](int x, int z) { return m_heights[z * vertexCount + x]; };
     for (int x = 0; x < vertexCount; ++x)

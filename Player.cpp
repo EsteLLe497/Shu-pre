@@ -434,7 +434,8 @@ void Player::Draw()
     m_AnimationModel->setModelYawOffset(XM_PI + m_toonShader.settings().modelYaw);
     m_toonShader.bindSurface();
     GameObject::Draw();
-    m_toonShader.drawOutline(*m_AnimationModel);
+    if (!usesAlphaBlend() || opacity() >= 1.0f)
+        m_toonShader.drawOutline(*m_AnimationModel);
 }
 
 // Draw translucent effects after world geometry so later objects cannot erase them.

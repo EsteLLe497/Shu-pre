@@ -54,6 +54,7 @@ private:
 	static ID3D11Buffer*			m_MaterialBuffer;
 	static ID3D11Buffer*			m_LightBuffer;
 	static ID3D11Buffer*			m_CameraBuffer;
+    static ID3D11Buffer*         m_ObjectOpacityBuffer;
 
 
 
@@ -82,6 +83,7 @@ public:
 	static void SetMaterial(MATERIAL Material);
 	static void SetLight(LIGHT Light);
 	static void SetCameraPosition(Vector3 camera);
+    static void SetObjectOpacity(float opacity);
 
 	static ID3D11ShaderResourceView* sceneDepth() { return m_sceneDepth; }
 	static ID3D11Device* GetDevice( void ){ return m_Device; }

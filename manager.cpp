@@ -16,6 +16,10 @@
 #include "PreviewScene.h"
 #include "planetarium.h"
 
+#include <algorithm>
+#include <vector>
+#include <wrl/client.h>
+
 std::list<GameObject*> Manager::m_GameObjects;
 std::list<GameObject*> Manager::m_EditObjects;
 Scene* Manager::m_Scene = nullptr;
@@ -27,6 +31,43 @@ float Manager::m_hitStopRemaining = 0.0f;
 namespace
 {
     bool previewWorkspace = false;
+
+    void drawAlphaObjects(std::vector<GameObject*>& objects, Camera* camera)
+    {
+        if (objects.empty()) return;
+        if (camera)
+        {
+            const auto view = camera->GetViewMatrix();
+            const auto depth = [&view](const GameObject* object)
+            {
+                const auto& position = object->GetPosition();
+                return XMVectorGetZ(XMVector3TransformCoord(XMVectorSet(position.x, position.y, position.z, 1.0f), view));
+            };
+            std::stable_sort(objects.begin(), objects.end(), [&depth](const GameObject* a, const GameObject* b)
+            {
+                return depth(a) > depth(b);
+            });
+        }
+
+        auto* context = Renderer::GetDeviceContext();
+        Microsoft::WRL::ComPtr<ID3D11BlendState> previousBlend;
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> previousDepth;
+        float blendFactor[4]{};
+        UINT sampleMask = 0, stencilRef = 0;
+        context->OMGetBlendState(&previousBlend, blendFactor, &sampleMask);
+        context->OMGetDepthStencilState(&previousDepth, &stencilRef);
+
+        Renderer::SetAddBlendEnable(false);
+        Renderer::SetDepthEnable(false); // Test against opaque geometry without writing depth.
+        for (auto* object : objects)
+        {
+            Renderer::SetObjectOpacity(object->opacity());
+            object->Draw();
+        }
+        Renderer::SetObjectOpacity(1.0f);
+        context->OMSetDepthStencilState(previousDepth.Get(), stencilRef);
+        context->OMSetBlendState(previousBlend.Get(), blendFactor, sampleMask);
+    }
 
     void clearObjects(std::list<GameObject*>& objects)
     {
@@ -203,25 +244,32 @@ void Manager::Draw()
 			});
 	}
 
+	std::vector<GameObject*> alphaObjects;
 	for (int layer = 0; layer < 5; layer++)
 	{
         // UIはドームの色や遮蔽の影響を受けない。
         if (layer == 4)
         {
+            drawAlphaObjects(alphaObjects, camera);
+            if (camera) SceneEditor::drawWater(camera->renderPosition(),
+                camera->GetViewMatrix() * camera->projectionMatrix(),
+                ToonPanel::isPauseMenuOpen() ? 0.0f : m_animationDeltaSeconds);
             if (auto* player = GetGameObj<Player>())
                 player->drawEffects();
         }
         if (editing && layer == 4) continue;
         if (layer == 4 && camera)
             planetarium::draw(camera->GetViewMatrix(), camera->projectionMatrix());
-		for (GameObject* obj : m_GameObjects) {
-			if (obj->GetLayer() == layer)
-			{
-				if (obj != nullptr) {
-					obj->Draw();
-				}
-			}
-		}
+        for (auto* object : m_GameObjects)
+        {
+            if (!object || object->GetLayer() != layer) continue;
+            if (layer > 0 && layer < 4 && object->usesAlphaBlend())
+            {
+                if (object->opacity() > 0.0f) alphaObjects.push_back(object);
+            }
+            else
+                object->Draw();
+        }
 	}
     for (auto* enemy : GetGameObjs<Enemy>()) enemy->drawHealthBar();
     if (editing) SceneEditor::draw();

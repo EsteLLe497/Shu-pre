@@ -19,6 +19,8 @@ ID3D11Buffer*			Renderer::m_MaterialBuffer{};
 ID3D11Buffer*			Renderer::m_LightBuffer{};
 ID3D11Buffer*			Renderer::m_CameraBuffer{};
 
+ID3D11Buffer*           Renderer::m_ObjectOpacityBuffer{};
+
 ID3D11DepthStencilState* Renderer::m_DepthStateEnable{};
 ID3D11DepthStencilState* Renderer::m_DepthStateDisable{};
 
@@ -240,6 +242,12 @@ void Renderer::Init()
 	m_DeviceContext->VSSetConstantBuffers(5, 1, &m_CameraBuffer);
 	m_DeviceContext->PSSetConstantBuffers(5, 1, &m_CameraBuffer);
 
+    const XMFLOAT4 initialFade{};
+    D3D11_SUBRESOURCE_DATA opacityData{};
+    opacityData.pSysMem = &initialFade;
+    m_Device->CreateBuffer(&bufferDesc, &opacityData, &m_ObjectOpacityBuffer);
+    m_DeviceContext->PSSetConstantBuffers(11, 1, &m_ObjectOpacityBuffer);
+
 
 
 	// ƒ‰ƒCƒg‰Šú‰»
@@ -273,6 +281,8 @@ void Renderer::Uninit()
 	m_ProjectionBuffer->Release();
 	m_LightBuffer->Release();
 	m_MaterialBuffer->Release();
+    if (m_ObjectOpacityBuffer) m_ObjectOpacityBuffer->Release();
+    m_ObjectOpacityBuffer = nullptr;
 
 
 	m_DeviceContext->ClearState();
@@ -376,6 +386,13 @@ void Renderer::SetProjectionMatrix(XMMATRIX ProjectionMatrix)
 void Renderer::SetMaterial( MATERIAL Material )
 {
 	m_DeviceContext->UpdateSubresource( m_MaterialBuffer, 0, NULL, &Material, 0, 0 );
+}
+
+void Renderer::SetObjectOpacity(float opacity)
+{
+    if (!m_ObjectOpacityBuffer) return;
+    const XMFLOAT4 fade{ 1.0f - opacity, 0, 0, 0 };
+    m_DeviceContext->UpdateSubresource(m_ObjectOpacityBuffer, 0, nullptr, &fade, 0, 0);
 }
 
 void Renderer::SetLight( LIGHT Light )
