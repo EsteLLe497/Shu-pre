@@ -44,6 +44,8 @@ void Game::Init()
     const auto world = createWorld();
     SceneAudio::init();
     SceneEditor::init(*world.first, *world.second);
+    // 一人称の開始方向をマップに保存されたプレイヤーの向きに合わせる。
+    Manager::GetGameObj<Camera>()->orbitSettings().yaw = world.first->GetRotation().y;
 }
 
 
