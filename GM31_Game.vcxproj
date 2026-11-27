@@ -12,6 +12,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Heroine.cpp" />
+    <ClCompile Include="HeroineMovement.cpp" />
+    <ClCompile Include="HeroineLookAt.cpp" />
+    <ClInclude Include="HeroineLookAt.h" />
+    <ClInclude Include="BonePoseRotation.h" />
+    <ClCompile Include="DebugPanel.cpp" />
+    <ClInclude Include="HeroineMovement.h" />
+    <ClInclude Include="DebugPanel.h" />
     <ClCompile Include="HeroineAnimationAssets.cpp" />
     <ClInclude Include="Heroine.h" />
     <ClInclude Include="HeroineActionSet.h" />

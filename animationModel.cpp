@@ -9,6 +9,7 @@
 #include <wrl/client.h>
 #include "ActionSequence.h"
 #include "assimp/config.h"
+#include "BonePoseRotation.h"
 
 // =========================================================
 // キー時刻の前後を二分探索し、途中の姿勢を補間
@@ -629,6 +630,8 @@ void AnimationModel::CreateBone(aiNode* node)
 		delete[] m_DeformVertex;
 
 
+        m_poseModifier = {};
+        m_poseRestore.clear();
         m_opaqueParts.clear();
         m_transparentParts.clear();
         for (const auto& entry : m_textures)
@@ -755,7 +758,43 @@ void AnimationModel::applyPose(const aiAnimation& animation, double tick, RootTr
     }
 
     // FBXのボーンオフセットを使ってスキニング行列を求める。
+    refreshPose();
+}
+
+void AnimationModel::refreshPose()
+{
+    if (!m_AiScene) return;
+    m_poseRestore.clear();
+    if (m_poseModifier) m_poseModifier(*this);
     uploadPose();
+    // Keep FK for the next transition; do not accumulate the procedural correction.
+    for (const auto& original : m_poseRestore) original.first->AnimationMatrix = original.second;
+    m_poseRestore.clear();
+}
+
+bool AnimationModel::boneModelTransform(const char* name, aiMatrix4x4& transform) const
+{
+    if (!m_AiScene || !name) return false;
+    const auto* node = m_AiScene->mRootNode->FindNode(name);
+    if (!node) return false;
+    aiMatrix4x4 unit;
+    unit.a1 = unit.b2 = unit.c3 = m_skeletonUnitScale;
+    transform = unit * poseMatrix(node);
+    return true;
+}
+
+bool AnimationModel::rotateBoneModelSpace(const char* name, const aiMatrix4x4& rotation)
+{
+    if (!m_AiScene || !name) return false;
+    const auto* node = m_AiScene->mRootNode->FindNode(name);
+    const auto found = m_Bone.find(name);
+    if (!node || found == m_Bone.end()) return false;
+    auto& bone = found->second;
+    if (std::none_of(m_poseRestore.begin(), m_poseRestore.end(), [&bone](const auto& value) { return value.first == &bone; }))
+        m_poseRestore.emplace_back(&bone, bone.AnimationMatrix);
+    const auto parent = poseMatrix(node->mParent);
+    bone.AnimationMatrix = BonePoseRotation::apply(parent, bone.AnimationMatrix, rotation);
+    return true;
 }
 
 void AnimationModel::applyBindPose()

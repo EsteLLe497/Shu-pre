@@ -11,6 +11,7 @@
 #include "ToonPanel.h"
 #include "Camera.h"
 #include "ToonPreset.h"
+#include "DebugPanel.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_dx11.h"
 #include "imgui/imgui_impl_win32.h"
@@ -209,6 +210,7 @@ void ToonPanel::uninit()
     ImGui::DestroyContext();
     panelOpen = false;
     pauseMenuOpen = false;
+    DebugPanel::close();
 }
 
 
@@ -217,7 +219,7 @@ void ToonPanel::uninit()
 
 bool ToonPanel::isOpen()
 {
-    return panelOpen || previewWorkspace || pauseMenuOpen || SceneEditor::isOpen();
+    return panelOpen || previewWorkspace || pauseMenuOpen || SceneEditor::isOpen() || DebugPanel::isOpen();
 }
 
 bool ToonPanel::isPauseMenuOpen()
@@ -245,6 +247,8 @@ LRESULT ToonPanel::handleMessage(HWND window, UINT message, WPARAM wParam, LPARA
                 SceneEditor::close();
             else if (panelOpen)
                 panelOpen = false;
+            else if (DebugPanel::isOpen())
+                DebugPanel::close();
             else if (SceneEditor::isPlaying())
                 SceneEditor::toggle();
             else
@@ -255,7 +259,7 @@ LRESULT ToonPanel::handleMessage(HWND window, UINT message, WPARAM wParam, LPARA
         return 1;
     }
     if (!previewWorkspace && message == WM_KEYDOWN
-        && (wParam == VK_F1 || (wParam == VK_F2 && SceneEditor::isAvailable())))
+        && (wParam == VK_F1 || ((wParam == VK_F2 || wParam == VK_F3) && SceneEditor::isAvailable())))
     {
         if (pauseMenuOpen) return 1;
         if ((lParam & previousKeyState) == 0)
@@ -263,10 +267,18 @@ LRESULT ToonPanel::handleMessage(HWND window, UINT message, WPARAM wParam, LPARA
             if (wParam == VK_F2)
             {
                 panelOpen = false;
+                DebugPanel::close();
                 SceneEditor::toggle();
+            }
+            else if (wParam == VK_F3)
+            {
+                panelOpen = false;
+                SceneEditor::close();
+                DebugPanel::toggle();
             }
             else
             {
+                DebugPanel::close();
                 SceneEditor::close();
                 panelOpen = !panelOpen;
             }
@@ -295,6 +307,7 @@ void ToonPanel::beginFrame()
         io.DisplayFramebufferScale = ImVec2(SCREEN_WIDTH / io.DisplaySize.x, SCREEN_HEIGHT / io.DisplaySize.y);
 
     ImGui::NewFrame();
+    if (!previewWorkspace && !pauseMenuOpen && !SceneEditor::isOpen()) DebugPanel::draw();
 }
 
 void ToonPanel::beginFrame(ToonSettings* settings, CameraOrbit* orbit)
@@ -335,6 +348,7 @@ void ToonPanel::editAppearance(ToonSettings& settings)
 
 void ToonPanel::draw()
 {
+    if (!previewWorkspace && !pauseMenuOpen && !SceneEditor::isOpen()) DebugPanel::drawWorldMarkers();
     drawPauseMenu();
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

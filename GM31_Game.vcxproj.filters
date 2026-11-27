@@ -2,6 +2,13 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="Heroine.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="HeroineMovement.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="HeroineLookAt.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClInclude Include="HeroineLookAt.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="BonePoseRotation.h"><Filter>Header Files</Filter></ClInclude>
+    <ClCompile Include="DebugPanel.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClInclude Include="HeroineMovement.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="DebugPanel.h"><Filter>Header Files</Filter></ClInclude>
     <ClCompile Include="HeroineAnimationAssets.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClInclude Include="Heroine.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="HeroineActionSet.h"><Filter>Header Files</Filter></ClInclude>
