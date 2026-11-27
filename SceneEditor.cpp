@@ -36,7 +36,7 @@ namespace
     constexpr char layoutPath[] = "asset/scene-layout.txt";
     constexpr char temporaryPath[] = "asset/scene-layout.txt.tmp";
     constexpr size_t maxObjects = 512;
-    constexpr int layoutVersion = 10;
+    constexpr int layoutVersion = 11;
     constexpr size_t maxPrefabs = 128;
 
     enum class Kind { Player, Enemy, Boss, Box, Grass, Particle, Model };
@@ -149,6 +149,7 @@ namespace
     int brushMode = 0;
     float radius = 5.0f;
     float strength = 4.0f;
+    float materialOpacity = 65.0f;
     float flattenHeight = 0.0f;
     Vector3 focus{ 0, 1, 6 };
     float yaw = 0.0f;
@@ -156,6 +157,7 @@ namespace
     float orbitDistance = 19.0f;
     bool painting = false;
     bool brushRecorded = false;
+    std::optional<Vector3> previousMaterialHit;
     bool numericRecorded = false;
     bool showHurtboxes = false;
     bool showAttackRanges = false;
@@ -179,7 +181,7 @@ namespace
         { u8"衝撃波の最大半径", &Enemy::AttackSettings::shockwaveRadius, 0.1f, 30.0f, true },
     };
 
-    enum class UndoKind { Modify, Add, Remove, Terrain, Audio, Prefab, Water, Appearance };
+    enum class UndoKind { Modify, Add, Remove, Terrain, Audio, Prefab, Water, Appearance, TerrainPaint };
     using PlacementChanges = std::vector<std::pair<size_t, Placement>>;
     struct PrefabEdit
     {
@@ -196,6 +198,7 @@ namespace
         SceneAudio::Setting audio;
         std::unique_ptr<PrefabEdit> prefab;
         std::unique_ptr<Wave::Layout> water;
+        std::unique_ptr<MeshField::MaterialPaint> materialPaint;
     };
     std::deque<EditRecord> history;
     bool audioPanel = false;
@@ -705,6 +708,8 @@ namespace
         }
         Wave::Layout loadedWater;
         if (version >= 9 && !loadedWater.read(input)) return false;
+        MeshField::MaterialPaint loadedPaint;
+        if (version >= 11 && !MeshField::readMaterialPaint(input, loadedPaint)) return false;
 
         for (const auto& placement : placements)
         {
@@ -719,6 +724,7 @@ namespace
             if (placement.kind == Kind::Player) spawn(placement);
         std::rotate(entries.begin(), entries.end() - 1, entries.end());
         terrain->setHeights(heights);
+        terrain->setMaterialPaint(std::move(loadedPaint));
         prefabs.swap(loadedPrefabs);
         water = std::move(loadedWater);
         selectedRiver = -1;
@@ -739,7 +745,8 @@ namespace
             [&](const Entry& entry) { return hasAppearance(entry.placement); })
             || std::any_of(prefabs.begin(), prefabs.end(),
                 [&](const auto& prefab) { return hasAppearance(prefab.second); });
-        const int version = editsAppearance ? 10 : water.edited() ? 9 : prefabs.empty() ? 7 : 8;
+        const int version = terrain->hasMaterialPaint() ? 11 : editsAppearance ? 10
+            : water.edited() ? 9 : prefabs.empty() ? 7 : 8;
         output << "SceneLayout " << version << ' ' << entries.size() << ' ' << MeshField::GridSize << '\n';
         output << std::setprecision(std::numeric_limits<float>::max_digits10);
         for (const auto& entry : entries) writePlacement(output, entry.placement, version);
@@ -756,6 +763,7 @@ namespace
             }
         }
         if (version >= 9) water.write(output);
+        if (version >= 11) terrain->writeMaterialPaint(output);
         output.close();
         return output && MoveFileExA(temporaryPath, layoutPath, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
     }
@@ -961,6 +969,11 @@ namespace
             break;
         case UndoKind::Terrain:
             terrain->setHeights(*edit.heights);
+            break;
+        case UndoKind::TerrainPaint:
+            terrain->setMaterialPaint(*edit.materialPaint);
+            painting = false;
+            previousMaterialHit.reset();
             break;
         case UndoKind::Water:
             water = *edit.water;
@@ -1750,10 +1763,15 @@ namespace
             }
             if (!status.empty()) ImGui::TextWrapped("%s", status.c_str());
             ImGui::Separator();
-            if (ImGui::Checkbox(u8"地形ブラシ", &terrainMode) && terrainMode)
+            if (ImGui::Checkbox(u8"地形ブラシ", &terrainMode))
             {
-                waterMode = false;
-                stopWaterEdit();
+                painting = false;
+                previousMaterialHit.reset();
+                if (terrainMode)
+                {
+                    waterMode = false;
+                    stopWaterEdit();
+                }
             }
             ImGui::SameLine();
             if (ImGui::Checkbox(u8"ウォーターブラシ", &waterMode))
@@ -1769,11 +1787,24 @@ namespace
             if (waterMode) editWater();
             else if (terrainMode)
             {
-                ImGui::Combo(u8"ブラシ", &brushMode, u8"盛り上げる\0掘り下げる\0平らにする\0");
+                if (ImGui::Combo(u8"ブラシ", &brushMode, u8"盛り上げる\0掘り下げる\0平らにする\0土を塗る\0草を塗る\0"))
+                {
+                    painting = false;
+                    previousMaterialHit.reset();
+                }
                 ImGui::SliderFloat(u8"半径", &radius, 2.5f, 25.0f);
-                ImGui::SliderFloat(u8"強さ", &strength, 0.5f, 15.0f);
-                if (brushMode == 2) ImGui::SliderFloat(u8"高さ", &flattenHeight, -30.0f, 30.0f);
-                ImGui::TextWrapped(u8"地面を左クリックしたままドラッグして地形を編集します。");
+                if (brushMode >= 3)
+                {
+                    ImGui::SliderFloat(u8"塗りの強さ", &materialOpacity, 0.0f, 100.0f, "%.0f%%",
+                        ImGuiSliderFlags_AlwaysClamp);
+                    ImGui::TextWrapped(u8"地面を左ドラッグして塗ります。ブラシの端は周囲になじみます。");
+                }
+                else
+                {
+                    ImGui::SliderFloat(u8"強さ", &strength, 0.5f, 15.0f);
+                    if (brushMode == 2) ImGui::SliderFloat(u8"高さ", &flattenHeight, -30.0f, 30.0f);
+                    ImGui::TextWrapped(u8"地面を左クリックしたままドラッグして地形を編集します。");
+                }
             }
             else
             {
@@ -2388,11 +2419,33 @@ namespace
             {
                 painting = overScene;
                 brushRecorded = false;
+                previousMaterialHit.reset();
             }
             if (!ImGui::IsMouseDown(ImGuiMouseButton_Left)) painting = false;
             Vector3 hit;
-            if (!overScene || !terrainHit(viewRay(io.MousePos, size, vp), hit)) return;
-            if (painting)
+            if (!overScene || !terrainHit(viewRay(io.MousePos, size, vp), hit))
+            {
+                previousMaterialHit.reset();
+                return;
+            }
+            if (painting && brushMode >= 3)
+            {
+                auto before = brushRecorded ? nullptr
+                    : std::make_unique<MeshField::MaterialPaint>(terrain->materialPaint());
+                const float dt = std::max(0.01f, std::min(0.05f, io.DeltaTime));
+                const float opacity = 1.0f - std::pow(1.0f - materialOpacity * 0.01f, dt * 30.0f);
+                const bool changed = terrain->paintMaterial(previousMaterialHit.value_or(hit),
+                    hit, radius, opacity, brushMode == 4);
+                previousMaterialHit = hit;
+                if (before && changed)
+                {
+                    EditRecord edit{ UndoKind::TerrainPaint };
+                    edit.materialPaint = std::move(before);
+                    remember(std::move(edit));
+                    brushRecorded = true;
+                }
+            }
+            else if (painting)
             {
                 auto before = brushRecorded ? nullptr : std::make_unique<MeshField::Heights>(terrain->heights());
                 const float amount = strength * std::min(0.05f, io.DeltaTime);
@@ -2413,7 +2466,9 @@ namespace
                 ImVec2 pixel;
                 const bool visible = terrain->tryGetHeight(point.x, point.z, point.y)
                     && project(point, vp, size, pixel);
-                if (visible && hasPrevious) overlay->AddLine(previous, pixel, IM_COL32(255, 206, 77, 255), 2.0f);
+                if (visible && hasPrevious)
+                    overlay->AddLine(previous, pixel, brushMode == 4
+                        ? IM_COL32(115, 235, 111, 255) : IM_COL32(255, 206, 77, 255), 2.0f);
                 if (visible) previous = pixel;
                 hasPrevious = visible;
             }
@@ -2712,6 +2767,7 @@ void SceneEditor::processPlayMode()
     player->toonSettings() = editWorld->player->toonSettings();
     Manager::GetGameObj<Camera>()->orbitSettings() = orbit;
     terrain->setHeights(editWorld->terrain->heights());
+    terrain->setMaterialPaint(editWorld->terrain->materialPaint());
     for (const auto& entry : editWorld->entries)
     {
         if (spawn(entry.placement)) continue;
