@@ -33,10 +33,11 @@
 namespace
 {
     namespace fs = std::filesystem;
-    constexpr char layoutPath[] = "asset/scene-layout.txt";
-    constexpr char temporaryPath[] = "asset/scene-layout.txt.tmp";
+    const char* layoutPath = "asset/scene-layout.txt";
+    const char* temporaryPath = "asset/scene-layout.txt.tmp";
     constexpr size_t maxObjects = 512;
-    constexpr int layoutVersion = 11;
+    constexpr int layoutVersion = 12;
+    constexpr size_t maxAmbientZones = 32;
     constexpr size_t maxPrefabs = 128;
 
     enum class Kind { Player, Enemy, Boss, Box, Grass, Particle, Model };
@@ -181,7 +182,7 @@ namespace
         { u8"衝撃波の最大半径", &Enemy::AttackSettings::shockwaveRadius, 0.1f, 30.0f, true },
     };
 
-    enum class UndoKind { Modify, Add, Remove, Terrain, Audio, Prefab, Water, Appearance, TerrainPaint };
+    enum class UndoKind { Modify, Add, Remove, Terrain, Audio, Prefab, Water, Appearance, TerrainPaint, Ambient };
     using PlacementChanges = std::vector<std::pair<size_t, Placement>>;
     struct PrefabEdit
     {
@@ -199,6 +200,7 @@ namespace
         std::unique_ptr<PrefabEdit> prefab;
         std::unique_ptr<Wave::Layout> water;
         std::unique_ptr<MeshField::MaterialPaint> materialPaint;
+        std::vector<SceneAudio::AmbientZone> ambient;
     };
     std::deque<EditRecord> history;
     bool audioPanel = false;
@@ -206,6 +208,12 @@ namespace
     std::vector<std::string> audioAssets;
     std::string audioStatus;
     bool audioVolumeRecorded = false;
+    std::vector<SceneAudio::AmbientZone> ambientZones;
+    int selectedAmbient = -1;
+    bool ambientPanel = false;
+    bool placingAmbient = false;
+    bool ambientDragRecorded = false;
+    std::string ambientStatus;
     bool motionPanel = false;
     int motionSlot = 0;
     float motionTime = 0.0f;
@@ -227,6 +235,13 @@ namespace
     {
         EditRecord edit{ UndoKind::Water };
         edit.water = std::make_unique<Wave::Layout>(water);
+        remember(std::move(edit));
+    }
+
+    void rememberAmbient()
+    {
+        EditRecord edit{ UndoKind::Ambient };
+        edit.ambient = ambientZones;
         remember(std::move(edit));
     }
 
@@ -654,6 +669,22 @@ namespace
         if (version >= 10) output << p.alphaBlend << ' ' << p.opacity << '\n';
     }
 
+    bool readAmbient(std::istream& input, std::vector<SceneAudio::AmbientZone>& zones)
+    {
+        std::string signature;
+        size_t count = 0;
+        if (!(input >> signature >> count) || signature != "AmbientZones" || count > maxAmbientZones)
+            return false;
+        const auto inRange = [](float value, float low, float high) { return value >= low && value <= high; };
+        zones.resize(count);
+        for (auto& zone : zones)
+            if (!(input >> std::quoted(zone.file) >> zone.x >> zone.z >> zone.radius >> zone.volume)
+                || !inRange(zone.x, -100.0f, 100.0f) || !inRange(zone.z, -100.0f, 100.0f)
+                || !inRange(zone.radius, 1.0f, 100.0f) || !inRange(zone.volume, 0.0f, 1.0f))
+                return false;
+        return true;
+    }
+
     bool loadLayout()
     {
         std::ifstream input(layoutPath);
@@ -710,6 +741,8 @@ namespace
         if (version >= 9 && !loadedWater.read(input)) return false;
         MeshField::MaterialPaint loadedPaint;
         if (version >= 11 && !MeshField::readMaterialPaint(input, loadedPaint)) return false;
+        std::vector<SceneAudio::AmbientZone> loadedAmbient;
+        if (version >= 12 && !readAmbient(input, loadedAmbient)) return false;
 
         for (const auto& placement : placements)
         {
@@ -727,6 +760,7 @@ namespace
         terrain->setMaterialPaint(std::move(loadedPaint));
         prefabs.swap(loadedPrefabs);
         water = std::move(loadedWater);
+        ambientZones = std::move(loadedAmbient);
         selectedRiver = -1;
         stopWaterEdit();
         waterRenderer.invalidate();
@@ -745,7 +779,7 @@ namespace
             [&](const Entry& entry) { return hasAppearance(entry.placement); })
             || std::any_of(prefabs.begin(), prefabs.end(),
                 [&](const auto& prefab) { return hasAppearance(prefab.second); });
-        const int version = terrain->hasMaterialPaint() ? 11 : editsAppearance ? 10
+        const int version = !ambientZones.empty() ? 12 : terrain->hasMaterialPaint() ? 11 : editsAppearance ? 10
             : water.edited() ? 9 : prefabs.empty() ? 7 : 8;
         output << "SceneLayout " << version << ' ' << entries.size() << ' ' << MeshField::GridSize << '\n';
         output << std::setprecision(std::numeric_limits<float>::max_digits10);
@@ -764,6 +798,13 @@ namespace
         }
         if (version >= 9) water.write(output);
         if (version >= 11) terrain->writeMaterialPaint(output);
+        if (version >= 12)
+        {
+            output << "AmbientZones " << ambientZones.size() << '\n';
+            for (const auto& zone : ambientZones)
+                output << std::quoted(zone.file) << ' ' << zone.x << ' ' << zone.z << ' '
+                    << zone.radius << ' ' << zone.volume << '\n';
+        }
         output.close();
         return output && MoveFileExA(temporaryPath, layoutPath, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
     }
@@ -980,6 +1021,12 @@ namespace
             if (selectedRiver >= static_cast<int>(water.rivers.size())) selectedRiver = -1;
             stopWaterEdit();
             waterRenderer.invalidate();
+            break;
+        case UndoKind::Ambient:
+            ambientZones = std::move(edit.ambient);
+            if (selectedAmbient >= static_cast<int>(ambientZones.size())) selectedAmbient = -1;
+            SceneAudio::stopAmbientPreview();
+            ambientStatus.clear();
             break;
         case UndoKind::Audio:
         {
@@ -1453,6 +1500,102 @@ namespace
         if (!motionPanel) stopMotionPreview();
     }
 
+    void drawAmbientPanel()
+    {
+        if (!ambientPanel) return;
+        ImGui::SetNextWindowPos({ 382, 14 }, ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize({ 390, 380 }, ImGuiCond_FirstUseEver);
+        if (ImGui::Begin(u8"環境音ゾーン", &ambientPanel))
+        {
+            ImGui::BeginDisabled(ambientZones.size() >= maxAmbientZones || placingAmbient);
+            if (ImGui::Button(u8"地面をクリックして追加")) placingAmbient = true;
+            ImGui::EndDisabled();
+            if (placingAmbient)
+            {
+                ImGui::SameLine();
+                if (ImGui::Button(u8"追加を取り消す")) placingAmbient = false;
+            }
+            ImGui::TextWrapped(u8"青い円の内側で再生し、端に向かって音量が小さくなります。");
+            const auto label = [&](int index)
+            {
+                const auto& file = ambientZones[index].file;
+                return std::to_string(index + 1) + "  " + (file.empty() ? std::string(u8"音声未設定")
+                    : fs::u8path(file).stem().u8string());
+            };
+            if (ImGui::BeginCombo(u8"ゾーン", selectedAmbient < 0 ? u8"選択なし" : label(selectedAmbient).c_str()))
+            {
+                for (int i = 0; i < static_cast<int>(ambientZones.size()); ++i)
+                    if (ImGui::Selectable(label(i).c_str(), i == selectedAmbient))
+                    {
+                        selectedAmbient = i;
+                        SceneAudio::stopAmbientPreview();
+                        ambientStatus.clear();
+                    }
+                ImGui::EndCombo();
+            }
+            if (selectedAmbient >= 0)
+            {
+                auto& zone = ambientZones[selectedAmbient];
+                if (ImGui::Button(u8"WAVを再検索")) scanAudio();
+                if (const auto file = chooseAsset(u8"環境音ファイル", zone.file.empty() ? u8"なし" : zone.file.c_str(),
+                        audioAssets, true); file && *file != zone.file)
+                {
+                    rememberAmbient();
+                    zone.file = *file;
+                    SceneAudio::stopAmbientPreview();
+                    ambientStatus.clear();
+                }
+                const auto dragValue = [&](const char* name, float& value, float speed, float low, float high)
+                {
+                    float next = value;
+                    const bool changed = ImGui::DragFloat(name, &next, speed, low, high, "%.2f",
+                        ImGuiSliderFlags_AlwaysClamp);
+                    if (ImGui::IsItemActivated()) ambientDragRecorded = false;
+                    if (changed)
+                    {
+                        if (!ambientDragRecorded) rememberAmbient();
+                        ambientDragRecorded = true;
+                        value = next;
+                    }
+                    if (ImGui::IsItemDeactivated()) ambientDragRecorded = false;
+                };
+                dragValue(u8"中心 X", zone.x, .25f, -100.0f, 100.0f);
+                dragValue(u8"中心 Z", zone.z, .25f, -100.0f, 100.0f);
+                dragValue(u8"聞こえる半径", zone.radius, .25f, 1.0f, 100.0f);
+                dragValue(u8"最大音量 (0–1)", zone.volume, .01f, 0.0f, 1.0f);
+                ImGui::BeginDisabled(zone.file.empty());
+                if (ImGui::Button(u8"試聴"))
+                    ambientStatus = SceneAudio::previewAmbient(zone) ? u8"最大音量で試聴中です。"
+                        : u8"このWAVを再生できませんでした。";
+                ImGui::EndDisabled();
+                ImGui::SameLine();
+                if (ImGui::Button(u8"試聴停止"))
+                {
+                    SceneAudio::stopAmbientPreview();
+                    ambientStatus.clear();
+                }
+                ImGui::SameLine();
+                if (ImGui::Button(u8"ゾーンを削除"))
+                {
+                    rememberAmbient();
+                    ambientZones.erase(ambientZones.begin() + selectedAmbient);
+                    selectedAmbient = -1;
+                    SceneAudio::stopAmbientPreview();
+                    ambientStatus.clear();
+                }
+            }
+            if (!ambientStatus.empty()) ImGui::TextWrapped("%s", ambientStatus.c_str());
+            ImGui::TextWrapped(u8"「配置を保存」でシーンに保存します。");
+        }
+        ImGui::End();
+        if (!ambientPanel)
+        {
+            placingAmbient = false;
+            SceneAudio::stopAmbientPreview();
+            ambientStatus.clear();
+        }
+    }
+
     void drawAudioPanel()
     {
         if (!audioPanel) return;
@@ -1744,8 +1887,25 @@ namespace
                 prefabPanel = !prefabPanel;
                 if (!prefabPanel) prefabToPlace.clear();
             }
+            ImGui::SameLine();
+            if (ImGui::Button(u8"環境音"))
+            {
+                ambientPanel = !ambientPanel;
+                if (ambientPanel)
+                {
+                    scanAudio();
+                    if (selectedAmbient < 0 && !ambientZones.empty()) selectedAmbient = 0;
+                }
+                else
+                {
+                    placingAmbient = false;
+                    SceneAudio::stopAmbientPreview();
+                    ambientStatus.clear();
+                }
+            }
             if (ImGui::Button(u8"配置を保存"))
-                status = saveLayout() ? u8"配置を asset/scene-layout.txt に保存しました。" : u8"シーンの配置を保存できませんでした。";
+                status = saveLayout() ? std::string(u8"配置を保存しました。\n") + layoutPath
+                    : u8"シーンの配置を保存できませんでした。";
             ImGui::SameLine();
             ImGui::BeginDisabled(history.empty());
             if (ImGui::Button(u8"元に戻す (Ctrl+Z)")) undo();
@@ -1979,7 +2139,7 @@ namespace
     }
 
     void drawRangeRing(const Vector3& origin, float radius, ImU32 color, float thickness,
-        FXMMATRIX vp, const ImVec2& size, ImDrawList& overlay)
+        FXMMATRIX vp, const ImVec2& size, ImDrawList& overlay, bool followTerrain = false)
     {
         if (radius <= 0.0f) return;
         ImVec2 previous{};
@@ -1987,9 +2147,11 @@ namespace
         for (int i = 0; i <= 48; ++i)
         {
             const float angle = i * XM_2PI / 48;
-            const auto point = origin + Vector3{ radius * cosf(angle), 0, radius * sinf(angle) };
+            auto point = origin + Vector3{ radius * cosf(angle), 0, radius * sinf(angle) };
+            const bool onTerrain = !followTerrain || terrain->tryGetHeight(point.x, point.z, point.y);
+            if (followTerrain) point.y += .12f;
             ImVec2 pixel;
-            const bool visible = project(point, vp, size, pixel);
+            const bool visible = onTerrain && project(point, vp, size, pixel);
             if (wasVisible && visible) overlay.AddLine(previous, pixel, color, thickness);
             if (visible) previous = pixel;
             wasVisible = visible;
@@ -2339,6 +2501,44 @@ namespace
         drawRiverPoints(riverDraft, vp, size, overlay);
     }
 
+    bool ambientViewport(bool overScene, FXMMATRIX vp, const ImVec2& size, ImDrawList& overlay)
+    {
+        if (!ambientPanel) return false;
+        const auto guide = [&](const SceneAudio::AmbientZone& zone, bool active)
+        {
+            Vector3 center{ zone.x, 0, zone.z };
+            terrain->tryGetHeight(center.x, center.z, center.y);
+            center.y += .12f;
+            const ImU32 color = active ? IM_COL32(88, 215, 255, 250) : IM_COL32(91, 166, 207, 135);
+            drawRangeRing(center, zone.radius, color, active ? 2.2f : 1.2f, vp, size, overlay, true);
+            ImVec2 pixel;
+            if (project(center, vp, size, pixel)) overlay.AddCircleFilled(pixel, active ? 5.0f : 3.0f, color);
+        };
+        for (int i = 0; i < static_cast<int>(ambientZones.size()); ++i)
+            guide(ambientZones[i], i == selectedAmbient);
+        if (!placingAmbient) return false;
+
+        Vector3 hit;
+        if (overScene && terrainHit(viewRay(ImGui::GetIO().MousePos, size, vp), hit)
+            && snapPlacementToGround(hit))
+        {
+            SceneAudio::AmbientZone zone;
+            zone.x = hit.x;
+            zone.z = hit.z;
+            guide(zone, true);
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ambientZones.size() < maxAmbientZones)
+            {
+                rememberAmbient();
+                ambientZones.push_back(std::move(zone));
+                selectedAmbient = static_cast<int>(ambientZones.size()) - 1;
+                placingAmbient = false;
+                SceneAudio::stopAmbientPreview();
+                ambientStatus = u8"ゾーンに環境音ファイルを割り当ててください。";
+            }
+        }
+        return true;
+    }
+
     void viewport()
     {
         auto& io = ImGui::GetIO();
@@ -2380,6 +2580,14 @@ namespace
         const XMMATRIX vp = view * projection;
         auto* overlay = ImGui::GetBackgroundDrawList();
         if (gridSnap && !terrainMode) drawPlacementGrid(vp, size, *overlay);
+
+        if (ambientViewport(overScene, vp, size, *overlay))
+        {
+            drag.axis = -1;
+            stopWaterEdit();
+            painting = false;
+            return;
+        }
 
         if (waterMode)
         {
@@ -2641,6 +2849,12 @@ namespace
     }
 }
 
+void SceneEditor::useRuralMap()
+{
+    layoutPath = "asset/maps/rural-town/scene-layout.txt";
+    temporaryPath = "asset/maps/rural-town/scene-layout.txt.tmp";
+}
+
 void SceneEditor::init(Player& scenePlayer, MeshField& sceneTerrain)
 {
     player = &scenePlayer;
@@ -2668,6 +2882,12 @@ void SceneEditor::shutdown()
     audioPanel = false;
     audioCue = 0;
     audioVolumeRecorded = false;
+    ambientZones.clear();
+    selectedAmbient = -1;
+    ambientPanel = false;
+    placingAmbient = false;
+    ambientDragRecorded = false;
+    ambientStatus.clear();
     motionPanel = false;
     motionStatus.clear();
     motionLoop = false;
@@ -2727,6 +2947,8 @@ void SceneEditor::close()
     playModeRequested = false;
     drag.axis = -1;
     painting = false;
+    placingAmbient = false;
+    ambientStatus.clear();
     open = false;
     SceneAudio::setEditing(false);
 }
@@ -2778,6 +3000,8 @@ void SceneEditor::processPlayMode()
     prefabToPlace.clear();
     drag.axis = -1;
     painting = false;
+    placingAmbient = false;
+    ambientStatus.clear();
     open = false;
     SceneAudio::setEditing(false);
     Input::SetMouseCapture(GetFocus() == GetWindow());
@@ -2824,6 +3048,7 @@ void SceneEditor::draw()
     inspector();
     drawPrefabPanel();
     drawAudioPanel();
+    drawAmbientPanel();
     drawMotionPanel();
     viewport();
 }
@@ -2831,6 +3056,8 @@ void SceneEditor::draw()
 void SceneEditor::updatePhysics(float dt)
 {
     if (!terrain || open || dt <= 0.0f) return;
+    const auto listener = player->GetPosition();
+    SceneAudio::updateAmbient(ambientZones, listener.x, listener.z, dt);
     for (auto& entry : entries)
     {
         if (!entry.placement.gravity) continue;

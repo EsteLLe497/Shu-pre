@@ -1,0 +1,59 @@
+newmtl shrineTimber
+Kd .41 .24 .145
+
+newmtl shrineCedar
+Kd .54 .33 .18
+
+newmtl shrineDark
+Kd .25 .15 .10
+
+newmtl shrinePlaster
+Kd .70 .68 .55
+
+newmtl shrineLacquer
+Kd .65 .13 .06
+
+newmtl shrineVermilion
+Kd .78 .24 .105
+
+newmtl shrineCopper
+Kd .185 .31 .285
+
+newmtl shrineCopperEdge
+Kd .22 .39 .355
+
+newmtl shrineGold
+Kd .64 .42 .14
+
+newmtl shrineRope
+Kd .62 .48 .24
+
+newmtl shrinePaper
+Kd .91 .88 .74
+
+newmtl shrineStone
+Kd .49 .49 .43
+
+newmtl shrineWeathered
+Kd .34 .38 .33
+
+newmtl shrineMoss
+Kd .28 .38 .22
+
+newmtl shrineWater
+Kd .22 .38 .37
+
+newmtl forestLeafA
+Kd .18 .34 .11
+
+newmtl forestLeafB
+Kd .25 .42 .14
+
+newmtl forestLeafC
+Kd .33 .47 .17
+
+newmtl fernShade
+Kd .19 .34 .13
+
+newmtl fernLight
+Kd .36 .54 .19

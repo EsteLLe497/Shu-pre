@@ -1,0 +1,77 @@
+newmtl deck
+Kd 0.8 0.78 0.72
+map_Kd wood.jpg
+newmtl rail
+Kd 0.65 0.42 0.25
+map_Kd wood.jpg
+newmtl leafA
+Kd 0.40 0.63 0.16
+newmtl leafB
+Kd 0.30 0.51 0.10
+newmtl leafC
+Kd 0.49 0.70 0.19
+
+newmtl cedar
+Kd 0.46 0.36 0.27
+newmtl darkWood
+Kd 0.34 0.29 0.25
+newmtl roof
+Kd 0.32 0.42 0.45
+newmtl stoneA
+Kd 0.46 0.49 0.45
+newmtl stoneB
+Kd 0.58 0.57 0.51
+newmtl stoneC
+Kd 0.39 0.44 0.42
+newmtl brick
+Kd 0.50 0.38 0.30
+newmtl concrete
+Kd 0.54 0.55 0.51
+newmtl asphalt
+Kd 0.24 0.28 0.26
+newmtl reedA
+Kd 0.29 0.48 0.15
+newmtl reedB
+Kd 0.41 0.55 0.19
+newmtl reedC
+Kd 0.48 0.55 0.22
+newmtl stem
+Kd 0.32 0.43 0.16
+newmtl pollen
+Kd 0.79 0.57 0.14
+newmtl cream
+Kd 0.85 0.79 0.53
+newmtl stationSign
+Kd 0.77 0.83 0.83
+map_Kd station-sign.png
+
+newmtl plaster
+Kd 0.64 0.60 0.50
+newmtl cedarSiding
+Kd 0.48 0.34 0.24
+newmtl weatheredTimber
+Kd 0.32 0.28 0.22
+newmtl fascia
+Kd 0.30 0.25 0.20
+newmtl blueTile
+Kd 0.22 0.29 0.33
+newmtl brownTile
+Kd 0.40 0.29 0.25
+newmtl tileEdge
+Kd 0.20 0.22 0.23
+newmtl shoji
+Kd 0.60 0.65 0.57
+newmtl glass
+Kd 0.26 0.39 0.41
+newmtl foundation
+Kd 0.53 0.51 0.44
+newmtl steel
+Kd 0.35 0.39 0.39
+newmtl wire
+Kd 0.19 0.20 0.19
+newmtl porcelain
+Kd 0.65 0.66 0.57
+newmtl straw
+Kd 0.61 0.52 0.34
+newmtl binRed
+Kd 0.53 0.18 0.14

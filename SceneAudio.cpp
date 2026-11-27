@@ -2,6 +2,7 @@
 #include "audio.h"
 #include "SceneAudio.h"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <filesystem>
@@ -32,6 +33,16 @@ namespace
     Cue auditionCue = Cue::Count;
     bool editing = false;
     std::unordered_map<std::string, std::unique_ptr<Audio>> markerSounds;
+
+    struct AmbientLoop
+    {
+        std::unique_ptr<Audio> sound;
+        float gain = 0.0f;
+        float target = 0.0f;
+        bool playing = false;
+    };
+    std::unordered_map<std::string, AmbientLoop> ambientLoops;
+    std::unique_ptr<Audio> ambientPreview;
 
     Track& track(Cue cue) { return tracks[static_cast<size_t>(cue)]; }
 
@@ -111,6 +122,8 @@ void SceneAudio::init()
 void SceneAudio::shutdown()
 {
     stopPreview();
+    stopAmbientPreview();
+    ambientLoops.clear();
     for (auto& item : tracks) item = {};
     markerSounds.clear();
     editing = false;
@@ -121,6 +134,8 @@ void SceneAudio::setEditing(bool value)
     if (editing == value) return;
     editing = value;
     stopPreview();
+    stopAmbientPreview();
+    ambientLoops.clear();
     stopMarkers();
     if (editing)
         for (auto& item : tracks)
@@ -201,6 +216,68 @@ bool SceneAudio::save()
     }
     output.close();
     return output && MoveFileExA(temporary, config, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
+}
+
+float SceneAudio::AmbientZone::gainAt(float listenerX, float listenerZ) const
+{
+    const float distance = std::hypot(listenerX - x, listenerZ - z);
+    const float fade = std::clamp((1.0f - distance / radius) / 0.75f, 0.0f, 1.0f);
+    return volume * fade * fade * (3.0f - 2.0f * fade);
+}
+
+void SceneAudio::updateAmbient(const std::vector<AmbientZone>& zones, float x, float z, float dt)
+{
+    if (editing || dt <= 0.0f) return;
+    for (auto& item : ambientLoops) item.second.target = 0.0f;
+
+    for (const auto& zone : zones)
+    {
+        const float gain = zone.gainAt(x, z);
+        if (zone.file.empty() || gain <= 0.0f) continue;
+        auto [found, created] = ambientLoops.try_emplace(zone.file);
+        auto& loop = found->second;
+        if (created)
+        {
+            std::string normalized;
+            loop.sound = loadWav(zone.file, normalized);
+        }
+        // Use one voice for overlapping zones with the same recording.
+        loop.target = std::max(loop.target, gain);
+    }
+
+    const float blend = 1.0f - std::exp(-8.0f * dt);
+    for (auto& item : ambientLoops)
+    {
+        auto& loop = item.second;
+        if (!loop.sound) continue;
+        loop.gain += (loop.target - loop.gain) * blend;
+        if (loop.target == 0.0f && loop.gain < 0.001f)
+        {
+            if (loop.playing) loop.sound->Stop();
+            loop.playing = false;
+            loop.gain = 0.0f;
+            continue;
+        }
+        loop.sound->SetVolume(loop.gain);
+        if (!loop.playing) loop.playing = loop.sound->Play(true);
+    }
+}
+
+bool SceneAudio::previewAmbient(const AmbientZone& zone)
+{
+    stopAmbientPreview();
+    std::string normalized;
+    auto sound = loadWav(zone.file, normalized);
+    if (!sound) return false;
+    sound->SetVolume(zone.volume);
+    if (!sound->Play(true)) return false;
+    ambientPreview = std::move(sound);
+    return true;
+}
+
+void SceneAudio::stopAmbientPreview()
+{
+    ambientPreview.reset();
 }
 
 bool SceneAudio::prepareMarker(const std::string& file)

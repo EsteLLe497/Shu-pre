@@ -4,6 +4,7 @@
 #include "manager.h"
 #include "input.h"
 #include "ToonPanel.h"
+#include "SceneEditor.h"
 #include <thread>
 #include <shellapi.h>
 #include <cstdio>
@@ -61,16 +62,22 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     int argumentCount = 0;
     wchar_t** arguments = CommandLineToArgvW(GetCommandLineW(), &argumentCount);
     bool previewMode = false;
+    bool ruralMap = false;
     if (arguments)
     {
         for (int i = 1; i < argumentCount; ++i)
+        {
             previewMode = previewMode || wcscmp(arguments[i], L"--preview") == 0;
+            ruralMap = ruralMap || wcscmp(arguments[i], L"--rural-map") == 0;
+        }
         LocalFree(arguments);
     }
 
-	Manager::Init(previewMode);
+	if (ruralMap && !previewMode) SceneEditor::useRuralMap();
+    Manager::Init(previewMode);
 
-    const char* windowTitle = previewMode ? "GM31 Asset Preview" : WINDOW_NAME;
+    const char* windowTitle = previewMode ? "GM31 Asset Preview"
+        : ruralMap ? "Shu-pre - Summer Countryside" : WINDOW_NAME;
     SetWindowTextA(g_Window, windowTitle);
 
 
