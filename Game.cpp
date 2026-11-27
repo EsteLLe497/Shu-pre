@@ -10,6 +10,7 @@
 #include "MeshField.h"
 #include "Player.h"
 #include "Heroine.h"
+#include "HeroineConversation.h"
 #include "SceneAudio.h"
 #include "SceneEditor.h"
 #include "ToonPreset.h"
@@ -35,6 +36,7 @@ std::pair<Player*, MeshField*> Game::createWorld()
 	// 外観を読み込み、開始時は標準の三人称カメラを使う。
 	auto* heroine = Manager::AddGameObj<Heroine>();
 	ToonPreset::loadAppearance(heroine->toonSettings());
+    Manager::AddGameObj<HeroineConversation>();
 
     return { player, terrain };
 }

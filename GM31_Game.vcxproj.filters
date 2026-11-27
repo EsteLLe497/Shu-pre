@@ -1,6 +1,23 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="AI\SubtitlePanel.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClInclude Include="AI\SubtitlePanel.h"><Filter>Header Files</Filter></ClInclude>
+
+    <ClCompile Include="AI\SubtitleLayout.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClInclude Include="AI\SubtitleLayout.h"><Filter>Header Files</Filter></ClInclude>
+
+    <ClCompile Include="AI\DialogueProtocol.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="AI\OllamaClient.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="AI\DialogueSession.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="AI\DialoguePanel.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="HeroineConversation.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClInclude Include="AI\DialogueTypes.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="AI\DialogueProtocol.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="AI\OllamaClient.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="AI\DialogueSession.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="AI\DialoguePanel.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="HeroineConversation.h"><Filter>Header Files</Filter></ClInclude>
     <ClCompile Include="Heroine.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="HeroineMovement.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="HeroineLookAt.cpp"><Filter>Source Files</Filter></ClCompile>

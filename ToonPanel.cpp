@@ -12,6 +12,10 @@
 #include "Camera.h"
 #include "ToonPreset.h"
 #include "DebugPanel.h"
+#include "manager.h"
+#include "HeroineConversation.h"
+#include "AI/DialoguePanel.h"
+#include "AI/SubtitlePanel.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_dx11.h"
 #include "imgui/imgui_impl_win32.h"
@@ -172,6 +176,7 @@ void ToonPanel::init(HWND window, bool previewMode)
     auto& io = ImGui::GetIO();
     io.IniFilename = nullptr;
     // ImGuiの表示文字列はUTF-8。日本語の字形はWindows標準フォントから読み込む。
+    std::string subtitleFallbackPath;
     char windowsDirectory[MAX_PATH]{};
     const UINT length = GetWindowsDirectoryA(windowsDirectory, MAX_PATH);
     if (length > 0 && length < MAX_PATH)
@@ -182,13 +187,15 @@ void ToonPanel::init(HWND window, bool previewMode)
             const auto path = fontsDirectory + font;
             if (GetFileAttributesA(path.c_str()) == INVALID_FILE_ATTRIBUTES) continue;
             io.FontDefault = io.Fonts->AddFontFromFileTTF(path.c_str(), 14.0f);
-            if (io.FontDefault) break;
+            if (io.FontDefault) { subtitleFallbackPath = path; break; }
         }
     }
     if (!io.FontDefault) io.Fonts->AddFontDefault();
+    AI::SubtitlePanel::initFont(subtitleFallbackPath);
 
     if (!ImGui_ImplWin32_Init(window))
     {
+        AI::SubtitlePanel::reset();
         ImGui::DestroyContext();
         return;
     }
@@ -196,6 +203,7 @@ void ToonPanel::init(HWND window, bool previewMode)
     if (!ImGui_ImplDX11_Init(Renderer::GetDevice(), Renderer::GetDeviceContext()))
     {
         ImGui_ImplWin32_Shutdown();
+        AI::SubtitlePanel::reset();
         ImGui::DestroyContext();
     }
 }
@@ -207,6 +215,7 @@ void ToonPanel::uninit()
 
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
+    AI::SubtitlePanel::reset();
     ImGui::DestroyContext();
     panelOpen = false;
     pauseMenuOpen = false;
@@ -348,6 +357,8 @@ void ToonPanel::editAppearance(ToonSettings& settings)
 
 void ToonPanel::draw()
 {
+    if (!previewWorkspace && !pauseMenuOpen && !SceneEditor::isOpen())
+        if (auto* conversation = Manager::GetGameObj<HeroineConversation>()) AI::SubtitlePanel::draw(*conversation);
     if (!previewWorkspace && !pauseMenuOpen && !SceneEditor::isOpen()) DebugPanel::drawWorldMarkers();
     drawPauseMenu();
     ImGui::Render();
