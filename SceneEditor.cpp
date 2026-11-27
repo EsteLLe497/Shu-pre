@@ -5,6 +5,8 @@
 #include "Game.h"
 #include "input.h"
 #include "SceneEditor.h"
+#include "Scenery.h"
+#include "Vegetation.h"
 #include "SceneAudio.h"
 #include "MeshField.h"
 #include "Wave.h"
@@ -36,7 +38,7 @@ namespace
     const char* layoutPath = "asset/scene-layout.txt";
     const char* temporaryPath = "asset/scene-layout.txt.tmp";
     constexpr size_t maxObjects = 512;
-    constexpr int layoutVersion = 12;
+    constexpr int layoutVersion = 13;
     constexpr size_t maxAmbientZones = 32;
     constexpr size_t maxPrefabs = 128;
 
@@ -79,30 +81,21 @@ namespace
     class StaticProp final : public GameObject
     {
     public:
-        XMFLOAT3 halfExtents() const { return m_model->staticHalfExtents(); }
+        XMFLOAT3 halfExtents() const { return m_model->mesh.staticHalfExtents(); }
         bool load(const std::string& path)
         {
-            m_model = AddGameComponent<AnimationModel>(this);
-            if (!m_model->tryLoad(path.c_str(), true)) return false;
-            Renderer::CreateVertexShader(m_vs.GetAddressOf(), m_layout.GetAddressOf(), "shader\\litTextureVS.cso");
-            Renderer::CreatePixelShader(m_ps.GetAddressOf(), "shader\\litTexturePS.cso");
-            return m_vs && m_layout && m_ps;
+            m_model = Scenery::load(path);
+            return static_cast<bool>(m_model);
         }
         void Draw() override
         {
-            if (!m_vs || !m_layout || !m_ps) return;
-            auto* context = Renderer::GetDeviceContext();
-            context->IASetInputLayout(m_layout.Get());
-            context->VSSetShader(m_vs.Get(), nullptr, 0);
-            context->PSSetShader(m_ps.Get(), nullptr, 0);
-            const float halfHeight = m_model->staticHalfExtents().y;
-            m_model->drawAt(XMMatrixTranslation(0, halfHeight, 0) * GetMatrx());
+            if (!m_model) return;
+            const auto world = XMMatrixTranslation(0, halfExtents().y, 0) * GetMatrx();
+            if (Scenery::visible(*m_model, world))
+                Scenery::draw(*m_model, world, !usesAlphaBlend());
         }
     private:
-        AnimationModel* m_model = nullptr;
-        Microsoft::WRL::ComPtr<ID3D11InputLayout> m_layout;
-        Microsoft::WRL::ComPtr<ID3D11VertexShader> m_vs;
-        Microsoft::WRL::ComPtr<ID3D11PixelShader> m_ps;
+        std::shared_ptr<Scenery::Model> m_model;
     };
 
     Player* player = nullptr;
@@ -132,6 +125,17 @@ namespace
     int selected = -1;
     bool open = false;
     bool terrainMode = false;
+    std::vector<Vegetation::Plant> plants;
+    Vegetation::Renderer plantRenderer;
+    bool vegetationMode = false;
+    bool erasePlants = false;
+    bool eraseAllSpecies = false;
+    bool plantStroke = false;
+    bool plantUndoRecorded = false;
+    int plantSpecies = 0;
+    float plantRadius = 6.0f;
+    float plantDensity = 70.0f;
+    std::optional<Vector3> previousPlantHit;
     Wave waterRenderer;
     Wave::Layout water;
     Wave::River riverDefaults;
@@ -183,7 +187,7 @@ namespace
         { u8"衝撃波の最大半径", &Enemy::AttackSettings::shockwaveRadius, 0.1f, 30.0f, true },
     };
 
-    enum class UndoKind { Modify, Add, Remove, Terrain, Audio, Prefab, Water, Appearance, TerrainPaint, Ambient };
+    enum class UndoKind { Modify, Add, Remove, Terrain, Audio, Prefab, Water, Appearance, TerrainPaint, Ambient, Vegetation };
     using PlacementChanges = std::vector<std::pair<size_t, Placement>>;
     struct PrefabEdit
     {
@@ -202,6 +206,7 @@ namespace
         std::unique_ptr<Wave::Layout> water;
         std::unique_ptr<MeshField::MaterialPaint> materialPaint;
         std::vector<SceneAudio::AmbientZone> ambient;
+        std::vector<Vegetation::Plant> vegetation;
     };
     std::deque<EditRecord> history;
     bool audioPanel = false;
@@ -244,6 +249,13 @@ namespace
         EditRecord edit{ UndoKind::Ambient };
         edit.ambient = ambientZones;
         remember(std::move(edit));
+    }
+
+    void stopPlantEdit()
+    {
+        plantStroke = false;
+        plantUndoRecorded = false;
+        previousPlantHit.reset();
     }
 
     void stopWaterEdit()
@@ -746,6 +758,8 @@ namespace
         if (version >= 11 && !MeshField::readMaterialPaint(input, loadedPaint)) return false;
         std::vector<SceneAudio::AmbientZone> loadedAmbient;
         if (version >= 12 && !readAmbient(input, loadedAmbient)) return false;
+        std::vector<Vegetation::Plant> loadedPlants;
+        if (version >= 13 && !Vegetation::read(input, loadedPlants)) return false;
 
         for (const auto& placement : placements)
         {
@@ -764,6 +778,8 @@ namespace
         prefabs.swap(loadedPrefabs);
         water = std::move(loadedWater);
         ambientZones = std::move(loadedAmbient);
+        plants = std::move(loadedPlants);
+        plantRenderer.invalidate();
         selectedRiver = -1;
         stopWaterEdit();
         waterRenderer.invalidate();
@@ -782,7 +798,7 @@ namespace
             [&](const Entry& entry) { return hasAppearance(entry.placement); })
             || std::any_of(prefabs.begin(), prefabs.end(),
                 [&](const auto& prefab) { return hasAppearance(prefab.second); });
-        const int version = !ambientZones.empty() ? 12 : terrain->hasMaterialPaint() ? 11 : editsAppearance ? 10
+        const int version = !plants.empty() ? 13 : !ambientZones.empty() ? 12 : terrain->hasMaterialPaint() ? 11 : editsAppearance ? 10
             : water.edited() ? 9 : prefabs.empty() ? 7 : 8;
         output << "SceneLayout " << version << ' ' << entries.size() << ' ' << MeshField::GridSize << '\n';
         output << std::setprecision(std::numeric_limits<float>::max_digits10);
@@ -808,6 +824,7 @@ namespace
                 output << std::quoted(zone.file) << ' ' << zone.x << ' ' << zone.z << ' '
                     << zone.radius << ' ' << zone.volume << '\n';
         }
+        if (version >= 13) Vegetation::write(output, plants);
         output.close();
         return output && MoveFileExA(temporaryPath, layoutPath, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
     }
@@ -1018,6 +1035,11 @@ namespace
             terrain->setMaterialPaint(*edit.materialPaint);
             painting = false;
             previousMaterialHit.reset();
+            break;
+        case UndoKind::Vegetation:
+            plants = std::move(edit.vegetation);
+            plantRenderer.invalidate();
+            stopPlantEdit();
             break;
         case UndoKind::Water:
             water = *edit.water;
@@ -1894,6 +1916,8 @@ namespace
                 previousMaterialHit.reset();
                 if (terrainMode)
                 {
+                    vegetationMode = false;
+                    stopPlantEdit();
                     waterMode = false;
                     stopWaterEdit();
                 }
@@ -1904,12 +1928,34 @@ namespace
                 stopWaterEdit();
                 if (waterMode)
                 {
+                    vegetationMode = false;
+                    stopPlantEdit();
                     terrainMode = false;
                     painting = false;
                     prefabToPlace.clear();
                 }
             }
-            if (waterMode) editWater();
+            if (ImGui::Checkbox(u8"植生ブラシ", &vegetationMode))
+            {
+                stopPlantEdit();
+                if (vegetationMode)
+                {
+                    terrainMode = waterMode = painting = placingAmbient = false;
+                    stopWaterEdit();
+                    prefabToPlace.clear();
+                }
+            }
+            if (vegetationMode)
+            {
+                ImGui::Combo(u8"植物の種類", &plantSpecies, u8"道端の草\0シダ\0低木\0野花\0川辺の草\0");
+                ImGui::SliderFloat(u8"植生の半径", &plantRadius, 1.0f, 20.0f, "%.1f");
+                ImGui::Checkbox(u8"消しゴム", &erasePlants);
+                if (erasePlants) ImGui::Checkbox(u8"全種類を消す", &eraseAllSpecies);
+                else ImGui::SliderFloat(u8"密度", &plantDensity, 10.0f, 100.0f, "%.0f%%");
+                ImGui::Text(u8"植生 %zu / %zu", plants.size(), Vegetation::maxPlants);
+                ImGui::TextWrapped(u8"地面をドラッグして編集します。Ctrl+Z で一筆戻せます。");
+            }
+            else if (waterMode) editWater();
             else if (terrainMode)
             {
                 if (ImGui::Combo(u8"ブラシ", &brushMode, u8"盛り上げる\0掘り下げる\0平らにする\0土を塗る\0草を塗る\0"))
@@ -2465,6 +2511,40 @@ namespace
         return true;
     }
 
+    void vegetationViewport(bool overScene, FXMMATRIX vp, const ImVec2& size, ImDrawList& overlay)
+    {
+        const auto& io = ImGui::GetIO();
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        {
+            stopPlantEdit();
+            plantStroke = overScene;
+        }
+        if (!ImGui::IsMouseDown(ImGuiMouseButton_Left)) stopPlantEdit();
+        Vector3 hit;
+        if (!overScene || !terrainHit(viewRay(io.MousePos, size, vp), hit))
+        {
+            previousPlantHit.reset();
+            return;
+        }
+        const ImU32 color = erasePlants ? IM_COL32(255, 130, 90, 245) : IM_COL32(174, 241, 105, 245);
+        drawRangeRing(hit, plantRadius, color, 2.0f, vp, size, overlay, true);
+        if (!plantStroke) return;
+        if (previousPlantHit && (hit - *previousPlantHit).lenght() < 0.15f) return;
+        EditRecord undo{ UndoKind::Vegetation };
+        if (!plantUndoRecorded) undo.vegetation = plants;
+        const size_t before = plants.size();
+        Vegetation::brush(plants, *terrain, previousPlantHit.value_or(hit), hit, plantRadius, plantDensity / 100.0f,
+            erasePlants && eraseAllSpecies ? -1 : plantSpecies, erasePlants);
+        previousPlantHit = hit;
+        if (plants.size() == before) return;
+        if (!plantUndoRecorded)
+        {
+            remember(std::move(undo));
+            plantUndoRecorded = true;
+        }
+        plantRenderer.invalidate();
+    }
+
     void viewport()
     {
         auto& io = ImGui::GetIO();
@@ -2512,6 +2592,13 @@ namespace
             drag.axis = -1;
             stopWaterEdit();
             painting = false;
+            return;
+        }
+
+        if (vegetationMode)
+        {
+            drag.axis = -1;
+            vegetationViewport(overScene, vp, size, *overlay);
             return;
         }
 
@@ -2830,6 +2917,11 @@ void SceneEditor::shutdown()
     terrain = nullptr;
     open = false;
     terrainMode = false;
+    vegetationMode = false;
+    stopPlantEdit();
+    plants.clear();
+    plantRenderer = {};
+    Scenery::reset();
     water = {};
     waterRenderer.reset();
     riverDefaults = {};
@@ -2866,6 +2958,7 @@ void SceneEditor::close()
     if (!open) return;
     stopMotionPreview();
     stopWaterEdit();
+    stopPlantEdit();
     prefabToPlace.clear();
     playModeRequested = false;
     drag.axis = -1;
@@ -2903,6 +2996,7 @@ void SceneEditor::processPlayMode()
     const auto orbit = Manager::GetGameObj<Camera>()->orbitSettings();
     stopMotionPreview();
     stopWaterEdit();
+    stopPlantEdit();
     if (!Manager::beginEditorPlay()) return;
     editWorld.emplace(EditWorld{ player, heroine, terrain, {} });
     entries.swap(editWorld->entries);
@@ -3006,6 +3100,11 @@ void SceneEditor::updatePhysics(float dt)
         else position.y += dy;
         entry.object->SetPosition(position);
     }
+}
+
+void SceneEditor::drawVegetation(const Vector3& eye)
+{
+    if (terrain) plantRenderer.draw(plants, *terrain, eye);
 }
 
 void SceneEditor::resolvePlayerCollision(const Vector3& previous, Vector3& position, Vector3& velocity, bool& grounded)

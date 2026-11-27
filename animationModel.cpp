@@ -109,7 +109,13 @@ void AnimationModel::drawOutline()
     drawParts(m_opaqueParts, false);
 }
 
-void AnimationModel::drawParts(const std::vector<DrawPart>& parts, bool alphaBlend)
+void AnimationModel::drawInstances(UINT count)
+{
+    Renderer::GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    drawParts(m_opaqueParts, false, count);
+}
+
+void AnimationModel::drawParts(const std::vector<DrawPart>& parts, bool alphaBlend, UINT instanceCount)
 {
     auto* context = Renderer::GetDeviceContext();
     constexpr UINT stride = sizeof(VERTEX_3D);
@@ -130,7 +136,8 @@ void AnimationModel::drawParts(const std::vector<DrawPart>& parts, bool alphaBle
         const unsigned int meshIndex = part.meshIndex;
         context->IASetVertexBuffers(0, 1, &m_VertexBuffer[meshIndex], &stride, &offset);
         context->IASetIndexBuffer(m_IndexBuffer[meshIndex], DXGI_FORMAT_R32_UINT, 0);
-        context->DrawIndexed(m_AiScene->mMeshes[meshIndex]->mNumFaces * 3, 0, 0);
+        if (instanceCount) context->DrawIndexedInstanced(m_indexCounts[meshIndex], instanceCount, 0, 0, 0);
+        else context->DrawIndexed(m_indexCounts[meshIndex], 0, 0);
     }
 }
 
@@ -221,7 +228,7 @@ void AnimationModel::Load(const char* fileName)
 
 bool AnimationModel::tryLoad(const char* fileName, bool staticMesh)
 {
-    if (m_AiScene)
+    if (m_AiScene || !m_indexCounts.empty())
         return false;
 
     m_ModelPath = fileName;
@@ -277,15 +284,19 @@ bool AnimationModel::tryLoad(const char* fileName, bool staticMesh)
     }
     m_VertexBuffer = new ID3D11Buffer*[meshCount]{};
     m_IndexBuffer = new ID3D11Buffer*[meshCount]{};
-    m_DeformVertex = new std::vector<DEFORM_VERTEX>[meshCount];
-    CreateBone(m_AiScene->mRootNode);
-    // 着地時にだけ使う支点と、基準姿勢での足元を覚えておく。
-    const auto* root = m_AiScene->mRootNode;
-    m_landingArmature = root->FindNode(aiString("Armature"));
-    m_landingLeftFoot = root->FindNode(aiString("J_Bip_L_Foot"));
-    m_landingRightFoot = root->FindNode(aiString("J_Bip_R_Foot"));
-    if (m_landingLeftFoot && m_landingRightFoot)
-        m_landingFootCenterZ = landingFootCenterZ();
+    m_indexCounts.resize(meshCount);
+    if (!staticMesh)
+    {
+        m_DeformVertex = new std::vector<DEFORM_VERTEX>[meshCount];
+        CreateBone(m_AiScene->mRootNode);
+        // 着地時にだけ使う支点と、基準姿勢での足元を覚えておく。
+        const auto* root = m_AiScene->mRootNode;
+        m_landingArmature = root->FindNode(aiString("Armature"));
+        m_landingLeftFoot = root->FindNode(aiString("J_Bip_L_Foot"));
+        m_landingRightFoot = root->FindNode(aiString("J_Bip_R_Foot"));
+        if (m_landingLeftFoot && m_landingRightFoot)
+            m_landingFootCenterZ = landingFootCenterZ();
+    }
 
     for (unsigned int m = 0; m < meshCount; ++m)
     {
@@ -297,7 +308,7 @@ bool AnimationModel::tryLoad(const char* fileName, bool staticMesh)
         }
 
         std::vector<VERTEX_3D> vertices(mesh->mNumVertices);
-        m_DeformVertex[m].resize(mesh->mNumVertices);
+        if (m_DeformVertex) m_DeformVertex[m].resize(mesh->mNumVertices);
         for (unsigned int v = 0; v < mesh->mNumVertices; ++v)
         {
             const auto position = (mesh->mVertices[v] - center) / unit;
@@ -325,10 +336,10 @@ bool AnimationModel::tryLoad(const char* fileName, bool staticMesh)
         auto* device = Renderer::GetDevice();
         D3D11_BUFFER_DESC desc{};
         D3D11_SUBRESOURCE_DATA data{};
-        desc.Usage = D3D11_USAGE_DYNAMIC;
+        desc.Usage = staticMesh ? D3D11_USAGE_IMMUTABLE : D3D11_USAGE_DYNAMIC;
         desc.ByteWidth = static_cast<UINT>(sizeof(VERTEX_3D) * vertices.size());
         desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        desc.CPUAccessFlags = staticMesh ? 0 : D3D11_CPU_ACCESS_WRITE;
         data.pSysMem = vertices.data();
         const HRESULT vertexResult = device->CreateBuffer(&desc, &data, &m_VertexBuffer[m]);
 
@@ -342,6 +353,9 @@ bool AnimationModel::tryLoad(const char* fileName, bool staticMesh)
             Uninit();
             return false;
         }
+
+        m_indexCounts[m] = static_cast<UINT>(indices.size());
+        if (staticMesh) continue;
 
         for (unsigned int b = 0; b < mesh->mNumBones; ++b)
         {
@@ -384,6 +398,11 @@ bool AnimationModel::tryLoad(const char* fileName, bool staticMesh)
     }
 
     loadDrawParts();
+    if (staticMesh)
+    {
+        aiReleaseImport(m_AiScene);
+        m_AiScene = nullptr;
+    }
     return true;
 }
 
@@ -613,9 +632,7 @@ void AnimationModel::CreateBone(aiNode* node)
 
 	void AnimationModel::Uninit()
 	{
-        if (!m_AiScene)
-            return;
-		for (unsigned int m = 0; m < m_AiScene->mNumMeshes; m++)
+        for (size_t m = 0; m < m_indexCounts.size(); ++m)
 		{
             if (m_VertexBuffer && m_VertexBuffer[m])
                 m_VertexBuffer[m]->Release();
@@ -664,7 +681,8 @@ void AnimationModel::CreateBone(aiNode* node)
         m_VertexBuffer = nullptr;
         m_IndexBuffer = nullptr;
         m_DeformVertex = nullptr;
-        aiReleaseImport(m_AiScene);
+        m_indexCounts.clear();
+        if (m_AiScene) aiReleaseImport(m_AiScene);
         m_AiScene = nullptr;
 
 	}
