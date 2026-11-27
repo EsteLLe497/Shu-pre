@@ -1,4 +1,4 @@
-
+﻿
 
 #include "main.h"
 #include "manager.h"
@@ -63,21 +63,18 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     int argumentCount = 0;
     wchar_t** arguments = CommandLineToArgvW(GetCommandLineW(), &argumentCount);
     bool previewMode = false;
-    bool ruralMap = false;
     if (arguments)
     {
         for (int i = 1; i < argumentCount; ++i)
         {
             previewMode = previewMode || wcscmp(arguments[i], L"--preview") == 0;
-            ruralMap = ruralMap || wcscmp(arguments[i], L"--rural-map") == 0;
         }
         LocalFree(arguments);
     }
 
-	if (ruralMap && !previewMode) SceneEditor::useRuralMap();
-    Manager::Init(previewMode);
-    // Locate project assets when launched outside Visual Studio or StartPreview.cmd.
-    if (GetFileAttributesW(L"asset") == INVALID_FILE_ATTRIBUTES)
+    // 直接 EXE を起動した場合も、初期化より先に素材の場所を合わせる。
+    if (GetFileAttributesW(L"asset") == INVALID_FILE_ATTRIBUTES
+        || GetFileAttributesW(L"shader") == INVALID_FILE_ATTRIBUTES)
     {
         wchar_t executable[MAX_PATH]{};
         const DWORD length = GetModuleFileNameW(nullptr, executable, MAX_PATH);
@@ -99,10 +96,10 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
         }
     }
 
-	Manager::Init(previewMode);
+    if (!previewMode) SceneEditor::useRuralMap();
+    Manager::Init(previewMode);
 
-    const char* windowTitle = previewMode ? "GM31 Asset Preview"
-        : ruralMap ? "Shu-pre - Summer Countryside" : WINDOW_NAME;
+    const char* windowTitle = previewMode ? "GM31 Asset Preview" : "Shu-pre - Summer Countryside";
     SetWindowTextA(g_Window, windowTitle);
 
 
