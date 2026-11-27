@@ -9,21 +9,17 @@
 //#include "field.h"
 #include "MeshField.h"
 #include "Player.h"
+#include "Heroine.h"
 #include "SceneAudio.h"
 #include "SceneEditor.h"
 #include "ToonPreset.h"
-#include "Enemy.h"
-#include "bullet.h"
-#include "Explosion.h"
 #include "Tree.h"
 #include "Grass.h"
 #include "Box.h"
 #include "SkyDome.h"
 #include "input.h"
-#include "Score.h"
 
 #include "GameObject.h"
-#include "Result.h"
 
 
 std::pair<Player*, MeshField*> Game::createWorld()
@@ -37,9 +33,9 @@ std::pair<Player*, MeshField*> Game::createWorld()
 
 	Player* player = Manager::AddGameObj<Player>();
 	// 外観を読み込み、開始時は標準の三人称カメラを使う。
-	ToonPreset::loadAppearance(player->toonSettings());
+	auto* heroine = Manager::AddGameObj<Heroine>();
+	ToonPreset::loadAppearance(heroine->toonSettings());
 
-	Manager::AddGameObj<Score>()->SetPosition({ 100.0f,100.0f,0.0f });
     return { player, terrain };
 }
 

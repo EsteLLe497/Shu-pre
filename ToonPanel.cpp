@@ -20,7 +20,6 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM,
 namespace
 {
     bool panelOpen = false;
-    bool attackDebugOpen = false;
     bool previewWorkspace = false;
     bool pauseMenuOpen = false;
     const char* presetStatus = nullptr;
@@ -127,25 +126,14 @@ namespace
             return;
 
         editLighting(settings);
-        editAngle("Orbit yaw", orbit.yaw, -XM_PI, XM_PI);
-        editAngle("Orbit pitch", orbit.pitch, CameraOrbit::minPitch, CameraOrbit::maxPitch);
-        ImGui::SliderFloat("Zoom", &orbit.distance, CameraOrbit::minDistance, CameraOrbit::maxDistance,
-            "%.3f", sliderFlags | ImGuiSliderFlags_Logarithmic);
-        ImGui::SliderFloat("Look height", &orbit.lookHeight, CameraOrbit::minLookHeight,
-            CameraOrbit::maxLookHeight, "%.3f", sliderFlags);
-
-        if (ImGui::Button("Full body"))
+        editAngle("View yaw", orbit.yaw, -XM_PI, XM_PI);
+        editAngle("View pitch", orbit.pitch, CameraOrbit::minPitch, CameraOrbit::maxPitch);
+        ImGui::SliderFloat("Eye height", &orbit.lookHeight, 0.8f, 2.0f, "%.3f", sliderFlags);
+        if (ImGui::Button("Reset view"))
         {
-            orbit.distance = 4.2f;
-            orbit.lookHeight = 0.95f;
-            orbit.pitch = 0.20f;
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Close-up"))
-        {
-            orbit.distance = 1.45f;
-            orbit.lookHeight = 1.55f;
+            orbit.yaw = 0.0f;
             orbit.pitch = 0.0f;
+            orbit.lookHeight = 1.60f;
         }
     }
 
@@ -220,25 +208,16 @@ void ToonPanel::uninit()
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
     panelOpen = false;
-    attackDebugOpen = false;
     pauseMenuOpen = false;
 }
 
-bool ToonPanel::isAttackDebugOpen()
-{
-    return attackDebugOpen;
-}
 
-void ToonPanel::closeAttackDebug()
-{
-    if (!attackDebugOpen) return;
-    attackDebugOpen = false;
-    Input::SetMouseCapture(!isOpen() && GetFocus() == GetWindow());
-}
+
+
 
 bool ToonPanel::isOpen()
 {
-    return panelOpen || attackDebugOpen || previewWorkspace || pauseMenuOpen || SceneEditor::isOpen();
+    return panelOpen || previewWorkspace || pauseMenuOpen || SceneEditor::isOpen();
 }
 
 bool ToonPanel::isPauseMenuOpen()
@@ -264,8 +243,8 @@ LRESULT ToonPanel::handleMessage(HWND window, UINT message, WPARAM wParam, LPARA
         {
             if (SceneEditor::isOpen())
                 SceneEditor::close();
-            else if (panelOpen || attackDebugOpen)
-                panelOpen = attackDebugOpen = false;
+            else if (panelOpen)
+                panelOpen = false;
             else if (SceneEditor::isPlaying())
                 SceneEditor::toggle();
             else
@@ -276,26 +255,18 @@ LRESULT ToonPanel::handleMessage(HWND window, UINT message, WPARAM wParam, LPARA
         return 1;
     }
     if (!previewWorkspace && message == WM_KEYDOWN
-        && (wParam == VK_F1 || ((wParam == VK_F2 || wParam == VK_F4) && SceneEditor::isAvailable())))
+        && (wParam == VK_F1 || (wParam == VK_F2 && SceneEditor::isAvailable())))
     {
         if (pauseMenuOpen) return 1;
         if ((lParam & previousKeyState) == 0)
         {
-            if (wParam == VK_F4)
+            if (wParam == VK_F2)
             {
-                panelOpen = false;
-                SceneEditor::close();
-                attackDebugOpen = !attackDebugOpen;
-            }
-            else if (wParam == VK_F2)
-            {
-                attackDebugOpen = false;
                 panelOpen = false;
                 SceneEditor::toggle();
             }
             else
             {
-                attackDebugOpen = false;
                 SceneEditor::close();
                 panelOpen = !panelOpen;
             }

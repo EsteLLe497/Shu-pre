@@ -7,6 +7,7 @@
 #include <thread>
 #include <shellapi.h>
 #include <cstdio>
+#include <string>
 #pragma comment(lib, "shell32.lib")
 
 
@@ -66,6 +67,29 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
         for (int i = 1; i < argumentCount; ++i)
             previewMode = previewMode || wcscmp(arguments[i], L"--preview") == 0;
         LocalFree(arguments);
+    }
+
+    // Locate project assets when launched outside Visual Studio or StartPreview.cmd.
+    if (GetFileAttributesW(L"asset") == INVALID_FILE_ATTRIBUTES)
+    {
+        wchar_t executable[MAX_PATH]{};
+        const DWORD length = GetModuleFileNameW(nullptr, executable, MAX_PATH);
+        if (length > 0 && length < MAX_PATH)
+        {
+            std::wstring directory(executable);
+            for (int level = 0; level < 3; ++level)
+            {
+                const auto separator = directory.find_last_of(L"\\/");
+                if (separator == std::wstring::npos) break;
+                directory.resize(separator);
+                if (GetFileAttributesW((directory + L"/asset").c_str()) != INVALID_FILE_ATTRIBUTES
+                    && GetFileAttributesW((directory + L"/shader").c_str()) != INVALID_FILE_ATTRIBUTES)
+                {
+                    SetCurrentDirectoryW(directory.c_str());
+                    break;
+                }
+            }
+        }
     }
 
 	Manager::Init(previewMode);

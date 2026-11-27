@@ -6,7 +6,7 @@
 #include "main.h"
 #include "ActionFile.h"
 #include "ActionSequence.h"
-#include "PlayerAnimationAssets.h"
+#include "HeroineAnimationAssets.h"
 #include <cmath>
 #include <fstream>
 #include <winrt/Windows.Foundation.Collections.h>
@@ -58,147 +58,10 @@ namespace
         return true;
     }
 
-    bool validWeapon(const WeaponTrack& weapon, float duration)
-    {
-        const auto validVector = [](const auto& values, float limit) {
-            return std::all_of(values.begin(), values.end(),
-                [limit](float value) { return inRange(value, -limit, limit); });
-        };
-        if (weapon.keys.size() < 2 || weapon.keys.size() > 512) return false;
-        for (std::size_t i = 0; i < weapon.keys.size(); ++i)
-            if ((weapon.keys[i].time != -1.0f && !inRange(weapon.keys[i].time, 0.0f, duration))
-                || !inRange(weapon.keyTime(i), i ? weapon.keyTime(i - 1) : weapon.appear, weapon.disappear))
-                return false;
-        return (!weapon.enabled || !weapon.model.empty())
-            && weapon.model.size() <= 240
-            && inRange(weapon.appear, 0.0f, weapon.middle)
-            && inRange(weapon.middle, weapon.appear, weapon.disappear)
-            && inRange(weapon.disappear, weapon.middle, duration)
-            && inRange(weapon.scale, 0.001f, 20.0f)
-            && inRange(weapon.trailLength, 0.01f, 1.0f)
-            && inRange(weapon.dissolveDuration, 0.08f, 1.5f)
-            && inRange(weapon.dissolveGlow, 0.1f, 3.0f)
-            && inRange(weapon.particleCount, 8, 128)
-            && validVector(weapon.trailColor, 1.0f)
-            && validVector(weapon.dissolveColor, 1.0f)
-            && validVector(weapon.particleColor, 1.0f)
-            && validVector(weapon.pivot, 10.0f)
-            && validVector(weapon.trailBase, 10.0f) && validVector(weapon.trailTip, 10.0f)
-            && validVector(weapon.cameraTarget, 10.0f)
-            && std::all_of(weapon.keys.begin(), weapon.keys.end(), [&](const auto& key) {
-                return validVector(key.position, 10.0f) && validVector(key.angles, 1440.0f);
-            });
-    }
-
-    JsonArray encodeVector(const std::array<float, 3>& vector)
-    {
-        JsonArray values;
-        for (float value : vector)
-            values.Append(JsonValue::CreateNumberValue(value));
-        return values;
-    }
-
-    std::array<float, 3> decodeVector(const JsonArray& values)
-    {
-        if (values.Size() != 3)
-            throw winrt::hresult_invalid_argument();
-        return { static_cast<float>(values.GetNumberAt(0)), static_cast<float>(values.GetNumberAt(1)),
-            static_cast<float>(values.GetNumberAt(2)) };
-    }
-
-    JsonObject encodeWeapon(const WeaponTrack& weapon)
-    {
-        JsonObject data;
-        data.SetNamedValue(L"model", JsonValue::CreateStringValue(winrt::to_hstring(weapon.model)));
-        data.SetNamedValue(L"enabled", JsonValue::CreateBooleanValue(weapon.enabled));
-        data.SetNamedValue(L"appear", JsonValue::CreateNumberValue(weapon.appear));
-        data.SetNamedValue(L"middle", JsonValue::CreateNumberValue(weapon.middle));
-        data.SetNamedValue(L"disappear", JsonValue::CreateNumberValue(weapon.disappear));
-        data.SetNamedValue(L"scale", JsonValue::CreateNumberValue(weapon.scale));
-        data.SetNamedValue(L"pivot", encodeVector(weapon.pivot));
-        data.SetNamedValue(L"trail", JsonValue::CreateBooleanValue(weapon.trail));
-        data.SetNamedValue(L"trailLength", JsonValue::CreateNumberValue(weapon.trailLength));
-        data.SetNamedValue(L"trailColor", encodeVector(weapon.trailColor));
-        JsonObject dissolve;
-        dissolve.SetNamedValue(L"enabled", JsonValue::CreateBooleanValue(weapon.dissolve));
-        dissolve.SetNamedValue(L"duration", JsonValue::CreateNumberValue(weapon.dissolveDuration));
-        dissolve.SetNamedValue(L"glow", JsonValue::CreateNumberValue(weapon.dissolveGlow));
-        dissolve.SetNamedValue(L"color", encodeVector(weapon.dissolveColor));
-        dissolve.SetNamedValue(L"particles", JsonValue::CreateBooleanValue(weapon.dissolveParticles));
-        dissolve.SetNamedValue(L"particleCount", JsonValue::CreateNumberValue(weapon.particleCount));
-        dissolve.SetNamedValue(L"particleColor", encodeVector(weapon.particleColor));
-        data.SetNamedValue(L"dissolve", dissolve);
-        data.SetNamedValue(L"trailBase", encodeVector(weapon.trailBase));
-        data.SetNamedValue(L"trailTip", encodeVector(weapon.trailTip));
-        data.SetNamedValue(L"effectOnWeapon", JsonValue::CreateBooleanValue(weapon.effectOnWeapon));
-        data.SetNamedValue(L"cameraEnabled", JsonValue::CreateBooleanValue(weapon.cameraEnabled));
-        data.SetNamedValue(L"cameraTarget", encodeVector(weapon.cameraTarget));
-
-        JsonArray keys;
-        for (std::size_t i = 0; i < weapon.keys.size(); ++i)
-        {
-            const auto& key = weapon.keys[i];
-            JsonObject pose;
-            pose.SetNamedValue(L"time", JsonValue::CreateNumberValue(weapon.keyTime(i)));
-            pose.SetNamedValue(L"position", encodeVector(key.position));
-            pose.SetNamedValue(L"angles", encodeVector(key.angles));
-            keys.Append(pose);
-        }
-        data.SetNamedValue(L"keys", keys);
-        return data;
-    }
-
-    WeaponTrack decodeWeapon(const JsonObject& data)
-    {
-        WeaponTrack weapon;
-        weapon.model = winrt::to_string(data.GetNamedString(L"model"));
-        weapon.enabled = data.GetNamedBoolean(L"enabled");
-        weapon.appear = static_cast<float>(data.GetNamedNumber(L"appear"));
-        weapon.middle = static_cast<float>(data.GetNamedNumber(L"middle"));
-        weapon.disappear = static_cast<float>(data.GetNamedNumber(L"disappear"));
-        weapon.scale = static_cast<float>(data.GetNamedNumber(L"scale"));
-        weapon.pivot = decodeVector(data.GetNamedArray(L"pivot"));
-        weapon.trail = data.GetNamedBoolean(L"trail");
-        weapon.trailLength = static_cast<float>(data.GetNamedNumber(L"trailLength"));
-        if (data.HasKey(L"trailColor"))
-            weapon.trailColor = decodeVector(data.GetNamedArray(L"trailColor"));
-        if (data.HasKey(L"dissolve"))
-        {
-            const auto dissolve = data.GetNamedObject(L"dissolve");
-            weapon.dissolve = dissolve.GetNamedBoolean(L"enabled");
-            weapon.dissolveDuration = static_cast<float>(dissolve.GetNamedNumber(L"duration"));
-            weapon.dissolveGlow = static_cast<float>(dissolve.GetNamedNumber(L"glow"));
-            weapon.dissolveColor = decodeVector(dissolve.GetNamedArray(L"color"));
-            weapon.dissolveParticles = dissolve.GetNamedBoolean(L"particles");
-            const double count = dissolve.GetNamedNumber(L"particleCount");
-            if (!(count >= 8 && count <= 128) || std::floor(count) != count)
-                throw winrt::hresult_invalid_argument();
-            weapon.particleCount = static_cast<int>(count);
-            weapon.particleColor = decodeVector(dissolve.GetNamedArray(L"particleColor"));
-        }
-        weapon.trailBase = decodeVector(data.GetNamedArray(L"trailBase"));
-        weapon.trailTip = decodeVector(data.GetNamedArray(L"trailTip"));
-        weapon.effectOnWeapon = data.GetNamedBoolean(L"effectOnWeapon");
-        weapon.cameraEnabled = data.GetNamedBoolean(L"cameraEnabled");
-        weapon.cameraTarget = decodeVector(data.GetNamedArray(L"cameraTarget"));
-        const auto keys = data.GetNamedArray(L"keys");
-        if (keys.Size() < 2 || keys.Size() > 512)
-            throw winrt::hresult_invalid_argument();
-        weapon.keys.resize(keys.Size());
-        for (uint32_t i = 0; i < keys.Size(); ++i)
-        {
-            const auto pose = keys.GetObjectAt(i);
-            weapon.keys[i].time = pose.HasKey(L"time") ? static_cast<float>(pose.GetNamedNumber(L"time"))
-                : (i == 0 ? weapon.appear : (i + 1 == keys.Size() ? weapon.disappear : weapon.middle));
-            weapon.keys[i].position = decodeVector(pose.GetNamedArray(L"position"));
-            weapon.keys[i].angles = decodeVector(pose.GetNamedArray(L"angles"));
-        }
-        return weapon;
-    }
 
     bool isValid(const ActionSequence& action)
     {
-        return PlayerAnimationAssets::isMotionName(action.clip) && inRange(action.duration, 0.5f, 10.0f)
+        return HeroineAnimationAssets::isMotionName(action.clip) && inRange(action.duration, 0.5f, 10.0f)
             && inRange(action.faceStart, 0.0f, action.facePeak)
             && inRange(action.facePeak, action.faceStart, action.faceEnd)
             && inRange(action.faceEnd, action.facePeak, action.duration)
@@ -206,7 +69,6 @@ namespace
             && (!action.faceEnabled || !action.targetMorph.empty())
             && action.baseMorph.size() <= 1024 && action.targetMorph.size() <= 1024
             && inRange(action.speed, 0.1f, 2.0f)
-            && (action.weapon.model.empty() ? !action.weapon.enabled : validWeapon(action.weapon, action.duration))
             && validExtraMorphs(action)
             && inRange(action.effectStart, 0.0f, action.duration)
             && inRange(action.effectX, -2.0f, 2.0f) && inRange(action.effectHeight, 0.0f, 2.0f);
@@ -255,8 +117,6 @@ namespace
         root.SetNamedValue(L"version", JsonValue::CreateNumberValue(formatVersion));
         root.SetNamedValue(L"duration", JsonValue::CreateNumberValue(action.duration));
         root.SetNamedValue(L"speed", JsonValue::CreateNumberValue(action.speed));
-        if (!action.weapon.model.empty())
-            root.SetNamedValue(L"weapon", encodeWeapon(action.weapon));
         root.SetNamedValue(L"motion", motion);
         root.SetNamedValue(L"expression", expression);
         root.SetNamedValue(L"effect", effect);
@@ -272,10 +132,8 @@ namespace
         ActionSequence action;
         action.duration = static_cast<float>(root.GetNamedNumber(L"duration"));
         action.speed = static_cast<float>(root.GetNamedNumber(L"speed", 1.0));
-        if (root.HasKey(L"weapon"))
-            action.weapon = decodeWeapon(root.GetNamedObject(L"weapon"));
         action.motionEnabled = motion.GetNamedBoolean(L"enabled");
-        action.clip = PlayerAnimationAssets::canonicalMotionName(winrt::to_string(motion.GetNamedString(L"clip")));
+        action.clip = HeroineAnimationAssets::canonicalMotionName(winrt::to_string(motion.GetNamedString(L"clip")));
         action.faceEnabled = expression.GetNamedBoolean(L"enabled");
         action.baseMorph = winrt::to_string(expression.GetNamedString(L"base"));
         action.targetMorph = winrt::to_string(expression.GetNamedString(L"target"));
@@ -412,10 +270,6 @@ bool ActionFile::load(const char* path, ActionSequence& action)
     }
 }
 
-bool ActionFile::loadAttack(ActionSequence& action)
-{
-    return load(attackPath, action);
-}
 
 // =========================================================
 // 入力をファイル名として検証し、保存先を asset/actions に限定する
@@ -493,9 +347,4 @@ bool ActionFile::saveNamed(const std::string& name, const ActionSequence& action
 {
     const auto path = pathForName(name);
     return !path.empty() && saveAction(path.c_str(), action);
-}
-
-bool ActionFile::saveAttack(const ActionSequence& action)
-{
-    return saveAction(attackPath, action);
 }

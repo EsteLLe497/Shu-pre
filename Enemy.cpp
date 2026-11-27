@@ -2,7 +2,6 @@
 #include "renderer.h"
 #include "Enemy.h"
 #include "manager.h"
-#include "Player.h"
 #include "MeshField.h"
 #include "SceneAudio.h"
 #include "SceneEditor.h"
@@ -173,147 +172,17 @@ float Enemy::chargeOffsetAt(float time) const
     return m_attackSettings.chargeDistance * progress - retreat;
 }
 
-bool Enemy::MoveOnGround(const Vector3& displacement, const Player* player)
-{
-    Vector3 next = m_Position + displacement;
-    const MeshField* field = Manager::GetGameObj<MeshField>();
-    if (field && !field->tryGetHeight(next.x, next.z, next.y)) return false;
 
-    const auto blocks = [&](const Vector3& position, float otherRadius)
-    {
-        if (fabsf(position.y - next.y) > 1.3f) return false;
-        const float nextDistance = hypotf(next.x - position.x, next.z - position.z);
-        const float currentDistance = hypotf(m_Position.x - position.x, m_Position.z - position.z);
-        return nextDistance < BodyRadius() + otherRadius && nextDistance < currentDistance;
-    };
-    if (m_MeshCollider && player && blocks(player->GetPosition(), 0.7f)) return false;
-    for (const Enemy* other : Manager::GetGameObjs<Enemy>())
-        if (m_MeshCollider && other != this && other->HasMeshCollider()
-            && !other->IsAirborne() && blocks(other->GetPosition(), other->BodyRadius())) return false;
-    if (SceneEditor::blocksEnemy(next, BodyRadius())) return false;
-    m_Position = next;
-    return true;
-}
 
 void Enemy::Update()
 {
-    if (isDead()) return;
-    if (auto* player = Manager::GetGameObj<Player>())
-        if (player->attack() && player->attack()->enemiesPaused()) return;
+    // Legacy placed characters remain available to the scene editor, without combat AI.
     const float dt = Manager::animationDeltaSeconds();
-    Player* player = Manager::GetGameObj<Player>();
-    const Vector3 toPlayer = player ? player->GetPosition() - m_Position : Vector3{ 0.0f, 0.0f, 0.0f };
-    const float horizontalDistance = hypotf(toPlayer.x, toPlayer.z);
-    const bool detected = player && hypotf(horizontalDistance, toPlayer.y) <= m_attackSettings.detectionDistance;
-    m_PunchCooldown = std::max(0.0f, m_PunchCooldown - dt);
-    m_attackCooldown = std::max(0.0f, m_attackCooldown - dt);
-
-    float facingError = 0.0f;
-    const bool canTurn = m_Attack != Attack::Charge || m_AttackTime + dt <= ChargeWindup;
-    if (canTurn && player && horizontalDistance > 0.001f)
-    {
-        const float targetYaw = atan2f(toPlayer.x, toPlayer.z);
-        const float turn = XMScalarModAngle(targetYaw - m_Rotation.y);
-        const float maxTurn = TurnSpeed * dt;
-        const float yawStep = std::max(-maxTurn, std::min(turn, maxTurn));
-        m_Rotation.y = XMScalarModAngle(m_Rotation.y + yawStep);
-        facingError = turn - yawStep;
-    }
-
-    bool moving = false;
-    if (m_Attack != Attack::None)
-    {
-        const float previousTime = m_AttackTime;
-        const Vector3 previousPosition = m_Position;
-        m_AttackTime += dt;
-        const auto motion = static_cast<Motion>(static_cast<int>(m_Attack) + 1);
-        const float duration = motionDuration(motion);
-        const auto& markers = m_motionSounds[static_cast<size_t>(motion)];
-        if (!markers.empty())
-            SceneAudio::playMarkers(markers, previousTime, std::min(m_AttackTime, duration));
-        else
-        {
-            if (m_Attack == Attack::Punch && previousTime < 0.43f && m_AttackTime >= 0.43f)
-                SceneAudio::play(SceneAudio::Cue::Punch);
-            if (m_Attack == Attack::Slam && previousTime < SlamImpact && m_AttackTime >= SlamImpact)
-                SceneAudio::play(SceneAudio::Cue::Slam);
-            if (m_Attack == Attack::Charge && previousTime < ChargeWindup && m_AttackTime >= ChargeWindup)
-                SceneAudio::play(SceneAudio::Cue::Charge);
-        }
-        if (m_Attack == Attack::Charge)
-        {
-            const Vector3 forward = GetFoward();
-            const float retreatTime = std::max(0.0f, std::min(m_AttackTime, ChargeWindup) - previousTime);
-            if (retreatTime > 0.0f)
-                MoveOnGround(forward * (-ChargeRetreatSpeed * retreatTime), player);
-            const float dashTime = std::min(m_AttackTime, ChargeEnd) - std::max(previousTime, ChargeWindup);
-            if (dashTime > 0.0f && !m_ChargeBlocked && m_attackSettings.chargeDistance > 0.0f)
-            {
-                const float distance = m_attackSettings.chargeDistance * (dashTime / (ChargeEnd - ChargeWindup));
-                // Test along the path so a higher configured speed cannot skip obstacles.
-                const int steps = std::max(1, static_cast<int>(ceilf(distance / 0.25f)));
-                const Vector3 step = forward * (distance / steps);
-                for (int i = 0; i < steps && !m_ChargeBlocked; ++i)
-                    m_ChargeBlocked = !MoveOnGround(step, player);
-            }
-        }
-        if (player) submitAttackHit(*player, previousTime, previousPosition);
-        if (m_AttackTime >= duration)
-        {
-            if (m_Attack == Attack::Punch) m_LeftHand = !m_LeftHand;
-            m_Attack = Attack::None;
-        }
-    }
-    else if (detected)
-    {
-        const auto nextMotion = static_cast<Motion>(static_cast<int>(m_NextAttack) + 1);
-        const float startRange = attackStartRange(nextMotion);
-        if (horizontalDistance <= startRange)
-        {
-            if (fabsf(facingError) < 0.35f && fabsf(toPlayer.y) < 1.6f
-                && m_attackCooldown <= 0.0f
-                && (m_NextAttack != Attack::Punch || m_PunchCooldown <= 0.0f))
-            {
-                m_Attack = m_NextAttack;
-                m_AttackTime = 0.0f;
-                m_attackHitId = Player::newAttackId();
-                const auto motion = static_cast<Motion>(static_cast<int>(m_Attack) + 1);
-                SceneAudio::playMarkers(m_motionSounds[static_cast<size_t>(motion)], -1.0f, 0.0f);
-                m_ChargeBlocked = false;
-                m_attackCooldown = m_attackSettings.attackInterval;
-                if (m_MidBoss && m_Attack == Attack::Punch)
-                    m_PunchCooldown = m_attackSettings.punchRepeatInterval;
-                if (m_MidBoss)
-                    m_NextAttack = m_Attack == Attack::Punch ? Attack::Slam
-                        : m_Attack == Attack::Slam ? Attack::Charge : Attack::Punch;
-            }
-        }
-        else
-        {
-            const float step = std::min(ChaseSpeed * dt, horizontalDistance - (startRange - 0.05f));
-            if (step > 0.0f)
-                moving = MoveOnGround(Vector3{ toPlayer.x, 0.0f, toPlayer.z } * (step / horizontalDistance), player);
-        }
-    }
-    const float gaitTarget = moving ? 1.0f : 0.0f;
-    m_GaitWeight += (gaitTarget - m_GaitWeight) * std::min(1.0f, 10.0f * dt);
-    m_GaitPhase = XMScalarModAngle(m_GaitPhase + 8.5f * dt);
-    const auto motion = m_Attack == Attack::None ? (moving ? Motion::Move : Motion::Idle)
-        : static_cast<Motion>(static_cast<int>(m_Attack) + 1);
-    if (motion == Motion::Idle || motion == Motion::Move)
-    {
-        const bool changed = motion != m_currentMotion;
-        const float previous = changed ? -1.0f : m_characterTime;
-        const float duration = motionDuration(motion);
-        const float next = changed ? 0.0f : m_characterTime + dt;
-        m_characterTime = fmodf(next, duration);
-        SceneAudio::playMarkers(m_motionSounds[static_cast<size_t>(motion)], previous, m_characterTime,
-            next >= duration ? duration : 0.0f);
-    }
-    else m_characterTime = m_AttackTime;
-    if (motion != m_currentMotion || motionClip(motion))
-        sampleCharacterMotion(motion, m_characterTime);
-    m_currentMotion = motion;
+    m_Attack = Attack::None;
+    const float duration = motionDuration(Motion::Idle);
+    m_characterTime = duration > 0 ? fmodf(m_characterTime + dt, duration) : 0;
+    sampleCharacterMotion(Motion::Idle, m_characterTime);
+    m_currentMotion = Motion::Idle;
     GameObject::Update();
 }
 
@@ -781,78 +650,7 @@ void Enemy::clearMotionPreview()
 }
 
 // Attack volumes are active only during the same strike phases shown by the editor.
-void Enemy::submitAttackHit(Player& player, float previousTime, const Vector3& previousPosition)
-{
-    const auto motion = static_cast<Motion>(static_cast<int>(m_Attack) + 1);
-    const auto phase = attackPhase(motion);
-    if (!m_attackHitId || m_AttackTime < phase.start || previousTime >= phase.end) return;
-    const float sampleTime = std::min(m_AttackTime, phase.end);
-    if (m_Attack == Attack::Punch)
-    {
-        // Reuse the rendered fist transform, including scale and the active left/right hand.
-        const float savedTime = m_AttackTime;
-        const auto noDraw = [](const Vector3&, const XMMATRIX&, const XMFLOAT4&, bool) {};
-        Vector3 from{ 0, 0, 0 }, to{ 0, 0, 0 };
-        float radius = 0.0f;
-        m_AttackTime = std::max(previousTime, phase.start);
-        VisitBodyParts(noDraw, [&](const Vector3& p, float r) { from = p; radius = r; });
-        m_AttackTime = sampleTime;
-        VisitBodyParts(noDraw, [&](const Vector3& p, float) { to = p; });
-        m_AttackTime = savedTime;
-        if (m_character)
-        {
-            // Imported characters use the animated hand hurtbox instead of prototype limbs.
-            const auto handIndex = [&]() -> size_t
-            {
-                for (size_t i = 0; i < m_capsules.size(); ++i)
-                {
-                    const auto& name = m_capsules[i].bone;
-                    if (name.find("Hand") == std::string::npos && name.find("hand") == std::string::npos) continue;
-                    const bool left = name.find("Left") != std::string::npos || name.find("left") != std::string::npos
-                        || name.find("_L_") != std::string::npos;
-                    if (left == m_LeftHand) return i;
-                }
-                return m_capsules.size();
-            }();
-            if (handIndex < m_capsules.size())
-            {
-                sampleCharacterMotion(motion, std::max(previousTime, phase.start));
-                auto hand = hurtboxPose(handIndex);
-                from = hand.end;
-                sampleCharacterMotion(motion, sampleTime);
-                hand = hurtboxPose(handIndex);
-                to = hand.end;
-                radius = std::max(0.15f * m_Scale.x, hand.radius);
-            }
-        }
-        player.submitIncomingHit({ m_attackHitId, from, to, radius });
-    }
-    else if (m_Attack == Attack::Charge)
-    {
-        const Vector3 height{ 0, 0.9f * m_Scale.y, 0 };
-        player.submitIncomingHit({ m_attackHitId, previousPosition + height, m_Position + height,
-            BodyRadius() + 0.35f * m_Scale.x });
-    }
-    else if (m_Attack == Attack::Slam)
-    {
-        // Sweep the visible ground ring, leaving its hollow center safe and allowing jumps.
-        const float from = shockwaveRadiusAt(std::max(previousTime, phase.start));
-        const float to = shockwaveRadiusAt(sampleTime);
-        const int steps = std::max(1, static_cast<int>(ceilf((to - from) / 0.15f)));
-        constexpr int sides = 32;
-        for (int step = 0; step <= steps; ++step)
-        {
-            const float radius = from + (to - from) * step / steps;
-            for (int side = 0; side < sides; ++side)
-            {
-                const float a = XM_2PI * side / sides, b = XM_2PI * (side + 1) / sides;
-                const Vector3 start = m_Position + Vector3{ sinf(a) * radius, 0.065f, cosf(a) * radius };
-                const Vector3 end = m_Position + Vector3{ sinf(b) * radius, 0.065f, cosf(b) * radius };
-                player.submitIncomingHit({ m_attackHitId, start, end, 0.12f });
-            }
-        }
-    }
-}
+
 
 // 敵はエディターからも参照されるため、死亡時は削除せず非表示・無効化する。
 // これにより、デバッグのHPリセットで同じ敵を復活させられる。
@@ -865,7 +663,6 @@ void Enemy::AddDamage(float damage, float flashDuration)
     if (isDead())
     {
         m_Attack = Attack::None;
-        m_attackHitId = 0;
     }
 }
 
@@ -887,7 +684,6 @@ void Enemy::resetHealth()
     m_health = m_maxHealth;
     m_hitFlashRemaining = m_hitFlashDuration = 0.0f;
     m_Attack = Attack::None;
-    m_attackHitId = 0;
     m_attackCooldown = 0.3f;
     m_PunchCooldown = 0.3f;
 }

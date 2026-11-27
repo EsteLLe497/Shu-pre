@@ -6,48 +6,6 @@
 #include "ActionSequence.h"
 #include <algorithm>
 
-bool WeaponTrack::visible(float time) const
-{
-    return enabled && time >= appear && time <= disappear;
-}
-
-float WeaponTrack::keyTime(std::size_t index) const
-{
-    if (keys[index].time >= 0.0f) return keys[index].time;
-    return index == 0 ? appear : (index + 1 == keys.size() ? disappear : middle);
-}
-
-WeaponPose WeaponTrack::sample(float time) const
-{
-    if (keys.empty()) return {};
-    if (time <= keyTime(0)) return keys.front();
-    std::size_t next = 1;
-    while (next < keys.size() && keyTime(next) <= time) ++next;
-    if (next == keys.size()) return keys.back();
-    const auto& from = keys[next - 1];
-    const auto& to = keys[next];
-    const float start = keyTime(next - 1), end = keyTime(next);
-    const float t = end > start ? (time - start) / (end - start) : 1.0f;
-    WeaponPose pose;
-    pose.time = time;
-    for (std::size_t axis = 0; axis < pose.position.size(); ++axis)
-    {
-        pose.position[axis] = from.position[axis] + (to.position[axis] - from.position[axis]) * t;
-        pose.angles[axis] = from.angles[axis] + (to.angles[axis] - from.angles[axis]) * t;
-    }
-    return pose;
-}
-
-float WeaponTrack::cameraWeight(float time, float duration) const
-{
-    if (!enabled || !cameraEnabled)
-        return 0.0f;
-
-    const float fade = std::min(0.15f, duration * 0.5f);
-    const float t = std::max(0.0f, std::min(1.0f, std::min(time, duration - time) / fade));
-    return t * t * (3.0f - 2.0f * t);
-}
-
 bool hasExpressionMorphs(const ActionSequence& action, const std::vector<std::string>& names)
 {
     const auto has = [&](const std::string& name) {
