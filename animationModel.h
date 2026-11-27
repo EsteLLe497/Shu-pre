@@ -72,6 +72,7 @@ private:
     std::size_t m_activeMorphLayerCount = 0;
     unsigned int m_missingTextures = 0;
     XMFLOAT3 m_staticHalfExtents{};
+    std::vector<UINT> m_indexCounts;
 
     // マテリアルを読み込み時に解決し、不透明と透過の描画順を分ける。
     struct DrawPart
@@ -121,7 +122,7 @@ private:
     void loadDrawParts();
     void setMorphLayer(MorphLayer& layer, const std::string& name, float weight);
     ID3D11ShaderResourceView* loadTexture(const aiTexture* embedded);
-    void drawParts(const std::vector<DrawPart>& parts, bool alphaBlend);
+    void drawParts(const std::vector<DrawPart>& parts, bool alphaBlend, UINT instanceCount = 0);
 
 public:
 	using Component::Component;
@@ -146,6 +147,8 @@ public:
 	void Draw() override;
     void drawOutline();
     void drawAt(FXMMATRIX world);
+    bool hasTransparentParts() const { return !m_transparentParts.empty(); }
+    void drawInstances(UINT count);
     bool fitBoneCapsule(const char* name, BoneCapsule& capsule) const;
     std::vector<std::string> dominantSkinBones(size_t limit) const;
     bool loadEmbeddedClip(const char* name);

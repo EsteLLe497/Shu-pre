@@ -91,6 +91,7 @@ public:
 
 
 
-	static void CreateVertexShader(ID3D11VertexShader** VertexShader, ID3D11InputLayout** VertexLayout, const char* FileName);
+	static void CreateVertexShader(ID3D11VertexShader** VertexShader, ID3D11InputLayout** VertexLayout, const char* FileName,
+        bool instanced = false);
 	static void CreatePixelShader(ID3D11PixelShader** PixelShader, const char* FileName);
 };

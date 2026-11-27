@@ -10,6 +10,7 @@
 #include "Player.h"
 #include "Heroine.h"
 #include "SceneEditor.h"
+#include "Scenery.h"
 #include "ToonPanel.h"
 #include "PreviewScene.h"
 #include "planetarium.h"
@@ -230,6 +231,12 @@ void Manager::Draw()
 	for (int layer = 0; layer < 5; layer++)
 	{
         // UIはドームの色や遮蔽の影響を受けない。
+        if (layer == 1 && camera) Scenery::begin(camera->GetViewMatrix(), camera->projectionMatrix());
+        if (layer == 2)
+        {
+            if (camera) SceneEditor::drawVegetation(camera->renderPosition());
+            Scenery::flush();
+        }
         if (layer == 4)
         {
             drawAlphaObjects(alphaObjects, camera);
