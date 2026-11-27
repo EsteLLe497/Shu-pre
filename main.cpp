@@ -4,6 +4,7 @@
 #include "manager.h"
 #include "input.h"
 #include "ToonPanel.h"
+#include "SceneEditor.h"
 #include <thread>
 #include <shellapi.h>
 #include <cstdio>
@@ -12,7 +13,7 @@
 
 
 const char* CLASS_NAME = "AppClass";
-const char* WINDOW_NAME = "DX11ƒQ[ƒ€";
+const char* WINDOW_NAME = "DX11ã‚²ãƒ¼ãƒ ";
 
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -58,17 +59,23 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	CoInitializeEx(nullptr, COINITBASE_MULTITHREADED);
 
 
-    // ƒRƒ}ƒ“ƒhƒ‰ƒCƒ“‚ÅƒvƒŒƒrƒ…[‚ğ‘I‚ÔB
+    // ã‚³ãƒãƒ³ãƒ‰ãƒ©ã‚¤ãƒ³ã§ãƒ—ãƒ¬ãƒ“ãƒ¥ãƒ¼ã‚’é¸ã¶ã€‚
     int argumentCount = 0;
     wchar_t** arguments = CommandLineToArgvW(GetCommandLineW(), &argumentCount);
     bool previewMode = false;
+    bool ruralMap = false;
     if (arguments)
     {
         for (int i = 1; i < argumentCount; ++i)
+        {
             previewMode = previewMode || wcscmp(arguments[i], L"--preview") == 0;
+            ruralMap = ruralMap || wcscmp(arguments[i], L"--rural-map") == 0;
+        }
         LocalFree(arguments);
     }
 
+	if (ruralMap && !previewMode) SceneEditor::useRuralMap();
+    Manager::Init(previewMode);
     // Locate project assets when launched outside Visual Studio or StartPreview.cmd.
     if (GetFileAttributesW(L"asset") == INVALID_FILE_ATTRIBUTES)
     {
@@ -94,7 +101,8 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	Manager::Init(previewMode);
 
-    const char* windowTitle = previewMode ? "GM31 Asset Preview" : WINDOW_NAME;
+    const char* windowTitle = previewMode ? "GM31 Asset Preview"
+        : ruralMap ? "Shu-pre - Summer Countryside" : WINDOW_NAME;
     SetWindowTextA(g_Window, windowTitle);
 
 
@@ -146,7 +154,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
             Manager::Draw();
 
 #ifdef _DEBUG
-            // •`‰æ‚ğI‚¦‚½ƒtƒŒ[ƒ€‚ğ”‚¦A0.5•b‚²‚Æ‚É•½‹ÏFPS‚ğ•\¦‚·‚éB
+            // æç”»ã‚’çµ‚ãˆãŸãƒ•ãƒ¬ãƒ¼ãƒ ã‚’æ•°ãˆã€0.5ç§’ã”ã¨ã«å¹³å‡FPSã‚’è¡¨ç¤ºã™ã‚‹ã€‚
             ++frameCount;
             const DWORD now = timeGetTime();
             const DWORD sampleMs = now - fpsStart;

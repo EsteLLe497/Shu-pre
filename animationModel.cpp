@@ -8,6 +8,7 @@
 	#include "GameObject.h"
 #include <wrl/client.h>
 #include "ActionSequence.h"
+#include "assimp/config.h"
 
 // =========================================================
 // ÉLÅ[éûçèÇÃëOå„ÇìÒï™íTçıÇµÅAìríÜÇÃépê®Çï‚ä‘
@@ -226,8 +227,18 @@ bool AnimationModel::tryLoad(const char* fileName, bool staticMesh)
     m_ModelPath = fileName;
     unsigned int flags = aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded;
     if (staticMesh)
-        flags |= aiProcess_PreTransformVertices;
-    m_AiScene = aiImportFile(fileName, flags);
+    {
+        // Degenerate faces in scenery can become line meshes during Assimp's validation pass.
+        // This renderer consumes triangle lists, so discard points and lines on import.
+        auto* options = aiCreatePropertyStore();
+        if (!options) return false;
+        aiSetImportPropertyInteger(options, AI_CONFIG_PP_FD_REMOVE, 1);
+        aiSetImportPropertyInteger(options, AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_POINT | aiPrimitiveType_LINE);
+        m_AiScene = aiImportFileExWithProperties(fileName, flags | aiProcess_PreTransformVertices, nullptr, options);
+        aiReleasePropertyStore(options);
+    }
+    else
+        m_AiScene = aiImportFile(fileName, flags);
     if (!m_AiScene)
         return false;
 

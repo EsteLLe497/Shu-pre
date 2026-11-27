@@ -8,6 +8,7 @@ class Vector3;
 
 namespace SceneEditor
 {
+    void useRuralMap();
     void init(Player& player, MeshField& terrain);
     void shutdown();
     bool isAvailable();
