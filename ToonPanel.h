@@ -16,8 +16,6 @@ namespace ToonPanel
     void uninit();
     bool isOpen();
     bool isPauseMenuOpen();
-    bool isAttackDebugOpen();
-    void closeAttackDebug();
     LRESULT handleMessage(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
     void beginFrame();
     void beginFrame(ToonSettings* settings, CameraOrbit* orbit);

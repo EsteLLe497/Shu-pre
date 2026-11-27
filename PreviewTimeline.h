@@ -26,7 +26,6 @@ struct PreviewTimeline
     bool smoothFaceBlend = true;
     float effectStart = 1.0f;
 
-    float weaponVisualEnd = 0.0f;
     float playbackEnd() const;
 
     void advance(float dt);

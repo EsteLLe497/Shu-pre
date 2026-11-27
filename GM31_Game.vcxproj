@@ -19,8 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="attack.cpp" />
-    <ClCompile Include="AttackWeapon.cpp" />
+    <ClCompile Include="Heroine.cpp" />
+    <ClCompile Include="HeroineAnimationAssets.cpp" />
+    <ClInclude Include="Heroine.h" />
+    <ClInclude Include="HeroineActionSet.h" />
+    <ClInclude Include="HeroineAnimationAssets.h" />
+
     <ClCompile Include="SceneAudio.cpp">
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -35,7 +39,6 @@
     <ClCompile Include="animationModel.cpp" />
     <ClCompile Include="audio.cpp" />
     <ClCompile Include="Box.cpp" />
-    <ClCompile Include="Bullet.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Collision.cpp" />
     <ClCompile Include="Enemy.cpp" />
@@ -52,8 +55,6 @@
     <ClCompile Include="constellation.cpp" />
     <ClCompile Include="planetarium.cpp" />
     <ClCompile Include="Player.cpp" />
-    <ClCompile Include="PlayerActions.cpp" />
-    <ClCompile Include="PlayerAnimationAssets.cpp" />
     <ClCompile Include="PreviewCamera.cpp" />
     <ClCompile Include="PreviewPanel.cpp" />
     <ClCompile Include="PreviewScene.cpp" />
@@ -62,7 +63,6 @@
     <ClCompile Include="renderer.cpp" />
     <ClCompile Include="Result.cpp" />
     <ClCompile Include="Scene.cpp" />
-    <ClCompile Include="Score.cpp" />
     <ClCompile Include="Shadow.cpp" />
     <ClCompile Include="SkyDome.cpp" />
     <ClCompile Include="Title.cpp" />
@@ -79,8 +79,6 @@
     <ClCompile Include="Wave.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="attack.h" />
-    <ClInclude Include="AttackWeapon.h" />
     <ClInclude Include="SceneAudio.h" />
     <ClInclude Include="SceneEditor.h" />
     <ClInclude Include="ActionFile.h" />
@@ -88,7 +86,6 @@
     <ClInclude Include="animationModel.h" />
     <ClInclude Include="audio.h" />
     <ClInclude Include="Box.h" />
-    <ClInclude Include="Bullet.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Collision.h" />
     <ClInclude Include="component.h" />
@@ -109,8 +106,6 @@
     <ClInclude Include="constellation.h" />
     <ClInclude Include="planetarium.h" />
     <ClInclude Include="Player.h" />
-    <ClInclude Include="PlayerActionSet.h" />
-    <ClInclude Include="PlayerAnimationAssets.h" />
     <ClInclude Include="PreviewCamera.h" />
     <ClInclude Include="PreviewPanel.h" />
     <ClInclude Include="PreviewScene.h" />
@@ -119,7 +114,6 @@
     <ClInclude Include="renderer.h" />
     <ClInclude Include="Result.h" />
     <ClInclude Include="Scene.h" />
-    <ClInclude Include="Score.h" />
     <ClInclude Include="Shadow.h" />
     <ClInclude Include="SkyDome.h" />
     <ClInclude Include="Title.h" />
@@ -239,16 +233,6 @@
       <ObjectFileOutput>shader\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
     <FxCompile Include="shader\planetariumPS.hlsl">
-      <ShaderType>Pixel</ShaderType>
-      <ShaderModel>5.0</ShaderModel>
-      <ObjectFileOutput>shader\%(Filename).cso</ObjectFileOutput>
-    </FxCompile>
-    <FxCompile Include="shader\weaponEndVS.hlsl">
-      <ShaderType>Vertex</ShaderType>
-      <ShaderModel>5.0</ShaderModel>
-      <ObjectFileOutput>shader\%(Filename).cso</ObjectFileOutput>
-    </FxCompile>
-    <FxCompile Include="shader\weaponEndPS.hlsl">
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>5.0</ShaderModel>
       <ObjectFileOutput>shader\%(Filename).cso</ObjectFileOutput>
@@ -392,4 +376,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <Target Name="CopyAssimpRuntime" AfterTargets="Build">
+    <Copy SourceFiles="$(ProjectDir)assimp-vc143-mt.dll" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

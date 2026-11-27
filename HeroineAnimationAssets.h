@@ -1,5 +1,5 @@
 // =========================================================
-// ファイルの情報[PlayerAnimationAssets.h]
+// ファイルの情報[HeroineAnimationAssets.h]
 //
 // 制作者:Masatora Tanaka        日付：2026/11/11
 // =========================================================
@@ -10,13 +10,12 @@
 
 class AnimationModel;
 
-// ゲームとプレビューで同じモデルとモーションを使う。
-namespace PlayerAnimationAssets
+// ヒロインとプレビューで同じモデルとモーションを使う。
+namespace HeroineAnimationAssets
 {
     constexpr char model[] = "asset/model/Player_Movement/Player.fbx";
     constexpr char previewModel[] = "asset/model/Player_Movement/Player_Preview.fbx";
     constexpr float skeletonScale = 0.01f;
-    constexpr char attackMotionsDirectory[] = "asset/model/Player_Movement/AttackMotions";
     constexpr char motionsDirectory[] = "asset/model/Player_Movement/Motions";
 
     bool isMotionName(const std::string& name);
