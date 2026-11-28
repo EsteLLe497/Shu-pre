@@ -6,6 +6,7 @@
 #include "common.hlsl"
 #include "toonCommon.hlsli"
 #include "planetariumLight.hlsli"
+// Graphics Lab の人物材質と共通ライティングを追加 担当:ozawa souma        日付:2026/11/28
 #include "LabLighting.hlsli"
 #include "CharacterLighting.hlsli"
 #include "SkyFrame.hlsli"

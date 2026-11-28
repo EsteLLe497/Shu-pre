@@ -13,6 +13,7 @@ private:
 	static float m_animationDeltaSeconds;
 
 public:
+	// Graphics Lab の起動モードを追加 担当:ozawa souma        日付:2026/11/28
 	static void Init(bool previewMode, bool graphicsLab = false);
 	static void Uninit();
 	static void Update(float frameSeconds);

@@ -1,4 +1,9 @@
 @echo off
+rem =========================================================
+rem ファイルの情報[StartGraphicsLab.cmd]
+rem
+rem 制作者:ozawa souma        日付:2026/11/28
+rem =========================================================
 setlocal
 pushd "%~dp0" || exit /b 1
 set "labExe=x64\Release\GM31_Game.exe"

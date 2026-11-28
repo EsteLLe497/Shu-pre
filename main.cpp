@@ -63,6 +63,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     int argumentCount = 0;
     wchar_t** arguments = CommandLineToArgvW(GetCommandLineW(), &argumentCount);
     bool previewMode = false;
+    // コマンドラインで Graphics Lab を選べるように追加 担当:ozawa souma        日付:2026/11/28
     bool graphicsLab = false;
     if (arguments)
     {

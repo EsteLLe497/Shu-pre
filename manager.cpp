@@ -82,6 +82,7 @@ namespace
 }
 
 
+// Graphics Lab の起動モードを追加 担当:ozawa souma        日付:2026/11/28
 void Manager::Init(bool previewMode, bool graphicsLab)
 {
     previewWorkspace = previewMode || graphicsLab;

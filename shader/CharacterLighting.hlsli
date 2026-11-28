@@ -1,3 +1,9 @@
+// =========================================================
+// ファイルの情報[CharacterLighting.hlsli]
+//
+// 制作者:ozawa souma        日付:2026/11/28
+// =========================================================
+
 // FBX の材質名を AnimationModel 側で分類し、面ごとの照明処理を選ぶ。
 static const int SkinMaterial = 1;
 static const int HairMaterial = 2;

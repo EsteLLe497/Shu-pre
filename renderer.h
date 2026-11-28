@@ -85,6 +85,7 @@ public:
 	static void SetCameraPosition(Vector3 camera);
     static void SetObjectOpacity(float opacity);
 
+    // Graphics Lab の描画先と深度バッファ取得 担当:ozawa souma        日付:2026/11/28
     static ID3D11RenderTargetView* backBuffer() { return m_RenderTargetView; }
     static ID3D11DepthStencilView* depthTarget() { return m_DepthStencilView; }
 	static ID3D11ShaderResourceView* sceneDepth() { return m_sceneDepth; }

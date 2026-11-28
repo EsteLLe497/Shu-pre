@@ -145,6 +145,7 @@ public:
 	void Load( const char *FileName );
     bool LoadAnimation(const char* fileName, const char* name);
     bool tryLoad(const char* fileName, bool staticMesh = false);
+    // Graphics Lab の人物材質とミップマップの切り替え 担当:ozawa souma        日付:2026/11/28
     void enableTextureMipmaps() { m_generateTextureMipmaps = true; }
     void enableCharacterMaterials() { m_useCharacterMaterials = true; }
     XMFLOAT3 staticHalfExtents() const { return m_staticHalfExtents; }

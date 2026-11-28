@@ -55,6 +55,7 @@ public:
     };
 
     void invalidate() { m_dirty = true; }
+    // B‰e—p‚Ì[“xƒoƒbƒtƒ@‚ğó‚¯æ‚é…–Ê•`‰æ ’S“–:ozawa souma        “ú•t:2026/11/28
     void draw(const Layout& settings, const MeshField& terrain, const Vector3& eye, FXMMATRIX viewProjection, float dt,
         ID3D11DepthStencilView* readOnlyDepth = nullptr, ID3D11ShaderResourceView* depthImage = nullptr);
     void reset();

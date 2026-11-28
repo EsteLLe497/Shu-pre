@@ -72,6 +72,7 @@
     <ClCompile Include="field.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Grass.cpp" />
+    <!-- Graphics Lab のソース・ヘッダー・シェーダー登録 担当:ozawa souma        日付:2026/11/28 -->
     <ClCompile Include="GraphicsLab.cpp" />
     <ClCompile Include="GraphicsLabGeometry.cpp" />
     <ClCompile Include="input.cpp" />

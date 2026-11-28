@@ -142,6 +142,7 @@
     <ClCompile Include="Tree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <!-- Graphics Lab のソース・ヘッダー・シェーダー分類 担当:ozawa souma        日付:2026/11/28 -->
     <ClCompile Include="GraphicsLabGeometry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

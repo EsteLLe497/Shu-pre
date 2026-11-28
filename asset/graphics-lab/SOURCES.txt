@@ -1,3 +1,9 @@
+// =========================================================
+// ファイルの情報[SOURCES.txt]
+//
+// 制作者:ozawa souma        日付:2026/11/28
+// =========================================================
+
 Graphics Lab texture sources (Poly Haven, CC0)
 https://polyhaven.com/license
 
@@ -7,3 +13,10 @@ siding   https://polyhaven.com/a/brown_planks_03
 bark     https://polyhaven.com/a/bark_brown_02
 roof     https://polyhaven.com/a/corrugated_iron_02
 concrete https://polyhaven.com/a/cracked_concrete_wall
+
+Graphics Lab 制作素材
+制作者:ozawa souma        日付:2026/11/28
+・樹種別の葉テクスチャ（keyaki-leaves.png、konara-leaves.png、sugi-leaves.png）
+・樹種別の樹皮テクスチャ（keyaki、konara、sugi の -bark-color.png と -bark-relief.png）
+  樹皮の細部には、上記の Poly Haven CC0 素材を使用。
+・Graphics Lab 用の駅名標（station-sign.png）

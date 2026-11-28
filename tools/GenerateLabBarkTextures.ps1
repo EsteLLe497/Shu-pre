@@ -1,4 +1,10 @@
-﻿param([string]$OutputDirectory = (Join-Path $PSScriptRoot '..\asset\graphics-lab'))
+﻿# =========================================================
+# ファイルの情報[GenerateLabBarkTextures.ps1]
+#
+# 制作者:ozawa souma        日付:2026/11/28
+# =========================================================
+
+param([string]$OutputDirectory = (Join-Path $PSScriptRoot '..\asset\graphics-lab'))
 $ErrorActionPreference = 'Stop'
 $sourceDirectory = Join-Path $PSScriptRoot '..\asset\graphics-lab'
 Add-Type -AssemblyName System.Drawing

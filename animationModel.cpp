@@ -251,6 +251,7 @@ void AnimationModel::loadDrawParts(bool staticMesh)
     }
 }
 
+// Graphics Lab 向けの人物材質とテクスチャのミップマップ対応 担当:ozawa souma        日付:2026/11/28
 void AnimationModel::createTextureView(const DirectX::ScratchImage& image, ID3D11ShaderResourceView** view) const
 {
     const auto createView = [&](const ScratchImage& source)

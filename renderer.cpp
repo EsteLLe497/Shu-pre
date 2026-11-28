@@ -32,6 +32,7 @@ ID3D11BlendState*		Renderer::m_BlendStateATC{};
 
 
 
+// Graphics Lab 向けの高精度深度バッファを追加 担当:ozawa souma        日付:2026/11/28
 void Renderer::Init(bool highPrecisionDepth)
 {
 	HRESULT hr = S_OK;

@@ -11,6 +11,7 @@ Texture2DArray<float4> WaterDetail : register(t7);
 SamplerState PondSampler : register(s1);
 SamplerState DetailSampler : register(s3);
 
+// Graphics Lab の空・フォグを水面に反映 担当:ozawa souma        日付:2026/11/28
 float3 waterSkyTint()
 {
     return FogSettings.z > 0.5 ? 1.0.xxx : skySceneTint();

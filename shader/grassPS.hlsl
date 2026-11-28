@@ -3,6 +3,7 @@
 Texture2D grassTexture : register(t0);
 SamplerState grassSampler : register(s0);
 
+// 草の透明部分を深度へ書き込む問題を修正 担当:ozawa souma        日付:2026/11/28
 float4 main(PS_IN input) : SV_Target
 {
     float4 color = input.Diffuse;

@@ -1,4 +1,10 @@
-﻿#include "main.h"
+﻿// =========================================================
+// ファイルの情報[GraphicsLab.cpp]
+//
+// 制作者:ozawa souma        日付:2026/11/28
+// =========================================================
+
+#include "main.h"
 #include "GraphicsLab.h"
 #include "renderer.h"
 #include "GraphicsLabGeometry.h"

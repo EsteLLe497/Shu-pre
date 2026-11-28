@@ -418,6 +418,7 @@ void  MeshField::Draw()
     context->PSSetSamplers(1, 1, previousPaintSampler.GetAddressOf());
 }
 
+// 独自シェーダーを使用する地形描画入口 担当:ozawa souma        日付:2026/11/28
 void MeshField::drawGeometry()
 {
     if (!m_VertexBuffer) return;

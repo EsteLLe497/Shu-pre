@@ -763,6 +763,7 @@ void Wave::updateRiverMask(const Surface& surface)
     m_maskedRiver = surface.firstIndex;
 }
 
+// 描画先の解像度・形式に応じた水面の背景取得および撮影時の深度対応 担当:ozawa souma        日付:2026/11/28
 bool Wave::captureSceneColor(ID3D11RenderTargetView& target)
 {
     ComPtr<ID3D11Resource> source;
