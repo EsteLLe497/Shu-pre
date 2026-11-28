@@ -21,6 +21,21 @@ namespace SceneAudio
     };
     using Timeline = std::vector<Marker>;
 
+    struct AmbientZone
+    {
+        std::string file;
+        float x = 0.0f;
+        float z = 0.0f;
+        float radius = 18.0f;
+        float volume = 0.55f;
+
+        float gainAt(float listenerX, float listenerZ) const;
+    };
+
+    void updateAmbient(const std::vector<AmbientZone>& zones, float x, float z, float dt);
+    bool previewAmbient(const AmbientZone& zone);
+    void stopAmbientPreview();
+
     void init();
     void shutdown();
     void setEditing(bool editing);

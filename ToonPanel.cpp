@@ -11,6 +11,11 @@
 #include "ToonPanel.h"
 #include "Camera.h"
 #include "ToonPreset.h"
+#include "DebugPanel.h"
+#include "manager.h"
+#include "HeroineConversation.h"
+#include "AI/DialoguePanel.h"
+#include "AI/SubtitlePanel.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_dx11.h"
 #include "imgui/imgui_impl_win32.h"
@@ -20,7 +25,6 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM,
 namespace
 {
     bool panelOpen = false;
-    bool attackDebugOpen = false;
     bool previewWorkspace = false;
     bool pauseMenuOpen = false;
     const char* presetStatus = nullptr;
@@ -127,25 +131,14 @@ namespace
             return;
 
         editLighting(settings);
-        editAngle("Orbit yaw", orbit.yaw, -XM_PI, XM_PI);
-        editAngle("Orbit pitch", orbit.pitch, CameraOrbit::minPitch, CameraOrbit::maxPitch);
-        ImGui::SliderFloat("Zoom", &orbit.distance, CameraOrbit::minDistance, CameraOrbit::maxDistance,
-            "%.3f", sliderFlags | ImGuiSliderFlags_Logarithmic);
-        ImGui::SliderFloat("Look height", &orbit.lookHeight, CameraOrbit::minLookHeight,
-            CameraOrbit::maxLookHeight, "%.3f", sliderFlags);
-
-        if (ImGui::Button("Full body"))
+        editAngle("View yaw", orbit.yaw, -XM_PI, XM_PI);
+        editAngle("View pitch", orbit.pitch, CameraOrbit::minPitch, CameraOrbit::maxPitch);
+        ImGui::SliderFloat("Eye height", &orbit.lookHeight, 0.8f, 2.0f, "%.3f", sliderFlags);
+        if (ImGui::Button("Reset view"))
         {
-            orbit.distance = 4.2f;
-            orbit.lookHeight = 0.95f;
-            orbit.pitch = 0.20f;
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Close-up"))
-        {
-            orbit.distance = 1.45f;
-            orbit.lookHeight = 1.55f;
+            orbit.yaw = 0.0f;
             orbit.pitch = 0.0f;
+            orbit.lookHeight = 1.60f;
         }
     }
 
@@ -183,6 +176,7 @@ void ToonPanel::init(HWND window, bool previewMode)
     auto& io = ImGui::GetIO();
     io.IniFilename = nullptr;
     // ImGuiの表示文字列はUTF-8。日本語の字形はWindows標準フォントから読み込む。
+    std::string subtitleFallbackPath;
     char windowsDirectory[MAX_PATH]{};
     const UINT length = GetWindowsDirectoryA(windowsDirectory, MAX_PATH);
     if (length > 0 && length < MAX_PATH)
@@ -193,13 +187,15 @@ void ToonPanel::init(HWND window, bool previewMode)
             const auto path = fontsDirectory + font;
             if (GetFileAttributesA(path.c_str()) == INVALID_FILE_ATTRIBUTES) continue;
             io.FontDefault = io.Fonts->AddFontFromFileTTF(path.c_str(), 14.0f);
-            if (io.FontDefault) break;
+            if (io.FontDefault) { subtitleFallbackPath = path; break; }
         }
     }
     if (!io.FontDefault) io.Fonts->AddFontDefault();
+    AI::SubtitlePanel::initFont(subtitleFallbackPath);
 
     if (!ImGui_ImplWin32_Init(window))
     {
+        AI::SubtitlePanel::reset();
         ImGui::DestroyContext();
         return;
     }
@@ -207,6 +203,7 @@ void ToonPanel::init(HWND window, bool previewMode)
     if (!ImGui_ImplDX11_Init(Renderer::GetDevice(), Renderer::GetDeviceContext()))
     {
         ImGui_ImplWin32_Shutdown();
+        AI::SubtitlePanel::reset();
         ImGui::DestroyContext();
     }
 }
@@ -218,27 +215,20 @@ void ToonPanel::uninit()
 
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
+    AI::SubtitlePanel::reset();
     ImGui::DestroyContext();
     panelOpen = false;
-    attackDebugOpen = false;
     pauseMenuOpen = false;
+    DebugPanel::close();
 }
 
-bool ToonPanel::isAttackDebugOpen()
-{
-    return attackDebugOpen;
-}
 
-void ToonPanel::closeAttackDebug()
-{
-    if (!attackDebugOpen) return;
-    attackDebugOpen = false;
-    Input::SetMouseCapture(!isOpen() && GetFocus() == GetWindow());
-}
+
+
 
 bool ToonPanel::isOpen()
 {
-    return panelOpen || attackDebugOpen || previewWorkspace || pauseMenuOpen || SceneEditor::isOpen();
+    return panelOpen || previewWorkspace || pauseMenuOpen || SceneEditor::isOpen() || DebugPanel::isOpen();
 }
 
 bool ToonPanel::isPauseMenuOpen()
@@ -264,8 +254,10 @@ LRESULT ToonPanel::handleMessage(HWND window, UINT message, WPARAM wParam, LPARA
         {
             if (SceneEditor::isOpen())
                 SceneEditor::close();
-            else if (panelOpen || attackDebugOpen)
-                panelOpen = attackDebugOpen = false;
+            else if (panelOpen)
+                panelOpen = false;
+            else if (DebugPanel::isOpen())
+                DebugPanel::close();
             else if (SceneEditor::isPlaying())
                 SceneEditor::toggle();
             else
@@ -276,26 +268,26 @@ LRESULT ToonPanel::handleMessage(HWND window, UINT message, WPARAM wParam, LPARA
         return 1;
     }
     if (!previewWorkspace && message == WM_KEYDOWN
-        && (wParam == VK_F1 || ((wParam == VK_F2 || wParam == VK_F4) && SceneEditor::isAvailable())))
+        && (wParam == VK_F1 || ((wParam == VK_F2 || wParam == VK_F3) && SceneEditor::isAvailable())))
     {
         if (pauseMenuOpen) return 1;
         if ((lParam & previousKeyState) == 0)
         {
-            if (wParam == VK_F4)
+            if (wParam == VK_F2)
+            {
+                panelOpen = false;
+                DebugPanel::close();
+                SceneEditor::toggle();
+            }
+            else if (wParam == VK_F3)
             {
                 panelOpen = false;
                 SceneEditor::close();
-                attackDebugOpen = !attackDebugOpen;
-            }
-            else if (wParam == VK_F2)
-            {
-                attackDebugOpen = false;
-                panelOpen = false;
-                SceneEditor::toggle();
+                DebugPanel::toggle();
             }
             else
             {
-                attackDebugOpen = false;
+                DebugPanel::close();
                 SceneEditor::close();
                 panelOpen = !panelOpen;
             }
@@ -324,6 +316,7 @@ void ToonPanel::beginFrame()
         io.DisplayFramebufferScale = ImVec2(SCREEN_WIDTH / io.DisplaySize.x, SCREEN_HEIGHT / io.DisplaySize.y);
 
     ImGui::NewFrame();
+    if (!previewWorkspace && !pauseMenuOpen && !SceneEditor::isOpen()) DebugPanel::draw();
 }
 
 void ToonPanel::beginFrame(ToonSettings* settings, CameraOrbit* orbit)
@@ -364,6 +357,9 @@ void ToonPanel::editAppearance(ToonSettings& settings)
 
 void ToonPanel::draw()
 {
+    if (!previewWorkspace && !pauseMenuOpen && !SceneEditor::isOpen())
+        if (auto* conversation = Manager::GetGameObj<HeroineConversation>()) AI::SubtitlePanel::draw(*conversation);
+    if (!previewWorkspace && !pauseMenuOpen && !SceneEditor::isOpen()) DebugPanel::drawWorldMarkers();
     drawPauseMenu();
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

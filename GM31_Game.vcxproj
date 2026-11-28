@@ -1,14 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
@@ -19,12 +11,50 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="attack.cpp" />
-    <ClCompile Include="AttackWeapon.cpp" />
+    <ClCompile Include="AI\SubtitlePanel.cpp"><LanguageStandard>stdcpp17</LanguageStandard></ClCompile>
+    <ClInclude Include="AI\SubtitlePanel.h" />
+
+    <ClCompile Include="AI\SubtitleLayout.cpp"><LanguageStandard>stdcpp17</LanguageStandard><AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClInclude Include="AI\SubtitleLayout.h" />
+
+    <ClCompile Include="AI\DialogueProtocol.cpp"><LanguageStandard>stdcpp17</LanguageStandard><AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions><AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(WindowsSDKVersion)cppwinrt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories></ClCompile>
+    <ClCompile Include="AI\OllamaClient.cpp"><LanguageStandard>stdcpp17</LanguageStandard><AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions><AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(WindowsSDKVersion)cppwinrt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories></ClCompile>
+    <ClCompile Include="AI\DialogueSession.cpp"><LanguageStandard>stdcpp17</LanguageStandard><AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions><AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(WindowsSDKVersion)cppwinrt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories></ClCompile>
+    <ClCompile Include="AI\DialoguePanel.cpp"><LanguageStandard>stdcpp17</LanguageStandard><AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(WindowsSDKVersion)cppwinrt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories></ClCompile>
+    <ClCompile Include="HeroineConversation.cpp"><LanguageStandard>stdcpp17</LanguageStandard><AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(WindowsSDKVersion)cppwinrt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories></ClCompile>
+    <ClInclude Include="AI\DialogueTypes.h"></ClInclude>
+    <ClInclude Include="AI\DialogueProtocol.h"></ClInclude>
+    <ClInclude Include="AI\OllamaClient.h"></ClInclude>
+    <ClInclude Include="AI\DialogueSession.h"></ClInclude>
+    <ClInclude Include="AI\DialoguePanel.h"></ClInclude>
+    <ClInclude Include="HeroineConversation.h"></ClInclude>
+    <ClCompile Include="Heroine.cpp" />
+    <ClCompile Include="HeroineMovement.cpp" />
+    <ClCompile Include="HeroineLookAt.cpp" />
+    <ClInclude Include="HeroineLookAt.h" />
+    <ClInclude Include="BonePoseRotation.h" />
+    <ClInclude Include="MorphOverlay.h" />
+    <ClCompile Include="DebugPanel.cpp" />
+    <ClInclude Include="HeroineMovement.h" />
+    <ClInclude Include="DebugPanel.h" />
+    <ClCompile Include="HeroineAnimationAssets.cpp" />
+    <ClInclude Include="Heroine.h" />
+    <ClInclude Include="HeroineActionSet.h" />
+    <ClInclude Include="HeroineAnimationAssets.h" />
+
     <ClCompile Include="SceneAudio.cpp">
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ClCompile Include="SceneEditor.cpp">
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <ClCompile Include="Scenery.cpp">
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <ClCompile Include="Vegetation.cpp">
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <ClCompile Include="RuralWildlife.cpp">
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ClCompile Include="ActionFile.cpp">
@@ -35,7 +65,6 @@
     <ClCompile Include="animationModel.cpp" />
     <ClCompile Include="audio.cpp" />
     <ClCompile Include="Box.cpp" />
-    <ClCompile Include="Bullet.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Collision.cpp" />
     <ClCompile Include="Enemy.cpp" />
@@ -54,8 +83,6 @@
     <ClCompile Include="constellation.cpp" />
     <ClCompile Include="planetarium.cpp" />
     <ClCompile Include="Player.cpp" />
-    <ClCompile Include="PlayerActions.cpp" />
-    <ClCompile Include="PlayerAnimationAssets.cpp" />
     <ClCompile Include="PreviewCamera.cpp" />
     <ClCompile Include="PreviewPanel.cpp" />
     <ClCompile Include="PreviewScene.cpp" />
@@ -64,9 +91,10 @@
     <ClCompile Include="renderer.cpp" />
     <ClCompile Include="Result.cpp" />
     <ClCompile Include="Scene.cpp" />
-    <ClCompile Include="Score.cpp" />
     <ClCompile Include="Shadow.cpp" />
-    <ClCompile Include="SkyDome.cpp" />
+    <ClCompile Include="SkyDome.cpp">
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
     <ClCompile Include="Title.cpp" />
     <ClCompile Include="ToonPanel.cpp" />
     <ClCompile Include="ToonPreset.cpp" />
@@ -81,16 +109,16 @@
     <ClCompile Include="Wave.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="attack.h" />
-    <ClInclude Include="AttackWeapon.h" />
     <ClInclude Include="SceneAudio.h" />
     <ClInclude Include="SceneEditor.h" />
+    <ClInclude Include="Scenery.h" />
+    <ClInclude Include="Vegetation.h" />
+    <ClInclude Include="RuralWildlife.h" />
     <ClInclude Include="ActionFile.h" />
     <ClInclude Include="ActionSequence.h" />
     <ClInclude Include="animationModel.h" />
     <ClInclude Include="audio.h" />
     <ClInclude Include="Box.h" />
-    <ClInclude Include="Bullet.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Collision.h" />
     <ClInclude Include="component.h" />
@@ -113,8 +141,6 @@
     <ClInclude Include="constellation.h" />
     <ClInclude Include="planetarium.h" />
     <ClInclude Include="Player.h" />
-    <ClInclude Include="PlayerActionSet.h" />
-    <ClInclude Include="PlayerAnimationAssets.h" />
     <ClInclude Include="PreviewCamera.h" />
     <ClInclude Include="PreviewPanel.h" />
     <ClInclude Include="PreviewScene.h" />
@@ -123,7 +149,6 @@
     <ClInclude Include="renderer.h" />
     <ClInclude Include="Result.h" />
     <ClInclude Include="Scene.h" />
-    <ClInclude Include="Score.h" />
     <ClInclude Include="Shadow.h" />
     <ClInclude Include="SkyDome.h" />
     <ClInclude Include="Title.h" />
@@ -147,6 +172,10 @@
     <None Include="shader\LabLighting.hlsli" />
     <None Include="shader\CharacterLighting.hlsli" />
     <None Include="shader\planetariumLight.hlsli" />
+    <None Include="shader\SkyFrame.hlsli" />
+    <None Include="shader\SkyColor.hlsli" />
+    <None Include="shader\SummerClouds.hlsli" />
+    <None Include="shader\foliageWind.hlsli" />
     <None Include="shader\WaterCommon.hlsli" />
     <None Include="shader\toonCommon.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -209,6 +238,14 @@
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
+    <FxCompile Include="shader\litInstancedVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
     <FxCompile Include="shader\unlitTexturePS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
@@ -216,6 +253,16 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\SkyDomePS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <ObjectFileOutput>shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\SkyDomeVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <ObjectFileOutput>shader\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
     <FxCompile Include="shader\unlitTextureVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
@@ -246,16 +293,6 @@
       <ObjectFileOutput>shader\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
     <FxCompile Include="shader\planetariumPS.hlsl">
-      <ShaderType>Pixel</ShaderType>
-      <ShaderModel>5.0</ShaderModel>
-      <ObjectFileOutput>shader\%(Filename).cso</ObjectFileOutput>
-    </FxCompile>
-    <FxCompile Include="shader\weaponEndVS.hlsl">
-      <ShaderType>Vertex</ShaderType>
-      <ShaderModel>5.0</ShaderModel>
-      <ObjectFileOutput>shader\%(Filename).cso</ObjectFileOutput>
-    </FxCompile>
-    <FxCompile Include="shader\weaponEndPS.hlsl">
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>5.0</ShaderModel>
       <ObjectFileOutput>shader\%(Filename).cso</ObjectFileOutput>
@@ -292,19 +329,6 @@
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -323,12 +347,6 @@
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -342,32 +360,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <EnableMicrosoftCodeAnalysis>false</EnableMicrosoftCodeAnalysis>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -399,4 +391,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <Target Name="CopyAssimpRuntime" AfterTargets="Build">
+    <Copy SourceFiles="$(ProjectDir)assimp-vc143-mt.dll" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

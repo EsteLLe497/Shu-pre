@@ -11,7 +11,6 @@ private:
 	static Scene* m_NextScene;
 	static float m_ChangeTime;
 	static float m_animationDeltaSeconds;
-    static float m_hitStopRemaining;
 
 public:
 	static void Init(bool previewMode, bool graphicsLab = false);
@@ -21,7 +20,6 @@ public:
 	static void Draw();
     static bool beginEditorPlay();
     static void endEditorPlay();
-    static void requestHitStop(float seconds); // ŽÀŽžŠÔ‚Å•œ‹A‚·‚é’Z‚¢’âŽ~
 
 	template<typename T>
 	static void ChangeScene(float time)

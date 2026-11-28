@@ -1,0 +1,67 @@
+newmtl shrineTimber
+Kd .65 .44 .29
+map_Kd wood.jpg
+
+newmtl shrineCedar
+Kd .70 .50 .33
+map_Kd wood.jpg
+
+newmtl shrineDark
+Kd .40 .29 .20
+map_Kd wood.jpg
+
+newmtl shrinePlaster
+Kd .70 .68 .55
+
+newmtl shrineLacquer
+Kd .55 .19 .10
+
+newmtl shrineVermilion
+Kd .66 .27 .13
+
+newmtl shrineCopper
+Kd .31 .42 .37
+map_Kd valley-weathered-stone.png
+
+newmtl shrineCopperEdge
+Kd .31 .43 .37
+map_Kd valley-weathered-stone.png
+
+newmtl shrineGold
+Kd .64 .42 .14
+
+newmtl shrineRope
+Kd .62 .48 .24
+
+newmtl shrinePaper
+Kd .91 .88 .74
+
+newmtl shrineStone
+Kd .64 .62 .56
+map_Kd valley-weathered-stone.png
+
+newmtl shrineWeathered
+Kd .59 .60 .55
+map_Kd valley-weathered-stone.png
+
+newmtl shrineMoss
+Kd .48 .53 .39
+map_Kd valley-weathered-stone.png
+
+newmtl shrineWater
+Kd .22 .38 .37
+
+newmtl forestLeafA
+Kd .18 .34 .11
+
+newmtl forestLeafB
+Kd .25 .42 .14
+
+newmtl forestLeafC
+Kd .33 .47 .17
+
+newmtl fernShade
+Kd .19 .34 .13
+
+newmtl fernLight
+Kd .36 .54 .19

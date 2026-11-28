@@ -5,17 +5,20 @@
 #include "Game.h"
 #include "input.h"
 #include "SceneEditor.h"
+#include "Scenery.h"
+#include "Vegetation.h"
+#include "RuralWildlife.h"
 #include "SceneAudio.h"
 #include "MeshField.h"
 #include "Wave.h"
 #include "Player.h"
+#include "Heroine.h"
 #include "Enemy.h"
 #include "Box.h"
 #include "Grass.h"
 #include "Particle.h"
 #include "Camera.h"
 #include "SkyDome.h"
-#include "Score.h"
 #include "animationModel.h"
 #include "imgui/imgui.h"
 #include <filesystem>
@@ -33,14 +36,16 @@
 namespace
 {
     namespace fs = std::filesystem;
-    constexpr char layoutPath[] = "asset/scene-layout.txt";
-    constexpr char temporaryPath[] = "asset/scene-layout.txt.tmp";
+    constexpr char ruralLayoutPath[] = "asset/maps/rural-town/scene-layout.txt";
+    const char* layoutPath = "asset/scene-layout.txt";
+    const char* temporaryPath = "asset/scene-layout.txt.tmp";
     constexpr size_t maxObjects = 512;
-    constexpr int layoutVersion = 10;
+    constexpr int layoutVersion = 13;
+    constexpr size_t maxAmbientZones = 32;
     constexpr size_t maxPrefabs = 128;
 
-    enum class Kind { Player, Enemy, Boss, Box, Grass, Particle, Model };
-    const char* const labels[] = { u8"プレイヤー開始地点", u8"敵", u8"中ボス", u8"箱", u8"草", u8"パーティクル", u8"モデル" };
+    enum class Kind { Player, Enemy, Boss, Box, Grass, Particle, Model, Heroine };
+    const char* const labels[] = { u8"プレイヤー開始地点", u8"敵", u8"中ボス", u8"箱", u8"草", u8"パーティクル", u8"モデル", u8"ヒロイン" };
 
     struct Transform
     {
@@ -53,7 +58,7 @@ namespace
         std::string clip;
         SceneAudio::Timeline sounds;
     };
-    constexpr size_t playerMotionCount = static_cast<size_t>(PlayerActionKind::count);
+    constexpr size_t heroineMotionCount = static_cast<size_t>(HeroineActionKind::count);
     struct Placement
     {
         Kind kind;
@@ -62,7 +67,7 @@ namespace
         bool collider = false;
         bool gravity = false;
         std::vector<std::pair<std::string, Enemy::HurtboxAdjustment>> hurtboxes;
-        std::array<MotionTrack, playerMotionCount> motions;
+        std::array<MotionTrack, 8> motions;
         Enemy::AttackSettings attack = Enemy::defaultAttackSettings(kind == Kind::Boss);
         std::string prefab;
         bool alphaBlend = false;
@@ -78,38 +83,31 @@ namespace
     class StaticProp final : public GameObject
     {
     public:
-        XMFLOAT3 halfExtents() const { return m_model->staticHalfExtents(); }
+        XMFLOAT3 halfExtents() const { return m_model->mesh.staticHalfExtents(); }
         bool load(const std::string& path)
         {
-            m_model = AddGameComponent<AnimationModel>(this);
-            if (!m_model->tryLoad(path.c_str(), true)) return false;
-            Renderer::CreateVertexShader(m_vs.GetAddressOf(), m_layout.GetAddressOf(), "shader\\litTextureVS.cso");
-            Renderer::CreatePixelShader(m_ps.GetAddressOf(), "shader\\litTexturePS.cso");
-            return m_vs && m_layout && m_ps;
+            m_model = Scenery::load(path);
+            return static_cast<bool>(m_model);
         }
         void Draw() override
         {
-            if (!m_vs || !m_layout || !m_ps) return;
-            auto* context = Renderer::GetDeviceContext();
-            context->IASetInputLayout(m_layout.Get());
-            context->VSSetShader(m_vs.Get(), nullptr, 0);
-            context->PSSetShader(m_ps.Get(), nullptr, 0);
-            const float halfHeight = m_model->staticHalfExtents().y;
-            m_model->drawAt(XMMatrixTranslation(0, halfHeight, 0) * GetMatrx());
+            if (!m_model) return;
+            const auto world = XMMatrixTranslation(0, halfExtents().y, 0) * GetMatrx();
+            if (Scenery::visible(*m_model, world))
+                Scenery::draw(*m_model, world, !usesAlphaBlend());
         }
     private:
-        AnimationModel* m_model = nullptr;
-        Microsoft::WRL::ComPtr<ID3D11InputLayout> m_layout;
-        Microsoft::WRL::ComPtr<ID3D11VertexShader> m_vs;
-        Microsoft::WRL::ComPtr<ID3D11PixelShader> m_ps;
+        std::shared_ptr<Scenery::Model> m_model;
     };
 
     Player* player = nullptr;
+    Heroine* heroine = nullptr;
     MeshField* terrain = nullptr;
     std::vector<Entry> entries;
     struct EditWorld
     {
         Player* player;
+        Heroine* heroine;
         MeshField* terrain;
         std::vector<Entry> entries;
     };
@@ -129,7 +127,25 @@ namespace
     int selected = -1;
     bool open = false;
     bool terrainMode = false;
+    std::vector<Vegetation::Plant> plants;
+    Vegetation::Renderer plantRenderer;
+    bool vegetationMode = false;
+    bool erasePlants = false;
+    bool eraseAllSpecies = false;
+    bool plantStroke = false;
+    bool plantUndoRecorded = false;
+    int plantSpecies = 0;
+    float plantRadius = 6.0f;
+    float plantDensity = 70.0f;
+    std::optional<Vector3> previousPlantHit;
     Wave waterRenderer;
+    RuralWildlife wildlife;
+    bool wildlifeEnabled = false;
+    void invalidateWater()
+    {
+        waterRenderer.invalidate();
+        wildlife.invalidateRiver();
+    }
     Wave::Layout water;
     Wave::River riverDefaults;
     bool waterMode = false;
@@ -149,6 +165,7 @@ namespace
     int brushMode = 0;
     float radius = 5.0f;
     float strength = 4.0f;
+    float materialOpacity = 65.0f;
     float flattenHeight = 0.0f;
     Vector3 focus{ 0, 1, 6 };
     float yaw = 0.0f;
@@ -156,9 +173,9 @@ namespace
     float orbitDistance = 19.0f;
     bool painting = false;
     bool brushRecorded = false;
+    std::optional<Vector3> previousMaterialHit;
     bool numericRecorded = false;
     bool showHurtboxes = false;
-    bool showAttackRanges = false;
     int activeHurtbox = 0;
 
     struct AttackField
@@ -179,7 +196,7 @@ namespace
         { u8"衝撃波の最大半径", &Enemy::AttackSettings::shockwaveRadius, 0.1f, 30.0f, true },
     };
 
-    enum class UndoKind { Modify, Add, Remove, Terrain, Audio, Prefab, Water, Appearance };
+    enum class UndoKind { Modify, Add, Remove, Terrain, Audio, Prefab, Water, Appearance, TerrainPaint, Ambient, Vegetation };
     using PlacementChanges = std::vector<std::pair<size_t, Placement>>;
     struct PrefabEdit
     {
@@ -196,6 +213,9 @@ namespace
         SceneAudio::Setting audio;
         std::unique_ptr<PrefabEdit> prefab;
         std::unique_ptr<Wave::Layout> water;
+        std::unique_ptr<MeshField::MaterialPaint> materialPaint;
+        std::vector<SceneAudio::AmbientZone> ambient;
+        std::vector<Vegetation::Plant> vegetation;
     };
     std::deque<EditRecord> history;
     bool audioPanel = false;
@@ -203,6 +223,12 @@ namespace
     std::vector<std::string> audioAssets;
     std::string audioStatus;
     bool audioVolumeRecorded = false;
+    std::vector<SceneAudio::AmbientZone> ambientZones;
+    int selectedAmbient = -1;
+    bool ambientPanel = false;
+    bool placingAmbient = false;
+    bool ambientDragRecorded = false;
+    std::string ambientStatus;
     bool motionPanel = false;
     int motionSlot = 0;
     float motionTime = 0.0f;
@@ -225,6 +251,20 @@ namespace
         EditRecord edit{ UndoKind::Water };
         edit.water = std::make_unique<Wave::Layout>(water);
         remember(std::move(edit));
+    }
+
+    void rememberAmbient()
+    {
+        EditRecord edit{ UndoKind::Ambient };
+        edit.ambient = ambientZones;
+        remember(std::move(edit));
+    }
+
+    void stopPlantEdit()
+    {
+        plantStroke = false;
+        plantUndoRecorded = false;
+        previousPlantHit.reset();
     }
 
     void stopWaterEdit()
@@ -277,7 +317,7 @@ namespace
 
     size_t motionCount(Kind kind)
     {
-        if (kind == Kind::Player) return playerMotionCount;
+        if (kind == Kind::Heroine) return heroineMotionCount;
         return isEnemy(kind) ? Enemy::MotionCount : 0;
     }
 
@@ -286,7 +326,7 @@ namespace
         for (size_t i = 0; i < motionCount(entry.placement.kind); ++i)
         {
             const auto& track = entry.placement.motions[i];
-            const auto playerSlot = static_cast<PlayerActionKind>(i);
+            const auto heroineSlot = static_cast<HeroineActionKind>(i);
             const auto enemySlot = static_cast<Enemy::Motion>(i);
             auto* enemy = isEnemy(entry.placement.kind) ? static_cast<Enemy*>(entry.object) : nullptr;
             if (enemy)
@@ -298,14 +338,14 @@ namespace
                     enemy->assignMotion(enemySlot, {});
                 }
             }
-            auto* playerActor = enemy ? nullptr : static_cast<Player*>(entry.object);
-            const float duration = enemy ? enemy->motionDuration(enemySlot) : playerActor->motionDuration(playerSlot);
+            auto* heroineActor = enemy ? nullptr : static_cast<Heroine*>(entry.object);
+            const float duration = enemy ? enemy->motionDuration(enemySlot) : heroineActor->motionDuration(heroineSlot);
             SceneAudio::Timeline ready;
             for (const auto& marker : track.sounds)
                 if (duration > 0 && marker.time <= duration && SceneAudio::prepareMarker(marker.file))
                     ready.push_back(marker);
             if (enemy) enemy->setMotionSounds(enemySlot, ready);
-            else playerActor->setMotionSounds(playerSlot, ready);
+            else heroineActor->setMotionSounds(heroineSlot, ready);
         }
     }
 
@@ -315,7 +355,7 @@ namespace
         {
             const auto& entry = entries[selected];
             if (isEnemy(entry.placement.kind)) static_cast<Enemy*>(entry.object)->clearMotionPreview();
-            else if (entry.placement.kind == Kind::Player) static_cast<Player*>(entry.object)->clearMotionPreview();
+            else if (entry.placement.kind == Kind::Heroine) static_cast<Heroine*>(entry.object)->clearMotionPreview();
         }
         motionWasSampled = false;
         motionPlaying = false;
@@ -365,6 +405,7 @@ namespace
             half = { size.x, size.y, size.z };
             break;
         }
+        case Kind::Heroine:
         case Kind::Player: center.y = 0.9f; half = { 0.48f, 0.9f, 0.42f }; break;
         case Kind::Enemy:
         case Kind::Boss: center.y = 1.1f; half = { 1.65f, 1.1f, 0.68f }; break;
@@ -463,10 +504,13 @@ namespace
     bool spawn(const Placement& placement, bool requirePrefabAssets = false)
     {
         if (entries.size() >= maxObjects) return false;
+        if ((placement.kind == Kind::Player || placement.kind == Kind::Heroine)
+            && std::any_of(entries.begin(), entries.end(), [&](const Entry& e) { return e.placement.kind == placement.kind; })) return false;
         GameObject* object = nullptr;
         switch (placement.kind)
         {
         case Kind::Player: object = player; break;
+        case Kind::Heroine: object = heroine; break;
         case Kind::Enemy:
         case Kind::Boss:
         {
@@ -505,6 +549,7 @@ namespace
             break;
         }
         }
+        if (!object) return false;
         entries.push_back({ placement, object });
         apply(entries.back());
         applyMotion(entries.back());
@@ -514,10 +559,6 @@ namespace
     void defaults()
     {
         spawn({ Kind::Player, { player->GetPosition(), player->GetRotation(), player->GetScale() }, {} });
-        spawn({ Kind::Enemy, { { -2.4f, 0, 5.4f }, { 0, XM_PI, 0 }, { .75f, .75f, .75f } }, {}, true });
-        spawn({ Kind::Enemy, { { 0, 0, 5 }, { 0, XM_PI, 0 }, { .75f, .75f, .75f } }, {}, true });
-        spawn({ Kind::Enemy, { { 2.4f, 0, 5.4f }, { 0, XM_PI, 0 }, { .75f, .75f, .75f } }, {}, true });
-        spawn({ Kind::Boss, { { -1, 0, 15 }, { 0, XM_PI, 0 }, { 1.55f, 1.55f, 1.55f } }, {}, true });
         spawn({ Kind::Box, { { 5, 0, 5 }, { 0, 0, 0 }, { 2, 1, 2 } }, {}, true });
         spawn({ Kind::Grass, { { 10, 0, -5 } }, {} });
         spawn({ Kind::Particle, { { -2, 1, -1 } }, {} });
@@ -563,7 +604,7 @@ namespace
     {
         int kind = 0;
         auto& t = placement.transform;
-        if (!(input >> kind) || kind < 0 || kind > static_cast<int>(Kind::Model)
+        if (!(input >> kind) || kind < 0 || kind > static_cast<int>(version >= 11 ? Kind::Heroine : Kind::Model)
             || !readVector(input, t.position) || !readVector(input, t.rotation) || !readVector(input, t.scale)
             || !(input >> std::quoted(placement.asset))
             || t.scale.x < .01f || t.scale.y < .01f || t.scale.z < .01f) return false;
@@ -583,7 +624,7 @@ namespace
         if (version >= 5 && !readHurtboxEdits(input, placement.hurtboxes)) return false;
         if (version >= 6)
         {
-            for (size_t slot = 0; slot < motionCount(placement.kind); ++slot)
+            for (size_t slot = 0; slot < (version <= 10 && placement.kind == Kind::Player ? 8 : motionCount(placement.kind)); ++slot)
             {
                 auto& track = placement.motions[slot];
                 size_t markers = 0;
@@ -651,6 +692,22 @@ namespace
         if (version >= 10) output << p.alphaBlend << ' ' << p.opacity << '\n';
     }
 
+    bool readAmbient(std::istream& input, std::vector<SceneAudio::AmbientZone>& zones)
+    {
+        std::string signature;
+        size_t count = 0;
+        if (!(input >> signature >> count) || signature != "AmbientZones" || count > maxAmbientZones)
+            return false;
+        const auto inRange = [](float value, float low, float high) { return value >= low && value <= high; };
+        zones.resize(count);
+        for (auto& zone : zones)
+            if (!(input >> std::quoted(zone.file) >> zone.x >> zone.z >> zone.radius >> zone.volume)
+                || !inRange(zone.x, -100.0f, 100.0f) || !inRange(zone.z, -100.0f, 100.0f)
+                || !inRange(zone.radius, 1.0f, 100.0f) || !inRange(zone.volume, 0.0f, 1.0f))
+                return false;
+        return true;
+    }
+
     bool loadLayout()
     {
         std::ifstream input(layoutPath);
@@ -662,12 +719,13 @@ namespace
             || size != MeshField::GridSize) return false;
 
         std::vector<Placement> placements;
-        int playerCount = 0;
+        int playerCount = 0, heroineCount = 0;
         for (size_t i = 0; i < count; ++i)
         {
             Placement placement{};
             if (!readPlacement(input, version, placement)) return false;
             if (placement.kind == Kind::Player) ++playerCount;
+            if (placement.kind == Kind::Heroine) ++heroineCount;
             if ((placement.kind == Kind::Model || (isEnemy(placement.kind) && !placement.asset.empty()))
                 && !modelPath(placement.asset, placement.asset)) return false;
             placements.push_back(std::move(placement));
@@ -675,7 +733,7 @@ namespace
         MeshField::Heights heights{};
         for (float& height : heights)
             if (!(input >> height) || !std::isfinite(height) || fabsf(height) > 30.0f) return false;
-        if (playerCount != 1) return false;
+        if (playerCount != 1 || heroineCount > 1) return false;
         if (version == 4)
         {
             std::vector<std::pair<std::string, Enemy::HurtboxAdjustment>> legacyPlayerEdits;
@@ -705,6 +763,12 @@ namespace
         }
         Wave::Layout loadedWater;
         if (version >= 9 && !loadedWater.read(input)) return false;
+        MeshField::MaterialPaint loadedPaint;
+        if (version >= 11 && !MeshField::readMaterialPaint(input, loadedPaint)) return false;
+        std::vector<SceneAudio::AmbientZone> loadedAmbient;
+        if (version >= 12 && !readAmbient(input, loadedAmbient)) return false;
+        std::vector<Vegetation::Plant> loadedPlants;
+        if (version >= 13 && !Vegetation::read(input, loadedPlants)) return false;
 
         for (const auto& placement : placements)
         {
@@ -719,11 +783,15 @@ namespace
             if (placement.kind == Kind::Player) spawn(placement);
         std::rotate(entries.begin(), entries.end() - 1, entries.end());
         terrain->setHeights(heights);
+        terrain->setMaterialPaint(std::move(loadedPaint));
         prefabs.swap(loadedPrefabs);
         water = std::move(loadedWater);
+        ambientZones = std::move(loadedAmbient);
+        plants = std::move(loadedPlants);
+        plantRenderer.invalidate();
         selectedRiver = -1;
         stopWaterEdit();
-        waterRenderer.invalidate();
+        invalidateWater();
         return true;
     }
 
@@ -739,7 +807,8 @@ namespace
             [&](const Entry& entry) { return hasAppearance(entry.placement); })
             || std::any_of(prefabs.begin(), prefabs.end(),
                 [&](const auto& prefab) { return hasAppearance(prefab.second); });
-        const int version = editsAppearance ? 10 : water.edited() ? 9 : prefabs.empty() ? 7 : 8;
+        const int version = !plants.empty() ? 13 : !ambientZones.empty() ? 12 : terrain->hasMaterialPaint() ? 11 : editsAppearance ? 10
+            : water.edited() ? 9 : prefabs.empty() ? 7 : 8;
         output << "SceneLayout " << version << ' ' << entries.size() << ' ' << MeshField::GridSize << '\n';
         output << std::setprecision(std::numeric_limits<float>::max_digits10);
         for (const auto& entry : entries) writePlacement(output, entry.placement, version);
@@ -756,6 +825,15 @@ namespace
             }
         }
         if (version >= 9) water.write(output);
+        if (version >= 11) terrain->writeMaterialPaint(output);
+        if (version >= 12)
+        {
+            output << "AmbientZones " << ambientZones.size() << '\n';
+            for (const auto& zone : ambientZones)
+                output << std::quoted(zone.file) << ' ' << zone.x << ' ' << zone.z << ' '
+                    << zone.radius << ' ' << zone.volume << '\n';
+        }
+        if (version >= 13) Vegetation::write(output, plants);
         output.close();
         return output && MoveFileExA(temporaryPath, layoutPath, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
     }
@@ -792,7 +870,7 @@ namespace
     {
         if (selected < 0) return;
         auto& entry = entries[selected];
-        if (entry.placement.kind == Kind::Player) return;
+        if (entry.placement.kind == Kind::Player || entry.placement.kind == Kind::Heroine) return;
 
         stopMotionPreview();
         remember({ UndoKind::Remove, static_cast<size_t>(selected), entry.placement });
@@ -962,11 +1040,27 @@ namespace
         case UndoKind::Terrain:
             terrain->setHeights(*edit.heights);
             break;
+        case UndoKind::TerrainPaint:
+            terrain->setMaterialPaint(*edit.materialPaint);
+            painting = false;
+            previousMaterialHit.reset();
+            break;
+        case UndoKind::Vegetation:
+            plants = std::move(edit.vegetation);
+            plantRenderer.invalidate();
+            stopPlantEdit();
+            break;
         case UndoKind::Water:
             water = *edit.water;
             if (selectedRiver >= static_cast<int>(water.rivers.size())) selectedRiver = -1;
             stopWaterEdit();
-            waterRenderer.invalidate();
+            invalidateWater();
+            break;
+        case UndoKind::Ambient:
+            ambientZones = std::move(edit.ambient);
+            if (selectedAmbient >= static_cast<int>(ambientZones.size())) selectedAmbient = -1;
+            SceneAudio::stopAmbientPreview();
+            ambientStatus.clear();
             break;
         case UndoKind::Audio:
         {
@@ -1042,45 +1136,7 @@ namespace
         return choice;
     }
 
-    void editEnemyAttacks(Entry& entry)
-    {
-        if (!ImGui::CollapsingHeader(u8"敵の攻撃設定")) return;
-        const bool boss = entry.placement.kind == Kind::Boss;
-        auto& settings = entry.placement.attack;
-        for (const auto& field : attackFields)
-        {
-            if (field.bossOnly && !boss) continue;
-            auto& setting = settings.*field.value;
-            float value = setting;
-            ImGui::SetNextItemWidth(110.0f);
-            if (recordNumeric(ImGui::DragFloat(field.label, &value, .05f, field.minimum, field.maximum,
-                "%.2f", ImGuiSliderFlags_AlwaysClamp), entry.placement) && std::isfinite(value))
-                setting = value;
-            if (!boss && field.value == &Enemy::AttackSettings::punchStartRange)
-                ImGui::SetItemTooltip(u8"敵の既定のスケール (0.75) での距離です。");
-        }
-        ImGui::Checkbox(u8"攻撃範囲を表示", &showAttackRanges);
-        if (showAttackRanges)
-            ImGui::TextWrapped(u8"青は検知範囲、オレンジは攻撃開始距離、金色は突進・衝撃波のプレビューです。");
-        if (ImGui::Button(u8"攻撃をプレビュー"))
-        {
-            if (!motionPanel) scanAudio();
-            motionPanel = true;
-            showAttackRanges = true;
-            if (motionSlot < static_cast<int>(Enemy::Motion::Punch))
-            {
-                stopMotionPreview();
-                motionSlot = static_cast<int>(Enemy::Motion::Punch);
-                motionTime = 0;
-            }
-        }
-        ImGui::SameLine();
-        if (ImGui::Button(u8"攻撃設定を初期化"))
-        {
-            remember({ UndoKind::Modify, static_cast<size_t>(selected), entry.placement });
-            settings = Enemy::defaultAttackSettings(boss);
-        }
-    }
+
 
     void editEnemyCharacter(Entry& entry)
     {
@@ -1266,22 +1322,22 @@ namespace
         if (ImGui::Begin(u8"モーションとSE", &motionPanel))
         {
             if (selected < 0 || !motionCount(entries[selected].placement.kind))
-                ImGui::TextUnformatted(u8"シーン内のプレイヤーか敵を選択してください。");
+                ImGui::TextUnformatted(u8"シーン内のヒロインか配置キャラクターを選択してください。");
             else
             {
                 auto& entry = entries[selected];
                 const bool enemy = isEnemy(entry.placement.kind);
-                const char* playerMotions[] = { u8"待機", u8"歩き", u8"走り", u8"あくび", u8"攻撃", u8"ジャンプ", u8"走りジャンプ", u8"着地" };
+                const char* heroineMotions[] = { u8"待機", u8"歩き", u8"走り", u8"あくび" };
                 const char* enemyMotions[] = { u8"待機", u8"移動", u8"パンチ", u8"叩きつけ", u8"突進" };
-                if (ImGui::Combo(u8"モーション", &motionSlot, enemy ? enemyMotions : playerMotions,
-                    static_cast<int>(motionCount(entry.placement.kind))))
+                if (ImGui::Combo(u8"モーション", &motionSlot, enemy ? enemyMotions : heroineMotions,
+                    static_cast<int>(enemy ? 2 : motionCount(entry.placement.kind))))
                 {
                     stopMotionPreview();
                     motionTime = 0;
                 }
                 auto& track = entry.placement.motions[motionSlot];
                 const auto enemySlot = static_cast<Enemy::Motion>(motionSlot);
-                const auto playerSlot = static_cast<PlayerActionKind>(motionSlot);
+                const auto heroineSlot = static_cast<HeroineActionKind>(motionSlot);
                 auto* actor = enemy ? static_cast<Enemy*>(entry.object) : nullptr;
                 const auto rememberMotion = [&]()
                 {
@@ -1318,17 +1374,17 @@ namespace
                     }
                     else ImGui::TextUnformatted(u8"内蔵モーションを再生します。リグ付きモデルを適用するとクリップを差し替えられます。");
                 }
-                const float duration = enemy ? actor->motionDuration(enemySlot) : player->motionDuration(playerSlot);
+                const float duration = enemy ? actor->motionDuration(enemySlot) : heroine->motionDuration(heroineSlot);
                 const auto sample = [&]()
                 {
                     if (enemy) actor->previewMotion(enemySlot, motionTime);
-                    else player->previewMotion(playerSlot, motionTime);
+                    else heroine->previewMotion(heroineSlot, motionTime);
                     motionWasSampled = true;
                 };
                 if (duration > 0.0f)
                 {
                     motionTime = std::min(motionTime, duration);
-                    const bool canAttack = enemy && (enemySlot == Enemy::Motion::Punch || entry.placement.kind == Kind::Boss);
+                    const bool canAttack = false;
                     const auto phase = canAttack ? Enemy::attackPhase(enemySlot) : Enemy::AttackPhase{};
                     if (drawMotionTimeline(entry, track.sounds, duration, phase)) sample();
                     if (phase.name)
@@ -1373,7 +1429,7 @@ namespace
                         if (!motionLoop && motionTime >= duration) motionPlaying = false;
                     }
                 }
-                else ImGui::TextUnformatted(u8"このプレイヤーモーションは再生できません。");
+                else ImGui::TextUnformatted(u8"このヒロインのモーションは再生できません。");
 
                 if (ImGui::Button(u8"WAVを再検索")) scanAudio();
                 ImGui::SameLine();
@@ -1438,6 +1494,102 @@ namespace
         }
         ImGui::End();
         if (!motionPanel) stopMotionPreview();
+    }
+
+    void drawAmbientPanel()
+    {
+        if (!ambientPanel) return;
+        ImGui::SetNextWindowPos({ 382, 14 }, ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize({ 390, 380 }, ImGuiCond_FirstUseEver);
+        if (ImGui::Begin(u8"環境音ゾーン", &ambientPanel))
+        {
+            ImGui::BeginDisabled(ambientZones.size() >= maxAmbientZones || placingAmbient);
+            if (ImGui::Button(u8"地面をクリックして追加")) placingAmbient = true;
+            ImGui::EndDisabled();
+            if (placingAmbient)
+            {
+                ImGui::SameLine();
+                if (ImGui::Button(u8"追加を取り消す")) placingAmbient = false;
+            }
+            ImGui::TextWrapped(u8"青い円の内側で再生し、端に向かって音量が小さくなります。");
+            const auto label = [&](int index)
+            {
+                const auto& file = ambientZones[index].file;
+                return std::to_string(index + 1) + "  " + (file.empty() ? std::string(u8"音声未設定")
+                    : fs::u8path(file).stem().u8string());
+            };
+            if (ImGui::BeginCombo(u8"ゾーン", selectedAmbient < 0 ? u8"選択なし" : label(selectedAmbient).c_str()))
+            {
+                for (int i = 0; i < static_cast<int>(ambientZones.size()); ++i)
+                    if (ImGui::Selectable(label(i).c_str(), i == selectedAmbient))
+                    {
+                        selectedAmbient = i;
+                        SceneAudio::stopAmbientPreview();
+                        ambientStatus.clear();
+                    }
+                ImGui::EndCombo();
+            }
+            if (selectedAmbient >= 0)
+            {
+                auto& zone = ambientZones[selectedAmbient];
+                if (ImGui::Button(u8"WAVを再検索")) scanAudio();
+                if (const auto file = chooseAsset(u8"環境音ファイル", zone.file.empty() ? u8"なし" : zone.file.c_str(),
+                        audioAssets, true); file && *file != zone.file)
+                {
+                    rememberAmbient();
+                    zone.file = *file;
+                    SceneAudio::stopAmbientPreview();
+                    ambientStatus.clear();
+                }
+                const auto dragValue = [&](const char* name, float& value, float speed, float low, float high)
+                {
+                    float next = value;
+                    const bool changed = ImGui::DragFloat(name, &next, speed, low, high, "%.2f",
+                        ImGuiSliderFlags_AlwaysClamp);
+                    if (ImGui::IsItemActivated()) ambientDragRecorded = false;
+                    if (changed)
+                    {
+                        if (!ambientDragRecorded) rememberAmbient();
+                        ambientDragRecorded = true;
+                        value = next;
+                    }
+                    if (ImGui::IsItemDeactivated()) ambientDragRecorded = false;
+                };
+                dragValue(u8"中心 X", zone.x, .25f, -100.0f, 100.0f);
+                dragValue(u8"中心 Z", zone.z, .25f, -100.0f, 100.0f);
+                dragValue(u8"聞こえる半径", zone.radius, .25f, 1.0f, 100.0f);
+                dragValue(u8"最大音量 (0–1)", zone.volume, .01f, 0.0f, 1.0f);
+                ImGui::BeginDisabled(zone.file.empty());
+                if (ImGui::Button(u8"試聴"))
+                    ambientStatus = SceneAudio::previewAmbient(zone) ? u8"最大音量で試聴中です。"
+                        : u8"このWAVを再生できませんでした。";
+                ImGui::EndDisabled();
+                ImGui::SameLine();
+                if (ImGui::Button(u8"試聴停止"))
+                {
+                    SceneAudio::stopAmbientPreview();
+                    ambientStatus.clear();
+                }
+                ImGui::SameLine();
+                if (ImGui::Button(u8"ゾーンを削除"))
+                {
+                    rememberAmbient();
+                    ambientZones.erase(ambientZones.begin() + selectedAmbient);
+                    selectedAmbient = -1;
+                    SceneAudio::stopAmbientPreview();
+                    ambientStatus.clear();
+                }
+            }
+            if (!ambientStatus.empty()) ImGui::TextWrapped("%s", ambientStatus.c_str());
+            ImGui::TextWrapped(u8"「配置を保存」でシーンに保存します。");
+        }
+        ImGui::End();
+        if (!ambientPanel)
+        {
+            placingAmbient = false;
+            SceneAudio::stopAmbientPreview();
+            ambientStatus.clear();
+        }
     }
 
     void drawAudioPanel()
@@ -1571,7 +1723,7 @@ namespace
                 numericRecorded = true;
             }
             value = next;
-            if (rebuild) waterRenderer.invalidate();
+            if (rebuild) invalidateWater();
         }
         if (ImGui::IsItemDeactivated()) numericRecorded = false;
     }
@@ -1594,7 +1746,7 @@ namespace
         water.rivers.push_back(std::move(river));
         selectedRiver = static_cast<int>(water.rivers.size()) - 1;
         stopWaterEdit();
-        waterRenderer.invalidate();
+        invalidateWater();
         status = u8"川を配置しました。";
     }
 
@@ -1624,7 +1776,7 @@ namespace
                     rememberWater();
                     water.basins.clear();
                     basinMessage = nullptr;
-                    waterRenderer.invalidate();
+                    invalidateWater();
                 }
                 if (basinMessage) ImGui::TextWrapped("%s", basinMessage);
             }
@@ -1662,7 +1814,7 @@ namespace
                 rememberWater();
                 std::reverse(river.points.begin(), river.points.end());
                 if (riverPoint >= 0) riverPoint = static_cast<int>(river.points.size()) - 1 - riverPoint;
-                waterRenderer.invalidate();
+                invalidateWater();
             }
             ImGui::SameLine();
             if (ImGui::Button(u8"川を削除"))
@@ -1671,7 +1823,7 @@ namespace
                 water.rivers.erase(water.rivers.begin() + selectedRiver);
                 selectedRiver = -1;
                 stopWaterEdit();
-                waterRenderer.invalidate();
+                invalidateWater();
                 return;
             }
             ImGui::BeginDisabled(riverPoint < 0 || river.points.size() <= 2);
@@ -1684,7 +1836,7 @@ namespace
                     rememberWater();
                     river = std::move(next);
                     riverPoint = -1;
-                    waterRenderer.invalidate();
+                    invalidateWater();
                 }
             }
             ImGui::EndDisabled();
@@ -1731,8 +1883,25 @@ namespace
                 prefabPanel = !prefabPanel;
                 if (!prefabPanel) prefabToPlace.clear();
             }
+            ImGui::SameLine();
+            if (ImGui::Button(u8"環境音"))
+            {
+                ambientPanel = !ambientPanel;
+                if (ambientPanel)
+                {
+                    scanAudio();
+                    if (selectedAmbient < 0 && !ambientZones.empty()) selectedAmbient = 0;
+                }
+                else
+                {
+                    placingAmbient = false;
+                    SceneAudio::stopAmbientPreview();
+                    ambientStatus.clear();
+                }
+            }
             if (ImGui::Button(u8"配置を保存"))
-                status = saveLayout() ? u8"配置を asset/scene-layout.txt に保存しました。" : u8"シーンの配置を保存できませんでした。";
+                status = saveLayout() ? std::string(u8"配置を保存しました。\n") + layoutPath
+                    : u8"シーンの配置を保存できませんでした。";
             ImGui::SameLine();
             ImGui::BeginDisabled(history.empty());
             if (ImGui::Button(u8"元に戻す (Ctrl+Z)")) undo();
@@ -1749,11 +1918,35 @@ namespace
                     gridStep = step;
             }
             if (!status.empty()) ImGui::TextWrapped("%s", status.c_str());
-            ImGui::Separator();
-            if (ImGui::Checkbox(u8"地形ブラシ", &terrainMode) && terrainMode)
+            if (auto* sky = Manager::GetGameObj<SkyDome>(); sky && ImGui::CollapsingHeader(u8"空と時間"))
             {
-                waterMode = false;
-                stopWaterEdit();
+                auto& clock = sky->clock();
+                const int minutes = static_cast<int>(clock.hour * 60.0f);
+                ImGui::Text(u8"現在の時刻  %02d:%02d", minutes / 60, minutes % 60);
+                ImGui::SliderFloat(u8"時刻##sky", &clock.hour, 0.0f, 23.999f, "", ImGuiSliderFlags_AlwaysClamp);
+                if (ImGui::Button(u8"朝##sky")) clock.hour = 5.6f;
+                ImGui::SameLine();
+                if (ImGui::Button(u8"昼##sky")) clock.hour = 12.0f;
+                ImGui::SameLine();
+                if (ImGui::Button(u8"夕方##sky")) clock.hour = 18.7f;
+                ImGui::SameLine();
+                if (ImGui::Button(u8"夜##sky")) clock.hour = 23.0f;
+                ImGui::SliderFloat(u8"一日の長さ（現実の分）", &clock.dayMinutes, 1.0f, 60.0f, "%.0f",
+                    ImGuiSliderFlags_AlwaysClamp);
+                ImGui::Checkbox(u8"編集中も時間を進める", &clock.runInEditor);
+            }
+            ImGui::Separator();
+            if (ImGui::Checkbox(u8"地形ブラシ", &terrainMode))
+            {
+                painting = false;
+                previousMaterialHit.reset();
+                if (terrainMode)
+                {
+                    vegetationMode = false;
+                    stopPlantEdit();
+                    waterMode = false;
+                    stopWaterEdit();
+                }
             }
             ImGui::SameLine();
             if (ImGui::Checkbox(u8"ウォーターブラシ", &waterMode))
@@ -1761,19 +1954,54 @@ namespace
                 stopWaterEdit();
                 if (waterMode)
                 {
+                    vegetationMode = false;
+                    stopPlantEdit();
                     terrainMode = false;
                     painting = false;
                     prefabToPlace.clear();
                 }
             }
-            if (waterMode) editWater();
+            if (ImGui::Checkbox(u8"植生ブラシ", &vegetationMode))
+            {
+                stopPlantEdit();
+                if (vegetationMode)
+                {
+                    terrainMode = waterMode = painting = placingAmbient = false;
+                    stopWaterEdit();
+                    prefabToPlace.clear();
+                }
+            }
+            if (vegetationMode)
+            {
+                ImGui::Combo(u8"植物の種類", &plantSpecies, u8"道端の草\0シダ\0低木\0野花\0川辺の草\0");
+                ImGui::SliderFloat(u8"植生の半径", &plantRadius, 1.0f, 20.0f, "%.1f");
+                ImGui::Checkbox(u8"消しゴム", &erasePlants);
+                if (erasePlants) ImGui::Checkbox(u8"全種類を消す", &eraseAllSpecies);
+                else ImGui::SliderFloat(u8"密度", &plantDensity, 10.0f, 100.0f, "%.0f%%");
+                ImGui::Text(u8"植生 %zu / %zu", plants.size(), Vegetation::maxPlants);
+                ImGui::TextWrapped(u8"地面をドラッグして編集します。Ctrl+Z で一筆戻せます。");
+            }
+            else if (waterMode) editWater();
             else if (terrainMode)
             {
-                ImGui::Combo(u8"ブラシ", &brushMode, u8"盛り上げる\0掘り下げる\0平らにする\0");
+                if (ImGui::Combo(u8"ブラシ", &brushMode, u8"盛り上げる\0掘り下げる\0平らにする\0土を塗る\0草を塗る\0"))
+                {
+                    painting = false;
+                    previousMaterialHit.reset();
+                }
                 ImGui::SliderFloat(u8"半径", &radius, 2.5f, 25.0f);
-                ImGui::SliderFloat(u8"強さ", &strength, 0.5f, 15.0f);
-                if (brushMode == 2) ImGui::SliderFloat(u8"高さ", &flattenHeight, -30.0f, 30.0f);
-                ImGui::TextWrapped(u8"地面を左クリックしたままドラッグして地形を編集します。");
+                if (brushMode >= 3)
+                {
+                    ImGui::SliderFloat(u8"塗りの強さ", &materialOpacity, 0.0f, 100.0f, "%.0f%%",
+                        ImGuiSliderFlags_AlwaysClamp);
+                    ImGui::TextWrapped(u8"地面を左ドラッグして塗ります。ブラシの端は周囲になじみます。");
+                }
+                else
+                {
+                    ImGui::SliderFloat(u8"強さ", &strength, 0.5f, 15.0f);
+                    if (brushMode == 2) ImGui::SliderFloat(u8"高さ", &flattenHeight, -30.0f, 30.0f);
+                    ImGui::TextWrapped(u8"地面を左クリックしたままドラッグして地形を編集します。");
+                }
             }
             else
             {
@@ -1791,7 +2019,7 @@ namespace
                 if (ImGui::BeginChild("Hierarchy", { 0, 165 }, true))
                 {
                     if (!hierarchySearch.IsActive() && hierarchyKind == 0)
-                        ImGui::TextDisabled(u8"シーン機能  カメラ／地形／空／スコア");
+                        ImGui::TextDisabled(u8"シーン機能  カメラ／地形／空");
                     bool found = false;
                     for (size_t i = 0; i < entries.size(); ++i)
                     {
@@ -1855,12 +2083,11 @@ namespace
                     }
                     if (enemy)
                     {
-                        editEnemyAttacks(entry);
                         editEnemyCharacter(entry);
                     }
                     apply(entry);
                     if (ImGui::Button(u8"対象に注目")) focus = t.position + Vector3{ 0, 1, 0 };
-                    if (entry.placement.kind != Kind::Player)
+                    if (entry.placement.kind != Kind::Player && entry.placement.kind != Kind::Heroine)
                     {
                         ImGui::SameLine();
                         const bool duplicate = ImGui::Button(u8"複製");
@@ -1948,7 +2175,7 @@ namespace
     }
 
     void drawRangeRing(const Vector3& origin, float radius, ImU32 color, float thickness,
-        FXMMATRIX vp, const ImVec2& size, ImDrawList& overlay)
+        FXMMATRIX vp, const ImVec2& size, ImDrawList& overlay, bool followTerrain = false)
     {
         if (radius <= 0.0f) return;
         ImVec2 previous{};
@@ -1956,54 +2183,18 @@ namespace
         for (int i = 0; i <= 48; ++i)
         {
             const float angle = i * XM_2PI / 48;
-            const auto point = origin + Vector3{ radius * cosf(angle), 0, radius * sinf(angle) };
+            auto point = origin + Vector3{ radius * cosf(angle), 0, radius * sinf(angle) };
+            const bool onTerrain = !followTerrain || terrain->tryGetHeight(point.x, point.z, point.y);
+            if (followTerrain) point.y += .12f;
             ImVec2 pixel;
-            const bool visible = project(point, vp, size, pixel);
+            const bool visible = onTerrain && project(point, vp, size, pixel);
             if (wasVisible && visible) overlay.AddLine(previous, pixel, color, thickness);
             if (visible) previous = pixel;
             wasVisible = visible;
         }
     }
 
-    void drawAttackRanges(Enemy& enemy, Kind kind, FXMMATRIX vp, const ImVec2& size, ImDrawList& overlay)
-    {
-        auto motion = static_cast<Enemy::Motion>(motionSlot);
-        if (!motionPanel || !Enemy::attackPhase(motion).name || kind == Kind::Enemy)
-            motion = Enemy::Motion::Punch;
-        const auto phase = Enemy::attackPhase(motion);
-        const bool active = motionPanel && motionWasSampled && motionTime >= phase.start && motionTime <= phase.end;
-        const auto origin = enemy.GetPosition() + Vector3{ 0, 0.07f, 0 };
-        const auto ring = [&](float radius, ImU32 color, float thickness)
-        {
-            drawRangeRing(origin, radius, color, thickness, vp, size, overlay);
-        };
-        constexpr ImU32 gold = IM_COL32(255, 218, 95, 240);
-        ring(enemy.attackSettings().detectionDistance, IM_COL32(90, 167, 255, 220), 1.5f);
-        ring(enemy.attackStartRange(motion), IM_COL32(255, 141, 60, 235), 1.5f);
-        if (motion == Enemy::Motion::Slam)
-        {
-            ring(enemy.attackSettings().shockwaveRadius, IM_COL32(255, 218, 95, 150), 1.0f);
-            if (active) ring(enemy.shockwaveRadiusAt(motionTime), gold, 2.5f);
-        }
-        if (motion == Enemy::Motion::Charge)
-        {
-            const auto forward = enemy.GetFoward();
-            const auto pointAt = [&](float time)
-            {
-                return origin + Vector3{ forward.x, 0, forward.z } * enemy.chargeOffsetAt(time);
-            };
-            ImVec2 start, end;
-            if (project(pointAt(phase.start), vp, size, start) && project(pointAt(phase.end), vp, size, end))
-            {
-                overlay.AddLine(start, end, gold, 2.0f);
-                overlay.AddCircle(start, 4.0f, gold);
-                overlay.AddCircleFilled(end, 4.0f, gold);
-            }
-            ImVec2 cursor;
-            if (active && project(pointAt(motionTime), vp, size, cursor))
-                overlay.AddCircleFilled(cursor, 5.0f, IM_COL32(255, 255, 255, 255));
-        }
-    }
+
 
     struct ViewRay { XMVECTOR origin; XMVECTOR direction; };
 
@@ -2089,7 +2280,7 @@ namespace
             remember(std::move(edit));
             waterUndoRecorded = true;
         }
-        waterRenderer.invalidate();
+        invalidateWater();
     }
 
     void drawRiverGuide(const Wave::River& river, FXMMATRIX vp, const ImVec2& size, ImDrawList& overlay)
@@ -2199,7 +2390,7 @@ namespace
                     edit.water = std::move(before);
                     remember(std::move(edit));
                     basinMessage = nullptr;
-                    waterRenderer.invalidate();
+                    invalidateWater();
                 }
                 else
                 {
@@ -2250,7 +2441,7 @@ namespace
                         rememberWater();
                         river = std::move(next);
                         riverPoint = static_cast<int>(river.points.size()) - 1;
-                        waterRenderer.invalidate();
+                        invalidateWater();
                     }
                 }
                 else
@@ -2275,7 +2466,7 @@ namespace
                             riverMovementRecorded = true;
                         }
                         river = std::move(next);
-                        waterRenderer.invalidate();
+                        invalidateWater();
                     }
                 }
             }
@@ -2306,6 +2497,78 @@ namespace
         }
         drawRiverGuide(preview, vp, size, overlay);
         drawRiverPoints(riverDraft, vp, size, overlay);
+    }
+
+    bool ambientViewport(bool overScene, FXMMATRIX vp, const ImVec2& size, ImDrawList& overlay)
+    {
+        if (!ambientPanel) return false;
+        const auto guide = [&](const SceneAudio::AmbientZone& zone, bool active)
+        {
+            Vector3 center{ zone.x, 0, zone.z };
+            terrain->tryGetHeight(center.x, center.z, center.y);
+            center.y += .12f;
+            const ImU32 color = active ? IM_COL32(88, 215, 255, 250) : IM_COL32(91, 166, 207, 135);
+            drawRangeRing(center, zone.radius, color, active ? 2.2f : 1.2f, vp, size, overlay, true);
+            ImVec2 pixel;
+            if (project(center, vp, size, pixel)) overlay.AddCircleFilled(pixel, active ? 5.0f : 3.0f, color);
+        };
+        for (int i = 0; i < static_cast<int>(ambientZones.size()); ++i)
+            guide(ambientZones[i], i == selectedAmbient);
+        if (!placingAmbient) return false;
+
+        Vector3 hit;
+        if (overScene && terrainHit(viewRay(ImGui::GetIO().MousePos, size, vp), hit)
+            && snapPlacementToGround(hit))
+        {
+            SceneAudio::AmbientZone zone;
+            zone.x = hit.x;
+            zone.z = hit.z;
+            guide(zone, true);
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ambientZones.size() < maxAmbientZones)
+            {
+                rememberAmbient();
+                ambientZones.push_back(std::move(zone));
+                selectedAmbient = static_cast<int>(ambientZones.size()) - 1;
+                placingAmbient = false;
+                SceneAudio::stopAmbientPreview();
+                ambientStatus = u8"ゾーンに環境音ファイルを割り当ててください。";
+            }
+        }
+        return true;
+    }
+
+    void vegetationViewport(bool overScene, FXMMATRIX vp, const ImVec2& size, ImDrawList& overlay)
+    {
+        const auto& io = ImGui::GetIO();
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        {
+            stopPlantEdit();
+            plantStroke = overScene;
+        }
+        if (!ImGui::IsMouseDown(ImGuiMouseButton_Left)) stopPlantEdit();
+        Vector3 hit;
+        if (!overScene || !terrainHit(viewRay(io.MousePos, size, vp), hit))
+        {
+            previousPlantHit.reset();
+            return;
+        }
+        const ImU32 color = erasePlants ? IM_COL32(255, 130, 90, 245) : IM_COL32(174, 241, 105, 245);
+        drawRangeRing(hit, plantRadius, color, 2.0f, vp, size, overlay, true);
+        if (!plantStroke) return;
+        if (previousPlantHit && (hit - *previousPlantHit).lenght() < 0.15f) return;
+        EditRecord undo{ UndoKind::Vegetation };
+        if (!plantUndoRecorded) undo.vegetation = plants;
+        const size_t before = plants.size();
+        Vegetation::brush(plants, *terrain, previousPlantHit.value_or(hit), hit, plantRadius, plantDensity / 100.0f,
+            erasePlants && eraseAllSpecies ? -1 : plantSpecies, erasePlants);
+        previousPlantHit = hit;
+        if (plants.size() == before) return;
+        if (!plantUndoRecorded)
+        {
+            remember(std::move(undo));
+            plantUndoRecorded = true;
+        }
+        plantRenderer.invalidate();
     }
 
     void viewport()
@@ -2350,6 +2613,21 @@ namespace
         auto* overlay = ImGui::GetBackgroundDrawList();
         if (gridSnap && !terrainMode) drawPlacementGrid(vp, size, *overlay);
 
+        if (ambientViewport(overScene, vp, size, *overlay))
+        {
+            drag.axis = -1;
+            stopWaterEdit();
+            painting = false;
+            return;
+        }
+
+        if (vegetationMode)
+        {
+            drag.axis = -1;
+            vegetationViewport(overScene, vp, size, *overlay);
+            return;
+        }
+
         if (waterMode)
         {
             drag.axis = -1;
@@ -2388,11 +2666,33 @@ namespace
             {
                 painting = overScene;
                 brushRecorded = false;
+                previousMaterialHit.reset();
             }
             if (!ImGui::IsMouseDown(ImGuiMouseButton_Left)) painting = false;
             Vector3 hit;
-            if (!overScene || !terrainHit(viewRay(io.MousePos, size, vp), hit)) return;
-            if (painting)
+            if (!overScene || !terrainHit(viewRay(io.MousePos, size, vp), hit))
+            {
+                previousMaterialHit.reset();
+                return;
+            }
+            if (painting && brushMode >= 3)
+            {
+                auto before = brushRecorded ? nullptr
+                    : std::make_unique<MeshField::MaterialPaint>(terrain->materialPaint());
+                const float dt = std::max(0.01f, std::min(0.05f, io.DeltaTime));
+                const float opacity = 1.0f - std::pow(1.0f - materialOpacity * 0.01f, dt * 30.0f);
+                const bool changed = terrain->paintMaterial(previousMaterialHit.value_or(hit),
+                    hit, radius, opacity, brushMode == 4);
+                previousMaterialHit = hit;
+                if (before && changed)
+                {
+                    EditRecord edit{ UndoKind::TerrainPaint };
+                    edit.materialPaint = std::move(before);
+                    remember(std::move(edit));
+                    brushRecorded = true;
+                }
+            }
+            else if (painting)
             {
                 auto before = brushRecorded ? nullptr : std::make_unique<MeshField::Heights>(terrain->heights());
                 const float amount = strength * std::min(0.05f, io.DeltaTime);
@@ -2413,7 +2713,9 @@ namespace
                 ImVec2 pixel;
                 const bool visible = terrain->tryGetHeight(point.x, point.z, point.y)
                     && project(point, vp, size, pixel);
-                if (visible && hasPrevious) overlay->AddLine(previous, pixel, IM_COL32(255, 206, 77, 255), 2.0f);
+                if (visible && hasPrevious)
+                    overlay->AddLine(previous, pixel, brushMode == 4
+                        ? IM_COL32(115, 235, 111, 255) : IM_COL32(255, 206, 77, 255), 2.0f);
                 if (visible) previous = pixel;
                 hasPrevious = visible;
             }
@@ -2459,19 +2761,7 @@ namespace
         {
             const auto& entry = entries[selected];
             const auto& point = entry.placement.transform.position;
-            if (showAttackRanges && isEnemy(entry.placement.kind))
-            {
-                drawAttackRanges(*static_cast<Enemy*>(entry.object), entry.placement.kind, vp, size, *overlay);
-                if (!entry.placement.prefab.empty())
-                    for (const auto& linked : entries)
-                    {
-                        if (&linked == &entry || linked.placement.prefab != entry.placement.prefab) continue;
-                        const auto* enemy = static_cast<const Enemy*>(linked.object);
-                        drawRangeRing(linked.placement.transform.position + Vector3{ 0, .07f, 0 },
-                            enemy->attackSettings().detectionDistance,
-                            IM_COL32(90, 167, 255, 165), 1.5f, vp, size, *overlay);
-                    }
-            }
+
             if (entry.placement.kind == Kind::Player)
             {
                 const float centers[] = { Player::BodyLowerCenter, Player::BodyUpperCenter };
@@ -2586,15 +2876,36 @@ namespace
     }
 }
 
+void SceneEditor::useRuralMap()
+{
+    layoutPath = ruralLayoutPath;
+    temporaryPath = "asset/maps/rural-town/scene-layout.txt.tmp";
+}
+
 void SceneEditor::init(Player& scenePlayer, MeshField& sceneTerrain)
 {
     player = &scenePlayer;
+    heroine = Manager::GetGameObj<Heroine>();
     terrain = &sceneTerrain;
     const bool exists = GetFileAttributesA(layoutPath) != INVALID_FILE_ATTRIBUTES;
-    if (!loadLayout())
+    const bool loaded = loadLayout();
+    if (loaded && layoutPath == ruralLayoutPath)
+    {
+        wildlife.load();
+        wildlifeEnabled = true;
+    }
+    if (!loaded)
     {
         defaults();
         if (exists) status = u8"配置を読み込めなかったため、初期配置を使います。";
+    }
+    if (heroine && std::none_of(entries.begin(), entries.end(), [](const Entry& e) { return e.placement.kind == Kind::Heroine; }))
+    {
+        Placement placement{ Kind::Heroine, { heroine->GetPosition(), heroine->GetRotation(), heroine->GetScale() }, {} };
+        const auto previous = std::find_if(entries.begin(), entries.end(), [](const Entry& e) { return e.placement.kind == Kind::Player; });
+        if (previous != entries.end())
+            for (size_t i = 0; i < heroineMotionCount; ++i) placement.motions[i] = previous->placement.motions[i];
+        spawn(placement);
     }
     focus = player->GetPosition() + Vector3{ 0, 1, 6 };
 }
@@ -2613,6 +2924,12 @@ void SceneEditor::shutdown()
     audioPanel = false;
     audioCue = 0;
     audioVolumeRecorded = false;
+    ambientZones.clear();
+    selectedAmbient = -1;
+    ambientPanel = false;
+    placingAmbient = false;
+    ambientDragRecorded = false;
+    ambientStatus.clear();
     motionPanel = false;
     motionStatus.clear();
     motionLoop = false;
@@ -2628,9 +2945,17 @@ void SceneEditor::shutdown()
     gridStep = 1.0f;
     status.clear();
     player = nullptr;
+    heroine = nullptr;
     terrain = nullptr;
     open = false;
     terrainMode = false;
+    vegetationMode = false;
+    stopPlantEdit();
+    plants.clear();
+    plantRenderer = {};
+    wildlife = {};
+    wildlifeEnabled = false;
+    Scenery::reset();
     water = {};
     waterRenderer.reset();
     riverDefaults = {};
@@ -2640,7 +2965,6 @@ void SceneEditor::shutdown()
     waterBrushRadius = 4.0f;
     stopWaterEdit();
     showHurtboxes = false;
-    showAttackRanges = false;
     activeHurtbox = 0;
     select(-1);
 }
@@ -2668,10 +2992,13 @@ void SceneEditor::close()
     if (!open) return;
     stopMotionPreview();
     stopWaterEdit();
+    stopPlantEdit();
     prefabToPlace.clear();
     playModeRequested = false;
     drag.axis = -1;
     painting = false;
+    placingAmbient = false;
+    ambientStatus.clear();
     open = false;
     SceneAudio::setEditing(false);
 }
@@ -2684,6 +3011,7 @@ void SceneEditor::processPlayMode()
     {
         Manager::endEditorPlay();
         player = editWorld->player;
+        heroine = editWorld->heroine;
         terrain = editWorld->terrain;
         entries.swap(editWorld->entries);
         editWorld.reset();
@@ -2700,18 +3028,22 @@ void SceneEditor::processPlayMode()
     if (!open) return;
 
     const auto orbit = Manager::GetGameObj<Camera>()->orbitSettings();
+    const auto skyClock = Manager::GetGameObj<SkyDome>()->clock();
     stopMotionPreview();
     stopWaterEdit();
+    stopPlantEdit();
     if (!Manager::beginEditorPlay()) return;
-    editWorld.emplace(EditWorld{ player, terrain, {} });
+    editWorld.emplace(EditWorld{ player, heroine, terrain, {} });
     entries.swap(editWorld->entries);
     const auto [playPlayer, playTerrain] = Game::createWorld();
     player = playPlayer;
     terrain = playTerrain;
-    player->setDodgeSettings(editWorld->player->dodgeSettings());
-    player->toonSettings() = editWorld->player->toonSettings();
+    heroine = Manager::GetGameObj<Heroine>();
+    heroine->toonSettings() = editWorld->heroine->toonSettings();
     Manager::GetGameObj<Camera>()->orbitSettings() = orbit;
+    Manager::GetGameObj<SkyDome>()->clock() = skyClock;
     terrain->setHeights(editWorld->terrain->heights());
+    terrain->setMaterialPaint(editWorld->terrain->materialPaint());
     for (const auto& entry : editWorld->entries)
     {
         if (spawn(entry.placement)) continue;
@@ -2722,6 +3054,8 @@ void SceneEditor::processPlayMode()
     prefabToPlace.clear();
     drag.axis = -1;
     painting = false;
+    placingAmbient = false;
+    ambientStatus.clear();
     open = false;
     SceneAudio::setEditing(false);
     Input::SetMouseCapture(GetFocus() == GetWindow());
@@ -2768,6 +3102,7 @@ void SceneEditor::draw()
     inspector();
     drawPrefabPanel();
     drawAudioPanel();
+    drawAmbientPanel();
     drawMotionPanel();
     viewport();
 }
@@ -2775,6 +3110,8 @@ void SceneEditor::draw()
 void SceneEditor::updatePhysics(float dt)
 {
     if (!terrain || open || dt <= 0.0f) return;
+    const auto listener = player->GetPosition();
+    SceneAudio::updateAmbient(ambientZones, listener.x, listener.z, dt);
     for (auto& entry : entries)
     {
         if (!entry.placement.gravity) continue;
@@ -2799,6 +3136,16 @@ void SceneEditor::updatePhysics(float dt)
         else position.y += dy;
         entry.object->SetPosition(position);
     }
+}
+
+void SceneEditor::drawVegetation(const Vector3& eye)
+{
+    if (terrain) plantRenderer.draw(plants, *terrain, eye);
+}
+
+void SceneEditor::drawWildlife(const Vector3& eye, float dt)
+{
+    if (terrain && wildlifeEnabled) wildlife.draw(water, *terrain, eye, dt);
 }
 
 void SceneEditor::resolvePlayerCollision(const Vector3& previous, Vector3& position, Vector3& velocity, bool& grounded)
@@ -2870,10 +3217,10 @@ void SceneEditor::resolvePlayerCollision(const Vector3& previous, Vector3& posit
     }
 }
 
-bool SceneEditor::blocksEnemy(const Vector3& position, float radius)
+bool SceneEditor::blocksEnemy(const Vector3& position, float radius, const GameObject* exclude)
 {
     const BoundingSphere body({ position.x, position.y + radius + 0.02f, position.z }, radius);
     bool blocked = false;
-    forEachCollider(nullptr, [&](const BoundingOrientedBox& box) { blocked = blocked || box.Intersects(body); });
+    forEachCollider(exclude, [&](const BoundingOrientedBox& box) { blocked = blocked || box.Intersects(body); });
     return blocked;
 }

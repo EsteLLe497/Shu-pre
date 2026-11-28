@@ -13,7 +13,7 @@
 // =========================================================
 float PreviewTimeline::playbackEnd() const
 {
-    return std::max(duration, weaponVisualEnd);
+    return duration;
 }
 
 void PreviewTimeline::advance(float dt)

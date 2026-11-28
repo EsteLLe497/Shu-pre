@@ -8,12 +8,39 @@
 	#include "GameObject.h"
 #include <wrl/client.h>
 #include "ActionSequence.h"
+#include "assimp/config.h"
+#include "BonePoseRotation.h"
+#include "MorphOverlay.h"
+#include <cstring>
+#include <string>
 
 // =========================================================
 // キー時刻の前後を二分探索し、途中の姿勢を補間
 // =========================================================
 namespace
 {
+    XMFLOAT4 foliageWind(const std::string& file, const std::string& material, float halfHeight)
+    {
+        // Bend and flutter amplitudes are fractions of the model height.
+        if (halfHeight <= 0.0f) return {};
+        const float height = 2.0f * halfHeight;
+        if (material == "RuralCanopy") return { .018f, .010f, .24f, height };
+        if (material.compare(0, 10, "bambooLeaf") == 0) return { .024f, .013f, .42f, height };
+        if (material == "RuralGrass") return { .15f, .021f, .02f, height };
+        if ((file == "oak.glb" || file == "beech.glb" || file == "shrine-grove-oak.glb"
+            || file == "shrine-grove-beech.glb") && (material == "Oak_Leaves" || material == "Beech_Leaves"))
+            return { .018f, .011f, .18f, height };
+        if (file == "riverbank-reeds.obj" && material.substr(0, 4) == "reed")
+            return { .19f, .035f, .02f, height };
+        if (file == "roadside-grasses.obj" || file == "young-rice-rows.obj")
+            return { .16f, .034f, .02f, height };
+        if (file == "shrine-ferns.obj" || file == "summer-wildflowers.obj")
+            return { .10f, .024f, .02f, height };
+        if (file == "shrine-forest-understory.obj")
+            return { .070f, .020f, .10f, height };
+        return {};
+    }
+
     template<class Key>
     unsigned int findKeyBefore(const Key* keys, unsigned int count, double time)
     {
@@ -108,7 +135,13 @@ void AnimationModel::drawOutline()
     drawParts(m_opaqueParts, false);
 }
 
-void AnimationModel::drawParts(const std::vector<DrawPart>& parts, bool alphaBlend)
+void AnimationModel::drawInstances(UINT count)
+{
+    Renderer::GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    drawParts(m_opaqueParts, false, count);
+}
+
+void AnimationModel::drawParts(const std::vector<DrawPart>& parts, bool alphaBlend, UINT instanceCount)
 {
     auto* context = Renderer::GetDeviceContext();
     constexpr UINT stride = sizeof(VERTEX_3D);
@@ -124,22 +157,24 @@ void AnimationModel::drawParts(const std::vector<DrawPart>& parts, bool alphaBle
         material.Ambient = part.diffuse;
         material.TextureEnable = part.texture != nullptr;
         material.Emission.w = static_cast<float>(part.characterMaterial);
-        material.Specular = part.irisUvBounds;
+        material.Specular = m_useCharacterMaterials ? part.irisUvBounds : part.wind;
         Renderer::SetMaterial(material);
         context->PSSetShaderResources(0, 1, &part.texture);
 
         const unsigned int meshIndex = part.meshIndex;
         context->IASetVertexBuffers(0, 1, &m_VertexBuffer[meshIndex], &stride, &offset);
         context->IASetIndexBuffer(m_IndexBuffer[meshIndex], DXGI_FORMAT_R32_UINT, 0);
-        context->DrawIndexed(m_AiScene->mMeshes[meshIndex]->mNumFaces * 3, 0, 0);
+        if (instanceCount) context->DrawIndexedInstanced(m_indexCounts[meshIndex], instanceCount, 0, 0, 0);
+        else context->DrawIndexed(m_indexCounts[meshIndex], 0, 0);
     }
 }
 
 // =========================================================
 // FBX の透過指定で描画順を分け、各パーツのテクスチャを解決する
 // =========================================================
-void AnimationModel::loadDrawParts()
+void AnimationModel::loadDrawParts(bool staticMesh)
 {
+    const auto file = m_ModelPath.substr(m_ModelPath.find_last_of("/\\") + 1);
     for (unsigned int meshIndex = 0; meshIndex < m_AiScene->mNumMeshes; ++meshIndex)
     {
         const aiMesh* mesh = m_AiScene->mMeshes[meshIndex];
@@ -208,7 +243,11 @@ void AnimationModel::loadDrawParts()
             }
         }
         auto& parts = transparent ? m_transparentParts : m_opaqueParts;
-        parts.push_back({ meshIndex, { diffuse.r, diffuse.g, diffuse.b, opacity }, texture, profile, irisUvBounds });
+        aiString name;
+        if (staticMesh) material->Get(AI_MATKEY_NAME, name);
+        const auto wind = staticMesh ? foliageWind(file, name.C_Str(), m_staticHalfExtents.y) : XMFLOAT4{};
+        m_windReach = std::max(m_windReach, (wind.x + wind.y) * wind.w);
+        parts.push_back({ meshIndex, { diffuse.r, diffuse.g, diffuse.b, opacity }, texture, profile, irisUvBounds, wind });
     }
 }
 
@@ -267,14 +306,24 @@ void AnimationModel::Load(const char* fileName)
 
 bool AnimationModel::tryLoad(const char* fileName, bool staticMesh)
 {
-    if (m_AiScene)
+    if (m_AiScene || !m_indexCounts.empty())
         return false;
 
     m_ModelPath = fileName;
     unsigned int flags = aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded;
     if (staticMesh)
-        flags |= aiProcess_PreTransformVertices;
-    m_AiScene = aiImportFile(fileName, flags);
+    {
+        // Degenerate faces in scenery can become line meshes during Assimp's validation pass.
+        // This renderer consumes triangle lists, so discard points and lines on import.
+        auto* options = aiCreatePropertyStore();
+        if (!options) return false;
+        aiSetImportPropertyInteger(options, AI_CONFIG_PP_FD_REMOVE, 1);
+        aiSetImportPropertyInteger(options, AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_POINT | aiPrimitiveType_LINE);
+        m_AiScene = aiImportFileExWithProperties(fileName, flags | aiProcess_PreTransformVertices, nullptr, options);
+        aiReleasePropertyStore(options);
+    }
+    else
+        m_AiScene = aiImportFile(fileName, flags);
     if (!m_AiScene)
         return false;
 
@@ -313,15 +362,19 @@ bool AnimationModel::tryLoad(const char* fileName, bool staticMesh)
     }
     m_VertexBuffer = new ID3D11Buffer*[meshCount]{};
     m_IndexBuffer = new ID3D11Buffer*[meshCount]{};
-    m_DeformVertex = new std::vector<DEFORM_VERTEX>[meshCount];
-    CreateBone(m_AiScene->mRootNode);
-    // 着地時にだけ使う支点と、基準姿勢での足元を覚えておく。
-    const auto* root = m_AiScene->mRootNode;
-    m_landingArmature = root->FindNode(aiString("Armature"));
-    m_landingLeftFoot = root->FindNode(aiString("J_Bip_L_Foot"));
-    m_landingRightFoot = root->FindNode(aiString("J_Bip_R_Foot"));
-    if (m_landingLeftFoot && m_landingRightFoot)
-        m_landingFootCenterZ = landingFootCenterZ();
+    m_indexCounts.resize(meshCount);
+    if (!staticMesh)
+    {
+        m_DeformVertex = new std::vector<DEFORM_VERTEX>[meshCount];
+        CreateBone(m_AiScene->mRootNode);
+        // 着地時にだけ使う支点と、基準姿勢での足元を覚えておく。
+        const auto* root = m_AiScene->mRootNode;
+        m_landingArmature = root->FindNode(aiString("Armature"));
+        m_landingLeftFoot = root->FindNode(aiString("J_Bip_L_Foot"));
+        m_landingRightFoot = root->FindNode(aiString("J_Bip_R_Foot"));
+        if (m_landingLeftFoot && m_landingRightFoot)
+            m_landingFootCenterZ = landingFootCenterZ();
+    }
 
     for (unsigned int m = 0; m < meshCount; ++m)
     {
@@ -332,14 +385,20 @@ bool AnimationModel::tryLoad(const char* fileName, bool staticMesh)
             return false;
         }
 
+        aiString materialName;
+        if (staticMesh && mesh->HasVertexColors(0))
+            m_AiScene->mMaterials[mesh->mMaterialIndex]->Get(AI_MATKEY_NAME, materialName);
+        // The rural foliage vertex colors add color variation. Opacity comes from the texture.
+        const bool useVertexColors = std::strncmp(materialName.C_Str(), "Rural", 5) == 0;
         std::vector<VERTEX_3D> vertices(mesh->mNumVertices);
-        m_DeformVertex[m].resize(mesh->mNumVertices);
+        if (m_DeformVertex) m_DeformVertex[m].resize(mesh->mNumVertices);
         for (unsigned int v = 0; v < mesh->mNumVertices; ++v)
         {
             const auto position = (mesh->mVertices[v] - center) / unit;
             const auto& normal = mesh->mNormals[v];
+            const auto color = useVertexColors ? mesh->mColors[0][v] : aiColor4D(1, 1, 1, 1);
             vertices[v] = { { position.x, position.y, position.z }, { normal.x, normal.y, normal.z },
-                { 1.0f, 1.0f, 1.0f, 1.0f }, mesh->HasTextureCoords(0)
+                { color.r, color.g, color.b, 1.0f }, mesh->HasTextureCoords(0)
                     ? XMFLOAT2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y)
                     : XMFLOAT2(0.0f, 0.0f) };
         }
@@ -361,10 +420,10 @@ bool AnimationModel::tryLoad(const char* fileName, bool staticMesh)
         auto* device = Renderer::GetDevice();
         D3D11_BUFFER_DESC desc{};
         D3D11_SUBRESOURCE_DATA data{};
-        desc.Usage = D3D11_USAGE_DYNAMIC;
+        desc.Usage = staticMesh ? D3D11_USAGE_IMMUTABLE : D3D11_USAGE_DYNAMIC;
         desc.ByteWidth = static_cast<UINT>(sizeof(VERTEX_3D) * vertices.size());
         desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        desc.CPUAccessFlags = staticMesh ? 0 : D3D11_CPU_ACCESS_WRITE;
         data.pSysMem = vertices.data();
         const HRESULT vertexResult = device->CreateBuffer(&desc, &data, &m_VertexBuffer[m]);
 
@@ -378,6 +437,9 @@ bool AnimationModel::tryLoad(const char* fileName, bool staticMesh)
             Uninit();
             return false;
         }
+
+        m_indexCounts[m] = static_cast<UINT>(indices.size());
+        if (staticMesh) continue;
 
         for (unsigned int b = 0; b < mesh->mNumBones; ++b)
         {
@@ -419,7 +481,12 @@ bool AnimationModel::tryLoad(const char* fileName, bool staticMesh)
         }
     }
 
-    loadDrawParts();
+    loadDrawParts(staticMesh);
+    if (staticMesh)
+    {
+        aiReleaseImport(m_AiScene);
+        m_AiScene = nullptr;
+    }
     return true;
 }
 
@@ -579,6 +646,11 @@ void AnimationModel::setMorph(const std::string& name, float weight)
     setMorphLayer(m_morphLayers[0], name, weight);
 }
 
+void AnimationModel::setOverlayMorph(const std::string& name, float weight)
+{
+    setMorphLayer(m_overlayMorph, name, weight);
+}
+
 void AnimationModel::setMorphBlend(const std::string& base, const std::string& target, float blend,
     const std::vector<MorphTarget>& extraMorphs, float time)
 {
@@ -649,9 +721,7 @@ void AnimationModel::CreateBone(aiNode* node)
 
 	void AnimationModel::Uninit()
 	{
-        if (!m_AiScene)
-            return;
-		for (unsigned int m = 0; m < m_AiScene->mNumMeshes; m++)
+        for (size_t m = 0; m < m_indexCounts.size(); ++m)
 		{
             if (m_VertexBuffer && m_VertexBuffer[m])
                 m_VertexBuffer[m]->Release();
@@ -665,6 +735,8 @@ void AnimationModel::CreateBone(aiNode* node)
 		delete[] m_DeformVertex;
 
 
+        m_poseModifier = {};
+        m_poseRestore.clear();
         m_opaqueParts.clear();
         m_transparentParts.clear();
         for (const auto& entry : m_textures)
@@ -695,12 +767,15 @@ void AnimationModel::CreateBone(aiNode* node)
         m_landingRightFoot = nullptr;
         m_morphNames.clear();
         m_morphLayers.clear();
+        m_overlayMorph = MorphLayer{};
         m_activeMorphLayerCount = 0;
         m_missingTextures = 0;
         m_VertexBuffer = nullptr;
         m_IndexBuffer = nullptr;
         m_DeformVertex = nullptr;
-        aiReleaseImport(m_AiScene);
+        m_indexCounts.clear();
+        m_windReach = 0.0f;
+        if (m_AiScene) aiReleaseImport(m_AiScene);
         m_AiScene = nullptr;
 
 	}
@@ -791,7 +866,43 @@ void AnimationModel::applyPose(const aiAnimation& animation, double tick, RootTr
     }
 
     // FBXのボーンオフセットを使ってスキニング行列を求める。
+    refreshPose();
+}
+
+void AnimationModel::refreshPose()
+{
+    if (!m_AiScene) return;
+    m_poseRestore.clear();
+    if (m_poseModifier) m_poseModifier(*this);
     uploadPose();
+    // Keep FK for the next transition; do not accumulate the procedural correction.
+    for (const auto& original : m_poseRestore) original.first->AnimationMatrix = original.second;
+    m_poseRestore.clear();
+}
+
+bool AnimationModel::boneModelTransform(const char* name, aiMatrix4x4& transform) const
+{
+    if (!m_AiScene || !name) return false;
+    const auto* node = m_AiScene->mRootNode->FindNode(name);
+    if (!node) return false;
+    aiMatrix4x4 unit;
+    unit.a1 = unit.b2 = unit.c3 = m_skeletonUnitScale;
+    transform = unit * poseMatrix(node);
+    return true;
+}
+
+bool AnimationModel::rotateBoneModelSpace(const char* name, const aiMatrix4x4& rotation)
+{
+    if (!m_AiScene || !name) return false;
+    const auto* node = m_AiScene->mRootNode->FindNode(name);
+    const auto found = m_Bone.find(name);
+    if (!node || found == m_Bone.end()) return false;
+    auto& bone = found->second;
+    if (std::none_of(m_poseRestore.begin(), m_poseRestore.end(), [&bone](const auto& value) { return value.first == &bone; }))
+        m_poseRestore.emplace_back(&bone, bone.AnimationMatrix);
+    const auto parent = poseMatrix(node->mParent);
+    bone.AnimationMatrix = BonePoseRotation::apply(parent, bone.AnimationMatrix, rotation);
+    return true;
 }
 
 void AnimationModel::applyBindPose()
@@ -830,6 +941,8 @@ void AnimationModel::uploadPose()
             if (layer.weight > 0.0f && !layer.name.empty() && layer.meshes[meshIndex])
                 morphs[morphCount++] = { layer.meshes[meshIndex], layer.weight };
         }
+        const auto* overlay = m_overlayMorph.weight > 0 && meshIndex < m_overlayMorph.meshes.size()
+            ? m_overlayMorph.meshes[meshIndex] : nullptr;
         VERTEX_3D* vertex = static_cast<VERTEX_3D*>(mapped.pData);
         for (unsigned int v = 0; v < mesh->mNumVertices; v++)
         {
@@ -845,6 +958,14 @@ void AnimationModel::uploadPose()
                 deformVertex.Position += (morph->mVertices[v] - mesh->mVertices[v]) * weight;
                 if (morph->mNormals)
                     deformVertex.Normal += (morph->mNormals[v] - mesh->mNormals[v]) * weight;
+            }
+
+            if (overlay && MorphOverlay::affects(mesh->mVertices[v], overlay->mVertices[v]))
+            {
+                deformVertex.Position = MorphOverlay::blend(mesh->mVertices[v], overlay->mVertices[v],
+                    deformVertex.Position, m_overlayMorph.weight);
+                if (overlay->mNormals)
+                    deformVertex.Normal += (overlay->mNormals[v] - deformVertex.Normal) * m_overlayMorph.weight;
             }
 
             if (deformVertex.BoneNum > 0)

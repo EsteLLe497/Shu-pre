@@ -2,16 +2,16 @@
 #include "manager.h"
 #include "renderer.h"
 #include "Camera.h"
+#include "SkyDome.h"
 #include "input.h"
-#include "Title.h"
 #include "Game.h"
-#include "Result.h"
 #include "audio.h"
 
 #include "GameObject.h"
 #include "Player.h"
-#include "Enemy.h"
+#include "Heroine.h"
 #include "SceneEditor.h"
+#include "Scenery.h"
 #include "ToonPanel.h"
 #include "PreviewScene.h"
 #include "GraphicsLab.h"
@@ -27,7 +27,6 @@ Scene* Manager::m_Scene = nullptr;
 Scene* Manager::m_NextScene = nullptr;
 float Manager::m_ChangeTime = 0.0f;
 float Manager::m_animationDeltaSeconds = 1.0f / 60.0f;
-float Manager::m_hitStopRemaining = 0.0f;
 
 namespace
 {
@@ -86,7 +85,6 @@ namespace
 void Manager::Init(bool previewMode, bool graphicsLab)
 {
     previewWorkspace = previewMode || graphicsLab;
-    m_hitStopRemaining = 0.0f;
 	Renderer::Init(graphicsLab);
     if (!previewWorkspace)
         planetarium::init();
@@ -127,7 +125,6 @@ bool Manager::beginEditorPlay()
     if (m_NextScene || !m_EditObjects.empty() || !dynamic_cast<Game*>(m_Scene)) return false;
     m_EditObjects.swap(m_GameObjects);
     planetarium::reset();
-    m_hitStopRemaining = 0.0f;
     return true;
 }
 
@@ -137,15 +134,9 @@ void Manager::endEditorPlay()
     clearObjects(m_GameObjects);
     m_GameObjects.swap(m_EditObjects);
     planetarium::reset();
-    m_hitStopRemaining = 0.0f;
 }
 
-void Manager::requestHitStop(float seconds)
-{
-    // 複数の敵へ同時に当たっても、停止時間を足し続けない。
-    if (seconds > 0.0f && seconds <= 1.0f)
-        m_hitStopRemaining = std::max(m_hitStopRemaining, seconds);
-}
+
 
 void Manager::Update(float frameSeconds)
 {
@@ -157,11 +148,8 @@ void Manager::Update(float frameSeconds)
     if (ToonPanel::isPauseMenuOpen()) return;
 
     const bool editing = SceneEditor::isOpen();
-    const bool stopping = m_hitStopRemaining > 0.0f;
-    m_hitStopRemaining = std::max(0.0f, m_hitStopRemaining - m_animationDeltaSeconds);
-    // 白点滅は停止中やデバッグで敵を止めていても実時間で進める。
-    for (auto* enemy : GetGameObjs<Enemy>()) enemy->updateHitFeedback(m_animationDeltaSeconds);
-    const bool updateWorld = !editing && !stopping && planetarium::updateWorld();
+    if (auto* sky = GetGameObj<SkyDome>()) sky->advance(frameSeconds, editing);
+    const bool updateWorld = !editing && planetarium::updateWorld();
     const auto* player = updateWorld ? nullptr : GetGameObj<Player>();
     const auto* camera = GetGameObj<Camera>();
 	if (m_Scene && updateWorld)
@@ -169,9 +157,7 @@ void Manager::Update(float frameSeconds)
 
 	for (GameObject* obj : m_GameObjects) 
 	{
-        // 命中したフレームの途中でも、以降のゲーム更新は止める。カメラは動かす。
-        const bool hitStopped = stopping || m_hitStopRemaining > 0.0f;
-        if (obj && !editing && (obj == camera || (!hitStopped && (updateWorld || obj == player)))) {
+        if (obj && !editing && (obj == camera || (updateWorld || obj == player))) {
 			obj->Update();
 		}
 	}
@@ -194,7 +180,6 @@ void Manager::Update(float frameSeconds)
 
 			clearObjects(m_GameObjects);
             planetarium::reset();
-            m_hitStopRemaining = 0.0f;
 
 			m_Scene = m_NextScene;
 			m_Scene->Init();
@@ -218,6 +203,8 @@ void Manager::Draw()
     }
 
 	Renderer::Begin();
+    auto* sky = GetGameObj<SkyDome>();
+    if (sky) sky->bindFrame();
     const auto* lightPlayer = GetGameObj<Player>();
     planetarium::bindLighting(lightPlayer ? lightPlayer->GetPosition() : Vector3(0.0f, 0.0f, 0.0f));
 	Camera* camera = GetGameObj<Camera>();
@@ -226,8 +213,8 @@ void Manager::Draw()
     if (editing) ToonPanel::beginFrame();
 	else if (showToonPanel)
 	{
-		Player* player = GetGameObj<Player>();
-		ToonPanel::beginFrame(player ? &player->toonSettings() : nullptr,
+		Heroine* heroine = GetGameObj<Heroine>();
+		ToonPanel::beginFrame(heroine ? &heroine->toonSettings() : nullptr,
 			camera ? &camera->orbitSettings() : nullptr);
 	}
     else ToonPanel::beginFrame();
@@ -251,14 +238,26 @@ void Manager::Draw()
 	for (int layer = 0; layer < 5; layer++)
 	{
         // UIはドームの色や遮蔽の影響を受けない。
+        if (layer == 1 && camera)
+            Scenery::begin(camera->GetViewMatrix(), camera->projectionMatrix(),
+                ToonPanel::isPauseMenuOpen() ? 0.0f : m_animationDeltaSeconds);
+        if (layer == 2)
+        {
+            if (camera)
+            {
+                SceneEditor::drawVegetation(camera->renderPosition());
+                SceneEditor::drawWildlife(camera->renderPosition(),
+                    ToonPanel::isPauseMenuOpen() ? 0.0f : m_animationDeltaSeconds);
+            }
+            Scenery::flush();
+        }
         if (layer == 4)
         {
+            if (camera && sky) sky->Draw();
             drawAlphaObjects(alphaObjects, camera);
             if (camera) SceneEditor::drawWater(camera->renderPosition(),
                 camera->GetViewMatrix() * camera->projectionMatrix(),
                 ToonPanel::isPauseMenuOpen() ? 0.0f : m_animationDeltaSeconds);
-            if (auto* player = GetGameObj<Player>())
-                player->drawEffects();
         }
         if (editing && layer == 4) continue;
         if (layer == 4 && camera)
@@ -274,7 +273,6 @@ void Manager::Draw()
                 object->Draw();
         }
 	}
-    for (auto* enemy : GetGameObjs<Enemy>()) enemy->drawHealthBar();
     if (editing) SceneEditor::draw();
     else SceneEditor::drawPlayMode();
     ToonPanel::draw();

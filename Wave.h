@@ -93,7 +93,6 @@ private:
     Microsoft::WRL::ComPtr<ID3D11Texture2D> m_riverMask;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_riverMaskView;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_detailView;
-    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_skyView;
     Microsoft::WRL::ComPtr<ID3D11Texture2D> m_sceneColor;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_sceneColorView;
     Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_readableDepthView;
@@ -101,7 +100,6 @@ private:
     Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_depthReadOnly;
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rasterizer;
     Microsoft::WRL::ComPtr<ID3D11SamplerState> m_sampler;
-    Microsoft::WRL::ComPtr<ID3D11SamplerState> m_skySampler;
     Microsoft::WRL::ComPtr<ID3D11SamplerState> m_detailSampler;
     std::vector<Surface> m_surfaces;
     std::vector<unsigned char> m_basinTriangles;

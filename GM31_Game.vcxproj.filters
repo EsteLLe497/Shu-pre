@@ -1,6 +1,37 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="AI\SubtitlePanel.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClInclude Include="AI\SubtitlePanel.h"><Filter>Header Files</Filter></ClInclude>
+
+    <ClCompile Include="AI\SubtitleLayout.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClInclude Include="AI\SubtitleLayout.h"><Filter>Header Files</Filter></ClInclude>
+
+    <ClCompile Include="AI\DialogueProtocol.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="AI\OllamaClient.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="AI\DialogueSession.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="AI\DialoguePanel.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="HeroineConversation.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClInclude Include="AI\DialogueTypes.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="AI\DialogueProtocol.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="AI\OllamaClient.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="AI\DialogueSession.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="AI\DialoguePanel.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="HeroineConversation.h"><Filter>Header Files</Filter></ClInclude>
+    <ClCompile Include="Heroine.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="HeroineMovement.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="HeroineLookAt.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClInclude Include="HeroineLookAt.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="BonePoseRotation.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="MorphOverlay.h"><Filter>Header Files</Filter></ClInclude>
+    <ClCompile Include="DebugPanel.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClInclude Include="HeroineMovement.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="DebugPanel.h"><Filter>Header Files</Filter></ClInclude>
+    <ClCompile Include="HeroineAnimationAssets.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClInclude Include="Heroine.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="HeroineActionSet.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="HeroineAnimationAssets.h"><Filter>Header Files</Filter></ClInclude>
+
     <Filter Include="Source Files">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
@@ -22,13 +53,14 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="attack.cpp" />
-    <ClCompile Include="AttackWeapon.cpp" />
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SceneAudio.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="SceneEditor.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="Scenery.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="Vegetation.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="RuralWildlife.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="manager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -65,12 +97,6 @@
     <ClCompile Include="ActionSequence.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PlayerAnimationAssets.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="PlayerActions.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="constellation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -84,9 +110,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Enemy.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Bullet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ToonPanel.cpp">
@@ -155,9 +178,6 @@
     <ClCompile Include="Result.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Score.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="audio.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -175,13 +195,14 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="attack.h" />
-    <ClInclude Include="AttackWeapon.h" />
     <ClInclude Include="main.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SceneAudio.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="SceneEditor.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Scenery.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="Vegetation.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="RuralWildlife.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="manager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -212,9 +233,6 @@
     <ClInclude Include="modelRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PlayerAnimationAssets.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="PreviewCamera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -233,9 +251,6 @@
     <ClInclude Include="ActionSequence.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PlayerActionSet.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="constellation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -249,9 +264,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Enemy.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Bullet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ToonPanel.h">
@@ -326,9 +338,6 @@
     <ClInclude Include="Result.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Score.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="audio.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -361,6 +370,12 @@
     <None Include="shader\planetariumLight.hlsli">
       <Filter>Shader</Filter>
     </None>
+    <None Include="shader\SkyFrame.hlsli"><Filter>Shader</Filter></None>
+    <None Include="shader\SkyColor.hlsli"><Filter>Shader</Filter></None>
+    <None Include="shader\SummerClouds.hlsli"><Filter>Shader</Filter></None>
+    <None Include="shader\foliageWind.hlsli">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="shader\toonCommon.hlsli">
       <Filter>Shader</Filter>
     </None>
@@ -383,22 +398,23 @@
     <FxCompile Include="shader\planetariumPS.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
-    <FxCompile Include="shader\weaponEndVS.hlsl">
-      <Filter>Shader</Filter>
-    </FxCompile>
-    <FxCompile Include="shader\weaponEndPS.hlsl">
-      <Filter>Shader</Filter>
-    </FxCompile>
     <FxCompile Include="shader\common.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="shader\unlitTexturePS.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
+    <FxCompile Include="shader\SkyDomePS.hlsl"><Filter>Shader</Filter></FxCompile>
+    <FxCompile Include="shader\SkyDomeVS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
     <FxCompile Include="shader\unlitTextureVS.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="shader\litTextureVS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\litInstancedVS.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="shader\litTexturePS.hlsl">

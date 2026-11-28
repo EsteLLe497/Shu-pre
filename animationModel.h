@@ -5,6 +5,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <functional>
 #include "MorphTarget.h"
 
 #include "assimp/cimport.h"
@@ -69,11 +70,14 @@ private:
     };
 
     std::vector<MorphLayer> m_morphLayers;
+    MorphLayer m_overlayMorph;
     std::size_t m_activeMorphLayerCount = 0;
     unsigned int m_missingTextures = 0;
     bool m_generateTextureMipmaps = false;
     bool m_useCharacterMaterials = false;
     XMFLOAT3 m_staticHalfExtents{};
+    float m_windReach = 0.0f;
+    std::vector<UINT> m_indexCounts;
 
     // マテリアルを読み込み時に解決し、不透明と透過の描画順を分ける。
     enum class CharacterMaterial { generic, skin, hair, faceDetail, cloth, eyeIris, eyeWhite, eyeHighlight };
@@ -85,6 +89,7 @@ private:
         ID3D11ShaderResourceView* texture;
         CharacterMaterial characterMaterial;
         XMFLOAT4 irisUvBounds;
+        XMFLOAT4 wind{};
     };
 
     std::unordered_map<const aiTexture*, ID3D11ShaderResourceView*> m_textures;
@@ -107,6 +112,8 @@ private:
     std::string m_sampledClip;
     RootTravel m_sampledRootTravel = RootTravel::authored;
     float m_transitionElapsed = 0.0f;
+    std::function<void(AnimationModel&)> m_poseModifier;
+    std::vector<std::pair<BONE*, aiMatrix4x4>> m_poseRestore;
 
     const aiNode* m_landingArmature = nullptr;
     const aiNode* m_landingLeftFoot = nullptr;
@@ -124,11 +131,11 @@ private:
     void anchorLandingFeet();
     void sampleBones(const aiAnimation& animation, double tick, RootTravel rootTravel);
     void applyPose(const aiAnimation& animation, double tick, RootTravel rootTravel, float weight);
-    void loadDrawParts();
+    void loadDrawParts(bool staticMesh);
     void setMorphLayer(MorphLayer& layer, const std::string& name, float weight);
     ID3D11ShaderResourceView* loadTexture(const aiTexture* embedded);
     void createTextureView(const DirectX::ScratchImage& image, ID3D11ShaderResourceView** view) const;
-    void drawParts(const std::vector<DrawPart>& parts, bool alphaBlend);
+    void drawParts(const std::vector<DrawPart>& parts, bool alphaBlend, UINT instanceCount = 0);
 
 public:
 	using Component::Component;
@@ -141,12 +148,14 @@ public:
     void enableTextureMipmaps() { m_generateTextureMipmaps = true; }
     void enableCharacterMaterials() { m_useCharacterMaterials = true; }
     XMFLOAT3 staticHalfExtents() const { return m_staticHalfExtents; }
+    float windReach() const { return m_windReach; }
     double clipDuration(const char* name) const;
     bool sampleClip(const char* name, double seconds, RootTravel rootTravel = RootTravel::authored);
     bool sampleBlendedClip(const char* name, double seconds, float dt, RootTravel rootTravel, bool restart = false, bool loop = true);
     bool hasAnimation(const char* name) const;
     void unloadAnimation(const char* name);
     void setMorph(const std::string& name, float weight);
+    void setOverlayMorph(const std::string& name, float weight);
     void setMorphBlend(const std::string& base, const std::string& target, float blend,
         const std::vector<MorphTarget>& extraMorphs = {}, float time = 0.0f);
     const std::vector<std::string>& morphNames() const { return m_morphNames; }
@@ -155,9 +164,15 @@ public:
 	void Draw() override;
     void drawOutline();
     void drawAt(FXMMATRIX world);
+    bool hasTransparentParts() const { return !m_transparentParts.empty(); }
+    void drawInstances(UINT count);
     bool fitBoneCapsule(const char* name, BoneCapsule& capsule) const;
     std::vector<std::string> dominantSkinBones(size_t limit) const;
     bool loadEmbeddedClip(const char* name);
     void applyBindPose();
+    void refreshPose();
+    void setPoseModifier(const std::function<void(AnimationModel&)>& modifier) { m_poseModifier = modifier; }
+    bool boneModelTransform(const char* name, aiMatrix4x4& transform) const;
+    bool rotateBoneModelSpace(const char* name, const aiMatrix4x4& rotation);
     XMMATRIX capsulePose(const BoneCapsule& capsule) const;
 };

@@ -509,13 +509,6 @@ bool Wave::initialize()
         description.Flags = D3D11_DSV_READ_ONLY_DEPTH;
         device->CreateDepthStencilView(resource.Get(), &description, m_readableDepthView.ReleaseAndGetAddressOf());
     }
-    DirectX::TexMetadata metadata{};
-    DirectX::ScratchImage sky;
-    if (SUCCEEDED(DirectX::LoadFromWICFile(L"asset/model/SkyDome/sky.jpg", DirectX::WIC_FLAGS_NONE,
-        &metadata, sky)))
-        DirectX::CreateShaderResourceView(device, sky.GetImages(), sky.GetImageCount(), metadata,
-            m_skyView.ReleaseAndGetAddressOf());
-
     D3D11_DEPTH_STENCIL_DESC depth{};
     depth.DepthEnable = TRUE;
     depth.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
@@ -536,7 +529,6 @@ bool Wave::initialize()
     sampler.MaxLOD = D3D11_FLOAT32_MAX;
     if (FAILED(device->CreateSamplerState(&sampler, m_sampler.ReleaseAndGetAddressOf()))) return false;
     sampler.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-    if (FAILED(device->CreateSamplerState(&sampler, m_skySampler.ReleaseAndGetAddressOf()))) return false;
     sampler.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
     sampler.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
     return SUCCEEDED(device->CreateSamplerState(&sampler, m_detailSampler.ReleaseAndGetAddressOf()));
@@ -819,11 +811,9 @@ void Wave::draw(const Layout& settings, const MeshField& terrain, const Vector3&
     ComPtr<ID3D11BlendState> previousBlend;
     ComPtr<ID3D11RasterizerState> previousRasterizer;
     ComPtr<ID3D11SamplerState> previousSampler;
-    ComPtr<ID3D11SamplerState> previousSkySampler;
     ComPtr<ID3D11SamplerState> previousDetailSampler;
     ComPtr<ID3D11ShaderResourceView> previousMask;
     ComPtr<ID3D11ShaderResourceView> previousSceneDepth;
-    ComPtr<ID3D11ShaderResourceView> previousSky;
     ComPtr<ID3D11ShaderResourceView> previousSceneColor;
     ComPtr<ID3D11ShaderResourceView> previousTerrain;
     ComPtr<ID3D11ShaderResourceView> previousBasins;
@@ -840,11 +830,9 @@ void Wave::draw(const Layout& settings, const MeshField& terrain, const Vector3&
     context->OMGetBlendState(&previousBlend, blendFactor, &sampleMask);
     context->RSGetState(&previousRasterizer);
     context->PSGetSamplers(1, 1, &previousSampler);
-    context->PSGetSamplers(2, 1, &previousSkySampler);
     context->PSGetSamplers(3, 1, &previousDetailSampler);
     context->PSGetShaderResources(1, 1, &previousMask);
     context->PSGetShaderResources(2, 1, &previousSceneDepth);
-    context->PSGetShaderResources(3, 1, &previousSky);
     context->PSGetShaderResources(4, 1, &previousSceneColor);
     context->PSGetShaderResources(5, 1, &previousTerrain);
     context->PSGetShaderResources(6, 1, &previousBasins);
@@ -856,7 +844,6 @@ void Wave::draw(const Layout& settings, const MeshField& terrain, const Vector3&
     Renderer::SetAddBlendEnable(false);
     context->RSSetState(m_rasterizer.Get());
     context->PSSetSamplers(1, 1, m_sampler.GetAddressOf());
-    context->PSSetSamplers(2, 1, m_skySampler.GetAddressOf());
     context->PSSetSamplers(3, 1, m_detailSampler.GetAddressOf());
     context->PSSetShaderResources(1, 1, m_maskView.GetAddressOf());
     context->OMGetRenderTargets(1, &currentTarget, &previousDepthView);
@@ -874,7 +861,6 @@ void Wave::draw(const Layout& settings, const MeshField& terrain, const Vector3&
     }
     ID3D11ShaderResourceView* const depth = readOnlyDepth ? depthImage : nullptr;
     context->PSSetShaderResources(2, 1, &depth);
-    context->PSSetShaderResources(3, 1, m_skyView.GetAddressOf());
     ID3D11ShaderResourceView* const sceneColor = hasSceneColor ? m_sceneColorView.Get() : nullptr;
     context->PSSetShaderResources(4, 1, &sceneColor);
     context->PSSetShaderResources(5, 1, m_terrainHeightView.GetAddressOf());
@@ -883,8 +869,7 @@ void Wave::draw(const Layout& settings, const MeshField& terrain, const Vector3&
     WaterFrame frame{};
     XMStoreFloat4x4(&frame.inverseViewProjection, XMMatrixTranspose(XMMatrixInverse(nullptr, viewProjection)));
     XMStoreFloat4x4(&frame.viewProjection, XMMatrixTranspose(viewProjection));
-    frame.settings = { settings.reflection, depth ? 1.0f : 0.0f,
-        m_skyView ? 1.0f : 0.0f, hasSceneColor ? 1.0f : 0.0f };
+    frame.settings = { settings.reflection, depth ? 1.0f : 0.0f, hasSceneColor ? 1.0f : 0.0f, 0.0f };
     frame.terrainGrid = terrain.worldGrid();
     frame.volume = { 0, 0, PondOrigin, PondSize };
     context->UpdateSubresource(m_frameBuffer.Get(), 0, nullptr, &frame, 0, 0);
@@ -949,17 +934,15 @@ void Wave::draw(const Layout& settings, const MeshField& terrain, const Vector3&
 
     context->PSSetShaderResources(1, 1, previousMask.GetAddressOf());
     context->PSSetShaderResources(2, 1, previousSceneDepth.GetAddressOf());
-    context->PSSetShaderResources(3, 1, previousSky.GetAddressOf());
     context->PSSetShaderResources(4, 1, previousSceneColor.GetAddressOf());
     context->PSSetShaderResources(5, 1, previousTerrain.GetAddressOf());
     context->PSSetShaderResources(6, 1, previousBasins.GetAddressOf());
     context->PSSetShaderResources(7, 1, previousDetail.GetAddressOf());
     context->PSSetConstantBuffers(7, 1, previousFrame.GetAddressOf());
     context->IASetIndexBuffer(previousIndices.Get(), previousIndexFormat, previousIndexOffset);
-    if (m_readableDepthView)
+    if (readOnlyDepth)
         context->OMSetRenderTargets(1, currentTarget.GetAddressOf(), previousDepthView.Get());
     context->PSSetSamplers(1, 1, previousSampler.GetAddressOf());
-    context->PSSetSamplers(2, 1, previousSkySampler.GetAddressOf());
     context->PSSetSamplers(3, 1, previousDetailSampler.GetAddressOf());
     context->RSSetState(previousRasterizer.Get());
     context->OMSetDepthStencilState(previousDepth.Get(), reference);

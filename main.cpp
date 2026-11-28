@@ -1,17 +1,19 @@
-
+ï»¿
 
 #include "main.h"
 #include "manager.h"
 #include "input.h"
 #include "ToonPanel.h"
+#include "SceneEditor.h"
 #include <thread>
 #include <shellapi.h>
 #include <cstdio>
+#include <string>
 #pragma comment(lib, "shell32.lib")
 
 
 const char* CLASS_NAME = "AppClass";
-const char* WINDOW_NAME = "DX11ƒQ[ƒ€";
+const char* WINDOW_NAME = "DX11ã‚²ãƒ¼ãƒ ";
 
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -57,7 +59,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	CoInitializeEx(nullptr, COINITBASE_MULTITHREADED);
 
 
-    // ƒRƒ}ƒ“ƒhƒ‰ƒCƒ“‚ÅƒvƒŒƒrƒ…[‚ð‘I‚ÔB
+    // ã‚³ãƒžãƒ³ãƒ‰ãƒ©ã‚¤ãƒ³ã§ãƒ—ãƒ¬ãƒ“ãƒ¥ãƒ¼ã‚’é¸ã¶ã€‚
     int argumentCount = 0;
     wchar_t** arguments = CommandLineToArgvW(GetCommandLineW(), &argumentCount);
     bool previewMode = false;
@@ -72,9 +74,34 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
         LocalFree(arguments);
     }
 
-	Manager::Init(previewMode, graphicsLab);
+    // ç›´æŽ¥ EXE ã‚’èµ·å‹•ã—ãŸå ´åˆã‚‚ã€åˆæœŸåŒ–ã‚ˆã‚Šå…ˆã«ç´ æã®å ´æ‰€ã‚’åˆã‚ã›ã‚‹ã€‚
+    if (GetFileAttributesW(L"asset") == INVALID_FILE_ATTRIBUTES
+        || GetFileAttributesW(L"shader") == INVALID_FILE_ATTRIBUTES)
+    {
+        wchar_t executable[MAX_PATH]{};
+        const DWORD length = GetModuleFileNameW(nullptr, executable, MAX_PATH);
+        if (length > 0 && length < MAX_PATH)
+        {
+            std::wstring directory(executable);
+            for (int level = 0; level < 3; ++level)
+            {
+                const auto separator = directory.find_last_of(L"\\/");
+                if (separator == std::wstring::npos) break;
+                directory.resize(separator);
+                if (GetFileAttributesW((directory + L"/asset").c_str()) != INVALID_FILE_ATTRIBUTES
+                    && GetFileAttributesW((directory + L"/shader").c_str()) != INVALID_FILE_ATTRIBUTES)
+                {
+                    SetCurrentDirectoryW(directory.c_str());
+                    break;
+                }
+            }
+        }
+    }
 
-    const char* windowTitle = graphicsLab ? "GM31 Graphics Lab" : (previewMode ? "GM31 Asset Preview" : WINDOW_NAME);
+    if (!previewMode && !graphicsLab) SceneEditor::useRuralMap();
+    Manager::Init(previewMode, graphicsLab);
+
+    const char* windowTitle = graphicsLab ? "GM31 Graphics Lab" : (previewMode ? "GM31 Asset Preview" : "Shu-pre - Summer Countryside");
     SetWindowTextA(g_Window, windowTitle);
 
 
@@ -126,7 +153,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
             Manager::Draw();
 
 #ifdef _DEBUG
-            // •`‰æ‚ðI‚¦‚½ƒtƒŒ[ƒ€‚ð”‚¦A0.5•b‚²‚Æ‚É•½‹ÏFPS‚ð•\Ž¦‚·‚éB
+            // æç”»ã‚’çµ‚ãˆãŸãƒ•ãƒ¬ãƒ¼ãƒ ã‚’æ•°ãˆã€0.5ç§’ã”ã¨ã«å¹³å‡FPSã‚’è¡¨ç¤ºã™ã‚‹ã€‚
             ++frameCount;
             const DWORD now = timeGetTime();
             const DWORD sampleMs = now - fpsStart;

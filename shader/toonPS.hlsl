@@ -8,6 +8,7 @@
 #include "planetariumLight.hlsli"
 #include "LabLighting.hlsli"
 #include "CharacterLighting.hlsli"
+#include "SkyFrame.hlsli"
 
 Texture2D baseTexture : register(t0);
 SamplerState baseSampler : register(s0);
@@ -86,7 +87,7 @@ float4 main(PS_IN pixel) : SV_Target
             color.rgb += rimColor.rgb * (rim * rimStrength);
         }
         if (!labLighting)
-            color.rgb = lerp(color.rgb, albedo * planetariumIrradiance(normal), night);
+            color.rgb = lerp(color.rgb * skySceneTint(), albedo * planetariumIrradiance(normal), night);
     }
 
     if (FogSettings.z > 0.5)

@@ -3,7 +3,7 @@
 #include "renderer.h"
 #include "GraphicsLabGeometry.h"
 #include "MeshField.h"
-#include "PlayerAnimationAssets.h"
+#include "HeroineAnimationAssets.h"
 #include "ToonPanel.h"
 #include "ToonShader.h"
 #include "Wave.h"
@@ -876,14 +876,14 @@ struct GraphicsLab::State
         resetCharacterLook(toon.settings());
         character.enableTextureMipmaps();
         character.enableCharacterMaterials();
-        characterReady = PlayerAnimationAssets::loadCharacter(character, PlayerAnimationAssets::previewModel)
-            != PlayerAnimationAssets::LoadResult::modelFailed;
+        characterReady = HeroineAnimationAssets::loadCharacter(character, HeroineAnimationAssets::previewModel)
+            != HeroineAnimationAssets::LoadResult::modelFailed;
         if (!characterReady)
-            characterReady = PlayerAnimationAssets::loadCharacter(character, PlayerAnimationAssets::model)
-                != PlayerAnimationAssets::LoadResult::modelFailed;
+            characterReady = HeroineAnimationAssets::loadCharacter(character, HeroineAnimationAssets::model)
+                != HeroineAnimationAssets::LoadResult::modelFailed;
         if (characterReady)
         {
-            PlayerAnimationAssets::loadMotion(character, "Idle");
+            HeroineAnimationAssets::loadMotion(character, "Idle");
         }
         else
             error = "Character FBX could not be loaded.";
@@ -1069,6 +1069,8 @@ struct GraphicsLab::State
         context->PSSetShaderResources(shadowResourceSlot, 1, shadowImage.GetAddressOf());
         context->PSSetSamplers(4, 1, shadowSampler.GetAddressOf());
         drawSurface(false);
+        ID3D11Buffer* noSurface = nullptr;
+        context->PSSetConstantBuffers(surfaceSlot,1,&noSurface);
         context->RSSetState(sceneRasterizer.Get());
         if (timed) gpuTimer.mark(GpuTimer::landscape);
 

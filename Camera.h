@@ -9,33 +9,25 @@ struct CameraOrbit
 {
     static constexpr float minDistance = 0.6f;
     static constexpr float maxDistance = 30.0f;
-    static constexpr float minPitch = -0.5f;
-    static constexpr float maxPitch = 1.0f;
+    static constexpr float minPitch = -1.48f;
+    static constexpr float maxPitch = 1.48f;
     static constexpr float minLookHeight = 0.0f;
     static constexpr float maxLookHeight = 3.0f;
 
     float yaw = 0.0f;
-    float pitch = 0.30f;
-    float distance = 4.8f;
-    float lookHeight = 0.93f;
+    float pitch = 0.0f;
+    float distance = 4.8f; // Retained for compatibility with saved appearance presets.
+    float lookHeight = 1.60f;
 };
 
 class Camera : public GameObject
 {
 private:
-    Vector3 m_target{ 0.0f, 0.0f, 0.0f };
-    Vector3 m_viewTarget{ 0.0f, 0.0f, 0.0f };
-    Vector3 m_followVelocity{ 0.0f, 0.0f, 0.0f };
-    bool m_followInitialized = false;
     XMMATRIX m_viewMatrix;
 	XMMATRIX m_projectionMatrix;
     Vector3 m_shake{ 0.0f, 0.0f, 0.0f };
     float m_shakeTime = 0.0f;
     CameraOrbit m_orbit;
-    float m_distance = m_orbit.distance;
-    float m_yawVelocity = 0.0f;
-    float m_pitchVelocity = 0.0f;
-    float m_zoomVelocity = 0.0f;
     Vector3 m_renderPosition{ 0.0f, 0.0f, 0.0f };
 
 public:

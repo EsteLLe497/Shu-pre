@@ -9,103 +9,46 @@
 #include "Player.h"
 #include "input.h"
 #include "SceneEditor.h"
-#include "planetarium.h"
-
-namespace
-{
-    // Exact critically damped spring for a constant target over this frame.
-    // Smooth both position and velocity without depending on the frame rate.
-    float smoothCamera(float current, float target, float& velocity, float smoothTime, float dt)
-    {
-        const float omega = 2.0f / smoothTime;
-        const float decay = expf(-omega * dt);
-        const float difference = current - target;
-        const float step = (velocity + omega * difference) * dt;
-        velocity = (velocity - omega * step) * decay;
-        return target + (difference + step) * decay;
-    }
-}
 
 // =========================================================
-// カメラの初期化
+// プレイヤーの目の位置を基準にした一人称カメラ
 // =========================================================
 void Camera::Init()
 {
     m_Layer = 0;
-    m_distance = m_orbit.distance;
-    m_followInitialized = false;
-    m_followVelocity = { 0.0f, 0.0f, 0.0f };
-    m_yawVelocity = m_pitchVelocity = m_zoomVelocity = 0.0f;
-    m_Position = { 0.0f, m_orbit.lookHeight + sinf(m_orbit.pitch) * m_distance,
-        -cosf(m_orbit.pitch) * m_distance };
-    m_Rotation.x = m_orbit.pitch;
-    m_Rotation.y = m_orbit.yaw;
+    m_Position = { 0.0f, m_orbit.lookHeight, 0.0f };
+    m_Rotation = { m_orbit.pitch, m_orbit.yaw, 0.0f };
     m_renderPosition = m_Position;
+    m_viewMatrix = XMMatrixIdentity();
+    m_projectionMatrix = XMMatrixPerspectiveFovLH(1.0f,
+        static_cast<float>(SCREEN_WIDTH) / SCREEN_HEIGHT, 0.05f, 1000.0f);
 }
 
 void Camera::Uninit()
 {
 }
 
-// =========================================================
-// マウス操作と滑らかな追従を更新
-// =========================================================
 void Camera::Update()
 {
-    Player* player = Manager::GetGameObj<Player>();
-    if (!player)
-    {
-        return;
-    }
+    if (!Manager::GetGameObj<Player>()) return;
 
     const float dt = Manager::animationDeltaSeconds();
     constexpr float mouseSensitivity = 0.0025f;
     constexpr float keyboardSpeed = 2.5f;
-    const float mouseX = static_cast<float>(Input::GetMouseDeltaX());
-    const float mouseY = static_cast<float>(Input::GetMouseDeltaY());
-
-    // 入力で目標角度を変え、実際の向きは滑らかに追従させる。
-    m_orbit.yaw += mouseX * mouseSensitivity;
-    m_orbit.pitch += mouseY * mouseSensitivity;
+    m_orbit.yaw += static_cast<float>(Input::GetMouseDeltaX()) * mouseSensitivity;
+    m_orbit.pitch += static_cast<float>(Input::GetMouseDeltaY()) * mouseSensitivity;
     if (Input::GetKeyPress(VK_RIGHT)) m_orbit.yaw += keyboardSpeed * dt;
     if (Input::GetKeyPress(VK_LEFT)) m_orbit.yaw -= keyboardSpeed * dt;
     if (Input::GetKeyPress(VK_UP)) m_orbit.pitch -= keyboardSpeed * dt;
     if (Input::GetKeyPress(VK_DOWN)) m_orbit.pitch += keyboardSpeed * dt;
-    m_orbit.pitch = fmaxf(CameraOrbit::minPitch, fminf(CameraOrbit::maxPitch, m_orbit.pitch));
-
-    // 距離に比例してズームし、近距離では細かく調整できるようにする。
-    const float wheelSteps = static_cast<float>(Input::GetMouseWheel()) / WHEEL_DELTA;
-    if (wheelSteps != 0.0f)
-    {
-        m_orbit.distance *= powf(0.87f, wheelSteps);
-        m_orbit.distance = fmaxf(CameraOrbit::minDistance,
-            fminf(CameraOrbit::maxDistance, m_orbit.distance));
-    }
-
-    constexpr float rotationSmoothTime = 0.12f;
-    constexpr float zoomSmoothTime = 0.16f;
-    const float yawDifference = remainderf(m_orbit.yaw - m_Rotation.y, XM_2PI);
-    m_Rotation.y = remainderf(smoothCamera(m_Rotation.y, m_Rotation.y + yawDifference,
-        m_yawVelocity, rotationSmoothTime, dt), XM_2PI);
     m_orbit.yaw = remainderf(m_orbit.yaw, XM_2PI);
-    m_Rotation.x = smoothCamera(m_Rotation.x, m_orbit.pitch, m_pitchVelocity, rotationSmoothTime, dt);
-    m_distance = smoothCamera(m_distance, m_orbit.distance, m_zoomVelocity, zoomSmoothTime, dt);
-    // A quick reversal at a limit must not carry spring momentum outside it.
-    const float pitch = fmaxf(CameraOrbit::minPitch, fminf(CameraOrbit::maxPitch, m_Rotation.x));
-    if (pitch != m_Rotation.x) m_pitchVelocity = 0.0f;
-    m_Rotation.x = pitch;
-    const float distance = fmaxf(CameraOrbit::minDistance, fminf(CameraOrbit::maxDistance, m_distance));
-    if (distance != m_distance) m_zoomVelocity = 0.0f;
-    m_distance = distance;
+    m_orbit.pitch = fmaxf(CameraOrbit::minPitch, fminf(CameraOrbit::maxPitch, m_orbit.pitch));
+    m_Rotation = { m_orbit.pitch, m_orbit.yaw, 0.0f };
 
-    // Keep shake decay independent of the follow spring.
     m_shakeTime += dt;
     m_shake *= powf(0.9f, dt * 60.0f);
 }
 
-// =========================================================
-// 透視投影とビュー行列を設定
-// =========================================================
 void Camera::Draw()
 {
     if (SceneEditor::cameraMatrices(m_renderPosition, m_viewMatrix, m_projectionMatrix))
@@ -115,51 +58,18 @@ void Camera::Draw()
         Renderer::SetCameraPosition(m_renderPosition);
         return;
     }
-    // 接写時だけ手前のクリップ面を近づけ、遠景の深度精度を保つ。
-    const auto* player = Manager::GetGameObj<Player>();
-    // Smooth the orbit center using the final player position for this frame.
-    if (player)
-    {
-        const Vector3 desiredTarget = player->GetPosition() + Vector3(0.0f, m_orbit.lookHeight, 0.0f);
-        // Sample after world updates; do not cancel the lag with a render-time offset.
-        if (!m_followInitialized || (desiredTarget - m_target).lenght() > 12.0f)
-        {
-            m_target = desiredTarget;
-            m_followVelocity = { 0.0f, 0.0f, 0.0f };
-            m_followInitialized = true;
-        }
-        else
-        {
-            constexpr float followSmoothTime = 0.18f;
-            const float dt = Manager::animationDeltaSeconds();
-            m_target.x = smoothCamera(m_target.x, desiredTarget.x, m_followVelocity.x, followSmoothTime, dt);
-            m_target.y = smoothCamera(m_target.y, desiredTarget.y, m_followVelocity.y, followSmoothTime, dt);
-            m_target.z = smoothCamera(m_target.z, desiredTarget.z, m_followVelocity.z, followSmoothTime, dt);
-        }
-    }
-    const float horizontalDistance = cosf(m_Rotation.x) * m_distance;
-    const Vector3 orbitOffset(-sinf(m_Rotation.y) * horizontalDistance,
-        sinf(m_Rotation.x) * m_distance, -cosf(m_Rotation.y) * horizontalDistance);
-    m_Position = m_target + orbitOffset;
-    if (player)
-        m_Position.y = fmaxf(player->GetPosition().y + 0.40f, m_Position.y);
-    m_viewTarget = m_target + m_shake * cosf(m_shakeTime * 100.0f);
+
+    // 移動後の位置に直結させ、追従の遅れで体から視点が離れないようにする。
+    if (const auto* player = Manager::GetGameObj<Player>())
+        m_Position = player->GetPosition() + Vector3{ 0, fmaxf(0.8f, fminf(2.0f, m_orbit.lookHeight)), 0 };
     m_renderPosition = m_Position;
-    auto aim = m_viewTarget;
-    if (player)
-        planetarium::frameCamera(player->GetPosition(), m_Rotation, m_distance, m_renderPosition, aim);
-
-    const float eyeDistance = player ? (m_renderPosition - player->GetPosition()).lenght() : m_distance;
-    const float nearPlane = fminf(1.0f, eyeDistance * 0.16f);
+    const Vector3 aim = m_renderPosition + GetFoward() + m_shake * cosf(m_shakeTime * 100.0f);
+    m_viewMatrix = XMMatrixLookAtLH(
+        XMVectorSet(m_renderPosition.x, m_renderPosition.y, m_renderPosition.z, 1),
+        XMVectorSet(aim.x, aim.y, aim.z, 1), XMVectorSet(0, 1, 0, 0));
     m_projectionMatrix = XMMatrixPerspectiveFovLH(1.0f,
-        static_cast<float>(SCREEN_WIDTH) / SCREEN_HEIGHT, nearPlane, 1000.0f);
+        static_cast<float>(SCREEN_WIDTH) / SCREEN_HEIGHT, 0.05f, 1000.0f);
     Renderer::SetProjectionMatrix(m_projectionMatrix);
-
-    planetarium::assistAim(m_renderPosition, aim, m_projectionMatrix);
-    const auto target = XMVectorSet(aim.x, aim.y, aim.z, 1.0f);
-    const XMFLOAT3 up(0.0f, 1.0f, 0.0f);
-    m_viewMatrix = XMMatrixLookAtLH(XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&m_renderPosition)),
-        target, XMLoadFloat3(&up));
     Renderer::SetViewMatrix(m_viewMatrix);
     Renderer::SetCameraPosition(m_renderPosition);
 }
@@ -284,18 +194,13 @@ bool Camera::CheckView(Vector3 Position)
 
 Vector3 Camera::GetFoward()
 {
-    Vector3 forward = m_target - m_Position;
-    forward.normalize();
-    return forward;
+    const float horizontal = cosf(m_Rotation.x);
+    return { sinf(m_Rotation.y) * horizontal, -sinf(m_Rotation.x), cosf(m_Rotation.y) * horizontal };
 }
 
 Vector3 Camera::GetRight()
 {
-    Vector3 forward = GetFoward();
-    Vector3 up(0.0f, 1.0f, 0.0f);
-    Vector3 right = Vector3::cross(up, forward);
-    right.normalize();
-    return right;
+    return { cosf(m_Rotation.y), 0, -sinf(m_Rotation.y) };
 }
 
 void Camera::Shake(Vector3 shake)
