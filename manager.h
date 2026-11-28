@@ -14,7 +14,7 @@ private:
     static float m_hitStopRemaining;
 
 public:
-	static void Init(bool previewMode);
+	static void Init(bool previewMode, bool graphicsLab = false);
 	static void Uninit();
 	static void Update(float frameSeconds);
 	static float animationDeltaSeconds() { return m_animationDeltaSeconds; }

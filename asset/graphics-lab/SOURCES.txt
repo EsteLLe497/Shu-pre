@@ -1,0 +1,9 @@
+Graphics Lab texture sources (Poly Haven, CC0)
+https://polyhaven.com/license
+
+gravel   https://polyhaven.com/a/gravelly_sand
+ballast  https://polyhaven.com/a/rocks_ground_02
+siding   https://polyhaven.com/a/brown_planks_03
+bark     https://polyhaven.com/a/bark_brown_02
+roof     https://polyhaven.com/a/corrugated_iron_02
+concrete https://polyhaven.com/a/cracked_concrete_wall

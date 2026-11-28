@@ -1,16 +1,11 @@
-
 #include "common.hlsl"
 
-
-void main(in VS_IN In, out PS_IN Out)
+void main(in VS_IN input, out PS_IN output)
 {
-	Out.Position = mul(In.Position, World);
-    Out.Position += In.InstanceID;
-	
-    Out.Position = mul(In.Position, View);
-    Out.Position = mul(In.Position, Projection);
-	
-	Out.TexCoord = In.TexCoord;
-	Out.Diffuse = In.Diffuse * Material.Diffuse;
+    // ワールド変換の結果を引き継ぎ、配置座標とビルボードの向きを反映する。
+    output.WorldPosition = mul(input.Position, World);
+    output.Position = mul(mul(output.WorldPosition, View), Projection);
+    output.Normal = float4(mul(input.Normal.xyz, (float3x3)World), 0.0f);
+    output.TexCoord = input.TexCoord;
+    output.Diffuse = input.Diffuse * Material.Diffuse;
 }
-

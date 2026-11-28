@@ -123,6 +123,8 @@ void AnimationModel::drawParts(const std::vector<DrawPart>& parts, bool alphaBle
         material.Diffuse = part.diffuse;
         material.Ambient = part.diffuse;
         material.TextureEnable = part.texture != nullptr;
+        material.Emission.w = static_cast<float>(part.characterMaterial);
+        material.Specular = part.irisUvBounds;
         Renderer::SetMaterial(material);
         context->PSSetShaderResources(0, 1, &part.texture);
 
@@ -168,8 +170,7 @@ void AnimationModel::loadDrawParts()
                     if (length > 0 && MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
                         path.c_str(), -1, &widePath[0], length)
                         && SUCCEEDED(LoadFromWICFile(widePath.c_str(), WIC_FLAGS_NONE, nullptr, image)))
-                        CreateShaderResourceView(Renderer::GetDevice(), image.GetImages(), image.GetImageCount(),
-                            image.GetMetadata(), &external);
+                        createTextureView(image, &external);
                 }
                 texture = external;
             }
@@ -178,9 +179,56 @@ void AnimationModel::loadDrawParts()
         }
 
         const bool transparent = material->GetTextureCount(aiTextureType_OPACITY) > 0 || opacity < 1.0f;
+        auto profile = CharacterMaterial::generic;
+        if (m_useCharacterMaterials)
+        {
+            aiString name;
+            material->Get(AI_MATKEY_NAME, name);
+            const std::string label = name.C_Str();
+            if (label.find("_SKIN") != std::string::npos) profile = CharacterMaterial::skin;
+            else if (label.find("_HAIR") != std::string::npos) profile = CharacterMaterial::hair;
+            else if (label.find("EyeIris") != std::string::npos) profile = CharacterMaterial::eyeIris;
+            else if (label.find("EyeWhite") != std::string::npos) profile = CharacterMaterial::eyeWhite;
+            else if (label.find("EyeHighlight") != std::string::npos) profile = CharacterMaterial::eyeHighlight;
+            else if (label.find("_EYE") != std::string::npos || label.find("_FACE") != std::string::npos)
+                profile = CharacterMaterial::faceDetail;
+            else if (label.find("_CLOTH") != std::string::npos) profile = CharacterMaterial::cloth;
+        }
+        XMFLOAT4 irisUvBounds{};
+        if (profile == CharacterMaterial::eyeIris && mesh->HasTextureCoords(0) && mesh->mNumVertices > 0)
+        {
+            const auto* uv = mesh->mTextureCoords[0];
+            irisUvBounds = {uv[0].x, uv[0].y, uv[0].x, uv[0].y};
+            for (unsigned int i = 1; i < mesh->mNumVertices; ++i)
+            {
+                irisUvBounds.x = std::min(irisUvBounds.x, uv[i].x);
+                irisUvBounds.y = std::min(irisUvBounds.y, uv[i].y);
+                irisUvBounds.z = std::max(irisUvBounds.z, uv[i].x);
+                irisUvBounds.w = std::max(irisUvBounds.w, uv[i].y);
+            }
+        }
         auto& parts = transparent ? m_transparentParts : m_opaqueParts;
-        parts.push_back({ meshIndex, { diffuse.r, diffuse.g, diffuse.b, opacity }, texture });
+        parts.push_back({ meshIndex, { diffuse.r, diffuse.g, diffuse.b, opacity }, texture, profile, irisUvBounds });
     }
+}
+
+void AnimationModel::createTextureView(const DirectX::ScratchImage& image, ID3D11ShaderResourceView** view) const
+{
+    const auto createView = [&](const ScratchImage& source)
+    {
+        const auto flags = m_useCharacterMaterials ? CREATETEX_IGNORE_SRGB : CREATETEX_DEFAULT;
+        return CreateShaderResourceViewEx(Renderer::GetDevice(), source.GetImages(), source.GetImageCount(),
+            source.GetMetadata(), D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0, flags, view);
+    };
+
+    ScratchImage mipmaps;
+    const auto flags = TEX_FILTER_BOX | TEX_FILTER_SRGB | TEX_FILTER_SEPARATE_ALPHA;
+    if (m_generateTextureMipmaps && image.GetMetadata().mipLevels == 1
+        && SUCCEEDED(GenerateMipMaps(image.GetImages(), image.GetImageCount(), image.GetMetadata(), flags, 0, mipmaps))
+        && SUCCEEDED(createView(mipmaps)))
+        return;
+
+    createView(image);
 }
 
 ID3D11ShaderResourceView* AnimationModel::loadTexture(const aiTexture* embedded)
@@ -199,8 +247,7 @@ ID3D11ShaderResourceView* AnimationModel::loadTexture(const aiTexture* embedded)
         ScratchImage image;
         if (SUCCEEDED(LoadFromWICMemory(embedded->pcData, embedded->mWidth, WIC_FLAGS_NONE, nullptr, image)))
         {
-            CreateShaderResourceView(Renderer::GetDevice(), image.GetImages(), image.GetImageCount(),
-                image.GetMetadata(), &texture);
+            createTextureView(image, &texture);
         }
     }
 

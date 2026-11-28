@@ -265,7 +265,12 @@ void  MeshField::Draw()
     Renderer::SetMaterial(material);
 
     Renderer::GetDeviceContext()->PSSetShaderResources(0, 1, &m_Texture);
+    drawGeometry();
+}
 
+void MeshField::drawGeometry()
+{
+    if (!m_VertexBuffer) return;
     UINT stride = sizeof(VERTEX_3D);
     UINT offset = 0;
     Renderer::GetDeviceContext()->IASetVertexBuffers(0, 1, &m_VertexBuffer, &stride, &offset);

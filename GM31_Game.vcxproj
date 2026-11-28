@@ -43,6 +43,8 @@
     <ClCompile Include="field.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Grass.cpp" />
+    <ClCompile Include="GraphicsLab.cpp" />
+    <ClCompile Include="GraphicsLabGeometry.cpp" />
     <ClCompile Include="input.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="manager.cpp" />
@@ -99,6 +101,8 @@
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameObject.h" />
     <ClInclude Include="Grass.h" />
+    <ClInclude Include="GraphicsLab.h" />
+    <ClInclude Include="GraphicsLabGeometry.h" />
     <ClInclude Include="input.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="manager.h" />
@@ -139,6 +143,9 @@
     <ClInclude Include="Wave.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="shader\GraphicsLab.hlsl" />
+    <None Include="shader\LabLighting.hlsli" />
+    <None Include="shader\CharacterLighting.hlsli" />
     <None Include="shader\planetariumLight.hlsli" />
     <None Include="shader\WaterCommon.hlsli" />
     <None Include="shader\toonCommon.hlsli">

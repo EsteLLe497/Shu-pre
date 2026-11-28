@@ -55,7 +55,8 @@ public:
     };
 
     void invalidate() { m_dirty = true; }
-    void draw(const Layout& settings, const MeshField& terrain, const Vector3& eye, FXMMATRIX viewProjection, float dt);
+    void draw(const Layout& settings, const MeshField& terrain, const Vector3& eye, FXMMATRIX viewProjection, float dt,
+        ID3D11DepthStencilView* readOnlyDepth = nullptr, ID3D11ShaderResourceView* depthImage = nullptr);
     void reset();
 
 private:

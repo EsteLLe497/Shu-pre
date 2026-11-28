@@ -61,16 +61,20 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     int argumentCount = 0;
     wchar_t** arguments = CommandLineToArgvW(GetCommandLineW(), &argumentCount);
     bool previewMode = false;
+    bool graphicsLab = false;
     if (arguments)
     {
         for (int i = 1; i < argumentCount; ++i)
+        {
             previewMode = previewMode || wcscmp(arguments[i], L"--preview") == 0;
+            graphicsLab = graphicsLab || wcscmp(arguments[i], L"--graphics-lab") == 0;
+        }
         LocalFree(arguments);
     }
 
-	Manager::Init(previewMode);
+	Manager::Init(previewMode, graphicsLab);
 
-    const char* windowTitle = previewMode ? "GM31 Asset Preview" : WINDOW_NAME;
+    const char* windowTitle = graphicsLab ? "GM31 Graphics Lab" : (previewMode ? "GM31 Asset Preview" : WINDOW_NAME);
     SetWindowTextA(g_Window, windowTitle);
 
 

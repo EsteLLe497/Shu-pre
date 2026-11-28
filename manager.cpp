@@ -14,6 +14,7 @@
 #include "SceneEditor.h"
 #include "ToonPanel.h"
 #include "PreviewScene.h"
+#include "GraphicsLab.h"
 #include "planetarium.h"
 
 #include <algorithm>
@@ -82,18 +83,20 @@ namespace
 }
 
 
-void Manager::Init(bool previewMode)
+void Manager::Init(bool previewMode, bool graphicsLab)
 {
-    previewWorkspace = previewMode;
+    previewWorkspace = previewMode || graphicsLab;
     m_hitStopRemaining = 0.0f;
-	Renderer::Init();
-    if (!previewMode)
+	Renderer::Init(graphicsLab);
+    if (!previewWorkspace)
         planetarium::init();
 	Input::Init();
-	ToonPanel::init(GetWindow(), previewMode);
+	ToonPanel::init(GetWindow(), previewWorkspace);
 	Audio::InitMaster();
 
-    if (previewWorkspace)
+    if (graphicsLab)
+        ChangeScene<GraphicsLab>(0.0f);
+    else if (previewWorkspace)
         ChangeScene<PreviewScene>(0.0f);
     else
         ChangeScene<Game>(0.0f);

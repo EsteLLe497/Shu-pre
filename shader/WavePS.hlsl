@@ -1,5 +1,6 @@
 #include "common.hlsl"
 #include "WaterCommon.hlsli"
+#include "LabLighting.hlsli"
 
 Texture2D<float> PondMask : register(t1);
 Texture2D<float> SceneDepth : register(t2);
@@ -84,6 +85,8 @@ float causticLight(float2 world, float time, float depth)
 
 float3 reflectedSky(float3 direction)
 {
+    if (FogSettings.z > 0.5)
+        return FogSettings.w > 0.5 ? labSky(direction) : float3(0.16, 0.33, 0.58);
     float3 fallback = lerp(float3(0.41, 0.48, 0.51), float3(0.10, 0.26, 0.49),
         saturate(direction.y));
     float3 reflection = fallback;
@@ -358,7 +361,8 @@ float4 main(PS_IN input) : SV_Target
         else alpha *= opacity;
     }
     float3 color = lerp(subsurface, reflection, reflected);
-    color += float3(1.0, 0.89, 0.69) * sunlight * ReflectionStrength * opacity;
+    float3 sunTint = FogSettings.z > 0.5 ? SunColor.rgb * SunColor.a / 3.9 : float3(1.0, 0.89, 0.69);
+    color += sunTint * sunlight * ReflectionStrength * opacity;
     color = lerp(color, float3(0.81, 0.91, 0.93), foam * opacity);
-    return float4(saturate(color), alpha);
+    return float4(FogSettings.z > 0.5 ? labFog(max(color, 0.0), input.WorldPosition.xyz) : saturate(color), alpha);
 }

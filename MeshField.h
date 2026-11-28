@@ -36,6 +36,7 @@ public:
 	void Uninit();
 	void Update();
 	void Draw();
+    void drawGeometry();
 
 	// 回転のない地形のワールド座標 XZ から、表面の高さを取得する。
 	// 範囲外では false を返す。

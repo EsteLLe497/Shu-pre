@@ -71,14 +71,20 @@ private:
     std::vector<MorphLayer> m_morphLayers;
     std::size_t m_activeMorphLayerCount = 0;
     unsigned int m_missingTextures = 0;
+    bool m_generateTextureMipmaps = false;
+    bool m_useCharacterMaterials = false;
     XMFLOAT3 m_staticHalfExtents{};
 
     // マテリアルを読み込み時に解決し、不透明と透過の描画順を分ける。
+    enum class CharacterMaterial { generic, skin, hair, faceDetail, cloth, eyeIris, eyeWhite, eyeHighlight };
+
     struct DrawPart
     {
         unsigned int meshIndex;
         XMFLOAT4 diffuse;
         ID3D11ShaderResourceView* texture;
+        CharacterMaterial characterMaterial;
+        XMFLOAT4 irisUvBounds;
     };
 
     std::unordered_map<const aiTexture*, ID3D11ShaderResourceView*> m_textures;
@@ -121,6 +127,7 @@ private:
     void loadDrawParts();
     void setMorphLayer(MorphLayer& layer, const std::string& name, float weight);
     ID3D11ShaderResourceView* loadTexture(const aiTexture* embedded);
+    void createTextureView(const DirectX::ScratchImage& image, ID3D11ShaderResourceView** view) const;
     void drawParts(const std::vector<DrawPart>& parts, bool alphaBlend);
 
 public:
@@ -131,6 +138,8 @@ public:
 	void Load( const char *FileName );
     bool LoadAnimation(const char* fileName, const char* name);
     bool tryLoad(const char* fileName, bool staticMesh = false);
+    void enableTextureMipmaps() { m_generateTextureMipmaps = true; }
+    void enableCharacterMaterials() { m_useCharacterMaterials = true; }
     XMFLOAT3 staticHalfExtents() const { return m_staticHalfExtents; }
     double clipDuration(const char* name) const;
     bool sampleClip(const char* name, double seconds, RootTravel rootTravel = RootTravel::authored);

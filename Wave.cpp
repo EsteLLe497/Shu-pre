@@ -502,7 +502,9 @@ bool Wave::initialize()
         ComPtr<ID3D11Resource> resource;
         sceneDepth->GetResource(&resource);
         D3D11_DEPTH_STENCIL_VIEW_DESC description{};
-        description.Format = DXGI_FORMAT_D16_UNORM;
+        D3D11_SHADER_RESOURCE_VIEW_DESC source{};
+        sceneDepth->GetDesc(&source);
+        description.Format = source.Format == DXGI_FORMAT_R32_FLOAT ? DXGI_FORMAT_D32_FLOAT : DXGI_FORMAT_D16_UNORM;
         description.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
         description.Flags = D3D11_DSV_READ_ONLY_DEPTH;
         device->CreateDepthStencilView(resource.Get(), &description, m_readableDepthView.ReleaseAndGetAddressOf());
@@ -773,25 +775,35 @@ bool Wave::captureSceneColor(ID3D11RenderTargetView& target)
 {
     ComPtr<ID3D11Resource> source;
     target.GetResource(&source);
-    if (!m_sceneColorView)
+    ComPtr<ID3D11Texture2D> texture;
+    if (FAILED(source.As(&texture))) return false;
+    D3D11_TEXTURE2D_DESC desc{};
+    texture->GetDesc(&desc);
+
+    D3D11_TEXTURE2D_DESC cached{};
+    if (m_sceneColor) m_sceneColor->GetDesc(&cached);
+    if (!m_sceneColorView || cached.Format != desc.Format || cached.Width != desc.Width
+        || cached.Height != desc.Height || cached.SampleDesc.Count != desc.SampleDesc.Count
+        || cached.SampleDesc.Quality != desc.SampleDesc.Quality)
     {
-        ComPtr<ID3D11Texture2D> texture;
-        if (FAILED(source.As(&texture))) return false;
-        D3D11_TEXTURE2D_DESC desc{};
-        texture->GetDesc(&desc);
         desc.Usage = D3D11_USAGE_DEFAULT;
         desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
         desc.CPUAccessFlags = desc.MiscFlags = 0;
         auto* device = Renderer::GetDevice();
-        if (FAILED(device->CreateTexture2D(&desc, nullptr, m_sceneColor.ReleaseAndGetAddressOf()))
-            || FAILED(device->CreateShaderResourceView(m_sceneColor.Get(), nullptr, m_sceneColorView.ReleaseAndGetAddressOf())))
+        ComPtr<ID3D11Texture2D> replacement;
+        ComPtr<ID3D11ShaderResourceView> replacementView;
+        if (FAILED(device->CreateTexture2D(&desc, nullptr, &replacement))
+            || FAILED(device->CreateShaderResourceView(replacement.Get(), nullptr, &replacementView)))
             return false;
+        m_sceneColor = replacement;
+        m_sceneColorView = replacementView;
     }
     Renderer::GetDeviceContext()->CopyResource(m_sceneColor.Get(), source.Get());
     return true;
 }
 
-void Wave::draw(const Layout& settings, const MeshField& terrain, const Vector3& eye, FXMMATRIX viewProjection, float dt)
+void Wave::draw(const Layout& settings, const MeshField& terrain, const Vector3& eye, FXMMATRIX viewProjection, float dt,
+    ID3D11DepthStencilView* readOnlyDepth, ID3D11ShaderResourceView* depthImage)
 {
     if ((!settings.pond.any() && settings.basins.empty() && settings.rivers.empty())
         || (settings.alphaBlend && settings.opacity <= 0.0f))
@@ -850,11 +862,17 @@ void Wave::draw(const Layout& settings, const MeshField& terrain, const Vector3&
     context->OMGetRenderTargets(1, &currentTarget, &previousDepthView);
     const bool hasSceneColor = (settings.alphaBlend || settings.reflection > 0.0f)
         && currentTarget && captureSceneColor(*currentTarget.Get());
-    if (m_readableDepthView)
+    // 撮影時はウィンドウ用ではなく、撮影先と同じ解像度の深度を参照する。
+    if (!readOnlyDepth)
     {
-        context->OMSetRenderTargets(1, currentTarget.GetAddressOf(), m_readableDepthView.Get());
+        readOnlyDepth = m_readableDepthView.Get();
+        depthImage = Renderer::sceneDepth();
     }
-    ID3D11ShaderResourceView* const depth = m_readableDepthView ? Renderer::sceneDepth() : nullptr;
+    if (readOnlyDepth)
+    {
+        context->OMSetRenderTargets(1, currentTarget.GetAddressOf(), readOnlyDepth);
+    }
+    ID3D11ShaderResourceView* const depth = readOnlyDepth ? depthImage : nullptr;
     context->PSSetShaderResources(2, 1, &depth);
     context->PSSetShaderResources(3, 1, m_skyView.GetAddressOf());
     ID3D11ShaderResourceView* const sceneColor = hasSceneColor ? m_sceneColorView.Get() : nullptr;
