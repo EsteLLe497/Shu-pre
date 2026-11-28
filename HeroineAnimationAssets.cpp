@@ -10,6 +10,12 @@
 
 namespace
 {
+    std::string characterMotionsDirectory(const std::string& characterPath)
+    {
+        const auto extension = characterPath.find_last_of('.');
+        return extension == std::string::npos ? std::string{} : characterPath.substr(0, extension) + "/Motions";
+    }
+
     const HeroineAnimationAssets::Clip* findBuiltIn(const std::string& name)
     {
         for (const auto& clip : HeroineAnimationAssets::clips)
@@ -50,15 +56,16 @@ std::string HeroineAnimationAssets::canonicalMotionName(const std::string& name)
 // =========================================================
 // 一覧にはファイル名だけを取得し、FBX は選ばれたときに読む
 // =========================================================
-std::vector<std::string> HeroineAnimationAssets::listMotions()
+std::vector<std::string> HeroineAnimationAssets::listMotions(const std::string& characterPath)
 {
     std::vector<std::string> names;
     for (const auto& clip : clips)
         names.emplace_back(clip.name);
 
     const auto customStart = names.size();
-    for (const char* directory : { motionsDirectory })
+    for (const auto& directory : { std::string(motionsDirectory), characterMotionsDirectory(characterPath) })
     {
+        if (directory.empty()) continue;
         WIN32_FIND_DATAA data{};
         const std::string pattern = std::string(directory) + "/*.fbx";
         const HANDLE search = FindFirstFileA(pattern.c_str(), &data);
@@ -86,7 +93,30 @@ std::vector<std::string> HeroineAnimationAssets::listMotions()
     return names;
 }
 
-bool HeroineAnimationAssets::loadMotion(AnimationModel& model, const std::string& name)
+// プレビューのモデル選択は実ファイルから列挙し、FBXは選択時だけ読む。
+std::vector<std::string> HeroineAnimationAssets::listCharacters()
+{
+    std::vector<std::string> paths;
+    WIN32_FIND_DATAA data{};
+    const std::string pattern = std::string(modelsDirectory) + "/*.fbx";
+    const HANDLE search = FindFirstFileA(pattern.c_str(), &data);
+    if (search == INVALID_HANDLE_VALUE) return paths;
+    do
+    {
+        const std::string file = data.cFileName;
+        if (!(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && file.size() > 4
+            && _stricmp(file.c_str() + file.size() - 4, ".fbx") == 0)
+        {
+            const std::string path = std::string(modelsDirectory) + "/" + file;
+            if (path.size() < 512) paths.push_back(path);
+        }
+    } while (FindNextFileA(search, &data));
+    FindClose(search);
+    std::sort(paths.begin(), paths.end());
+    return paths;
+}
+
+bool HeroineAnimationAssets::loadMotion(AnimationModel& model, const std::string& name, const std::string& characterPath)
 {
     if (!isMotionName(name))
         return false;
@@ -95,6 +125,15 @@ bool HeroineAnimationAssets::loadMotion(AnimationModel& model, const std::string
     const char* key = builtIn ? builtIn->name : name.c_str();
     if (model.hasAnimation(key))
         return true;
+    // 同じモデル名のフォルダーにある専用モーションを優先する。
+    const auto dedicatedDirectory = characterMotionsDirectory(characterPath);
+    if (!dedicatedDirectory.empty())
+    {
+        const auto dedicated = dedicatedDirectory + "/" + key + ".fbx";
+        const DWORD attributes = GetFileAttributesA(dedicated.c_str());
+        if (attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY))
+            return model.LoadAnimation(dedicated.c_str(), key);
+    }
     const std::string path = std::string(motionsDirectory) + "/" + key + ".fbx";
     const DWORD attributes = GetFileAttributesA(path.c_str());
     if (attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY)
@@ -109,9 +148,9 @@ bool HeroineAnimationAssets::loadMotion(AnimationModel& model, const std::string
 }
 
 // =========================================================
-// 本編とプレビューで同じ FBX とモーションの検証を行う
+// 本編は標準モーション必須。プレビューは未対応の骨格も基準姿勢で確認する。
 // =========================================================
-HeroineAnimationAssets::LoadResult HeroineAnimationAssets::loadCharacter(AnimationModel& model, const char* path)
+HeroineAnimationAssets::LoadResult HeroineAnimationAssets::loadCharacter(AnimationModel& model, const char* path, bool requireMotions)
 {
     if (!model.tryLoad(path))
         return LoadResult::modelFailed;
@@ -125,7 +164,7 @@ HeroineAnimationAssets::LoadResult HeroineAnimationAssets::loadCharacter(Animati
     model.setSkeletonUnitScale(skeletonScale);
     for (const auto& clip : clips)
     {
-        if (!loadMotion(model, clip.name))
+        if (!loadMotion(model, clip.name, path) && requireMotions)
         {
             model.Uninit();
             return LoadResult::motionMismatch;

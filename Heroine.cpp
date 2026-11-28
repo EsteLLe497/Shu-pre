@@ -46,26 +46,14 @@ void Heroine::Init()
     m_Layer = 1;
     m_Position = { 0, 0, 3 };
     m_toonShader.init();
-    m_AnimationModel = AddGameComponent<AnimationModel>(this);
-    using namespace HeroineAnimationAssets;
-    auto result = loadCharacter(*m_AnimationModel, previewModel);
-    if (result != LoadResult::loaded) result = loadCharacter(*m_AnimationModel, model);
-    m_ready = result == LoadResult::loaded;
-    if (!m_ready) return;
     m_actions.load();
-    for (size_t i = 0; i < static_cast<size_t>(HeroineActionKind::count); ++i)
-    {
-        auto& slot = m_actions.get(static_cast<HeroineActionKind>(i));
-        slot.motionReady = slot.sequence.motionEnabled && loadMotion(*m_AnimationModel, slot.sequence.clip);
-        slot.faceReady = slot.sequence.faceEnabled && hasExpressionMorphs(slot.sequence, m_AnimationModel->morphNames());
-    }
-    m_expression.bind(m_AnimationModel->morphNames());
     std::ifstream expressions("asset/ai/heroine-expressions.cfg");
     expressions.imbue(std::locale::classic());
     m_expression.read(expressions);
-    initLookAt();
-    playAction(HeroineActionKind::idle);
-    samplePose(0, 0, true);
+    std::ifstream lookSettings("asset/heroine-look-at.txt");
+    lookSettings.imbue(std::locale::classic());
+    m_lookAt.settings.read(lookSettings);
+    if (!setModel(HeroineAnimationAssets::previewModel)) setModel(HeroineAnimationAssets::model);
 }
 
 void Heroine::Uninit()
@@ -74,6 +62,50 @@ void Heroine::Uninit()
     GameObject::Uninit();
     m_AnimationModel = nullptr;
     m_ready = false;
+}
+
+
+bool Heroine::setModel(const std::string& path)
+{
+    // Prepare the replacement separately; failed imports never touch the live model.
+    const auto releaseModel = [](AnimationModel* model) { model->Uninit(); delete model; };
+    std::unique_ptr<AnimationModel, decltype(releaseModel)> candidate(new AnimationModel(this), releaseModel);
+    candidate->Init();
+    const auto result = HeroineAnimationAssets::loadCharacter(*candidate, path.c_str());
+    if (result != HeroineAnimationAssets::LoadResult::loaded)
+    {
+        m_modelStatus = result == HeroineAnimationAssets::LoadResult::motionMismatch ? u8"切替失敗: 標準モーションと骨格が一致しません。"
+            : result == HeroineAnimationAssets::LoadResult::missingTextures ? u8"切替失敗: テクスチャを読み込めません。"
+            : u8"切替失敗: モデルを読み込めません。";
+        return false;
+    }
+    auto actions = m_actions;
+    for (size_t i = 0; i < static_cast<size_t>(HeroineActionKind::count); ++i)
+    {
+        auto& slot = actions.get(static_cast<HeroineActionKind>(i));
+        slot.motionReady = slot.sequence.motionEnabled && HeroineAnimationAssets::loadMotion(*candidate, slot.sequence.clip, path);
+        slot.faceReady = slot.sequence.faceEnabled && hasExpressionMorphs(slot.sequence, candidate->morphNames());
+    }
+    if (!actions.get(HeroineActionKind::idle).motionReady || !actions.get(HeroineActionKind::walk).motionReady)
+    {
+        m_modelStatus = u8"切替失敗: 待機・歩行アクションに必要なモーションがありません。";
+        return false;
+    }
+    auto* previous = m_AnimationModel;
+    const auto component = std::find(m_Components.begin(), m_Components.end(), previous);
+    if (component == m_Components.end()) m_Components.push_back(candidate.get());
+    else *component = candidate.get();
+    m_AnimationModel = candidate.release();
+    m_actions = std::move(actions);
+    m_modelPath = path;
+    m_ready = true;
+    if (previous) releaseModel(previous);
+    m_expression.bind(m_AnimationModel->morphNames());
+    initLookAt();
+    playAction(HeroineActionKind::idle);
+    samplePose(0, 0, true);
+    m_modelStatus = m_AnimationModel->morphNames().empty() ? u8"切替完了。表情モーフがないため、表情・閉眼は利用できません。" : u8"モデルを切り替えました。";
+    return true;
 }
 
 bool Heroine::playAction(HeroineActionKind kind)
@@ -101,7 +133,7 @@ bool Heroine::startAction(HeroineActionKind kind)
 bool Heroine::playAction(const ActionSequence& action)
 {
     if (!m_ready || !ActionFile::validate(action)) return false;
-    if (action.motionEnabled && !HeroineAnimationAssets::loadMotion(*m_AnimationModel, action.clip)) return false;
+    if (action.motionEnabled && !HeroineAnimationAssets::loadMotion(*m_AnimationModel, action.clip, m_modelPath)) return false;
     if (action.faceEnabled && !hasExpressionMorphs(action, m_AnimationModel->morphNames())) return false;
     m_movement.stop();
     m_action = action;
@@ -285,6 +317,10 @@ void Heroine::updateMovement(float dt)
 
 void Heroine::initLookAt()
 {
+    m_lookBones.fill({});
+    m_closeEyeMorph.clear();
+    m_actionEyeClosure = 0;
+    m_lookAt.reset();
     const std::initializer_list<const char*> candidates[] = {
         { "J_Bip_C_Neck", "Neck", "mixamorig:Neck" },
         { "J_Bip_C_Head", "Head", "mixamorig:Head" },
@@ -297,13 +333,9 @@ void Heroine::initLookAt()
             aiMatrix4x4 transform;
             if (m_AnimationModel->boneModelTransform(name, transform)) { m_lookBones[i] = name; break; }
         }
-    std::ifstream file("asset/heroine-look-at.txt");
-    file.imbue(std::locale::classic());
-    m_lookAt.settings.read(file);
     for (const char* name : { "Fcl_EYE_Close", "Blink", "EyesClosed" })
         if (std::find(m_AnimationModel->morphNames().begin(), m_AnimationModel->morphNames().end(), name)
             != m_AnimationModel->morphNames().end()) { m_closeEyeMorph = name; break; }
-    if (!eyesReady()) m_lookAt.settings.eyesEnabled = false;
     m_AnimationModel->setPoseModifier([this](AnimationModel& model) { updateLookAt(model); });
 }
 

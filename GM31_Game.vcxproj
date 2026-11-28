@@ -11,6 +11,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="HeroineModelPanel.cpp"><LanguageStandard>stdcpp17</LanguageStandard></ClCompile>
+    <ClInclude Include="HeroineModelPanel.h" />
+
     <ClCompile Include="HeroineExpressionPanel.cpp"><LanguageStandard>stdcpp17</LanguageStandard></ClCompile>
     <ClInclude Include="HeroineExpressionPanel.h" />
 
