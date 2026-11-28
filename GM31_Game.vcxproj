@@ -11,6 +11,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="HeroineGesturePanel.cpp"><LanguageStandard>stdcpp17</LanguageStandard></ClCompile>
+    <ClInclude Include="HeroineGesturePanel.h" />
+
+    <ClCompile Include="HeroineGesture.cpp"><LanguageStandard>stdcpp17</LanguageStandard></ClCompile>
+    <ClInclude Include="HeroineGesture.h" />
+
     <ClCompile Include="HeroineModelPanel.cpp"><LanguageStandard>stdcpp17</LanguageStandard></ClCompile>
     <ClInclude Include="HeroineModelPanel.h" />
 

@@ -17,13 +17,15 @@ namespace
     const char* const actionNames[] = { "Idle", "Walk", "Run", "akubi" };
     const char* const defaultClips[] = { "Idle", "Walk", "Run", "akubi" };
 
-    aiMatrix4x4 lookRotation(const aiVector3D& up, const aiVector3D& right, float yaw, float pitch)
+    aiMatrix4x4 lookRotation(const aiVector3D& up, const aiVector3D& right, float yaw, float pitch, float roll = 0)
     {
         aiMatrix4x4 yawRotation, pitchRotation;
         aiMatrix4x4::Rotation(yaw, up, yawRotation);
         const aiVector3D pitchAxis = aiMatrix3x3(yawRotation) * right;
         aiMatrix4x4::Rotation(-pitch, pitchAxis, pitchRotation);
-        return pitchRotation * yawRotation;
+        aiMatrix4x4 rollRotation;
+        aiMatrix4x4::Rotation(roll, (right ^ up).Normalize(), rollRotation);
+        return rollRotation * pitchRotation * yawRotation;
     }
 }
 
@@ -50,6 +52,9 @@ void Heroine::Init()
     std::ifstream expressions("asset/ai/heroine-expressions.cfg");
     expressions.imbue(std::locale::classic());
     m_expression.read(expressions);
+    std::ifstream gestures("asset/ai/heroine-gestures.cfg");
+    gestures.imbue(std::locale::classic());
+    m_gesture.settings.read(gestures);
     std::ifstream lookSettings("asset/heroine-look-at.txt");
     lookSettings.imbue(std::locale::classic());
     m_lookAt.settings.read(lookSettings);
@@ -101,6 +106,7 @@ bool Heroine::setModel(const std::string& path)
     m_ready = true;
     if (previous) releaseModel(previous);
     m_expression.bind(m_AnimationModel->morphNames());
+    m_gesture.reset();
     initLookAt();
     playAction(HeroineActionKind::idle);
     samplePose(0, 0, true);
@@ -189,6 +195,7 @@ void Heroine::Update()
     }
     const float dt = Manager::animationDeltaSeconds();
     m_expression.update(dt);
+    m_gesture.update(dt);
     updateMovement(dt);
     const float duration = m_action.duration;
     const float next = m_time + dt * m_action.speed;
@@ -396,11 +403,13 @@ void Heroine::updateLookAt(AnimationModel& model)
     m_lookAt.update(atan2f(x, z), atan2f(y, hypotf(x, z)), distance, available, m_poseDeltaSeconds, proximity);
     if (eyelidsReady()) model.setOverlayMorph(m_closeEyeMorph, std::max(m_actionEyeClosure, m_lookAt.eyeClosure()));
 
+    const auto pose = m_gesture.compose(m_lookAt.headYaw(), m_lookAt.headPitch(),
+        XMConvertToRadians(m_lookAt.settings.headYawDegrees), XMConvertToRadians(m_lookAt.settings.headPitchDegrees));
     const float neck = m_lookBones[0].empty() ? 0 : m_lookAt.settings.neckWeight;
     if (neck > 0) model.rotateBoneModelSpace(m_lookBones[0].c_str(),
-        lookRotation(up, right, m_lookAt.headYaw() * neck, m_lookAt.headPitch() * neck));
+        lookRotation(up, right, pose.yaw * neck, pose.pitch * neck, pose.roll * neck));
     model.rotateBoneModelSpace(m_lookBones[1].c_str(),
-        lookRotation(up, right, m_lookAt.headYaw() * (1 - neck), m_lookAt.headPitch() * (1 - neck)));
+        lookRotation(up, right, pose.yaw * (1 - neck), pose.pitch * (1 - neck), pose.roll * (1 - neck)));
     // Recompute the face axes after the neck/head correction. Both eye bones use this
     // model-space frame, not their differently oriented local FBX axes.
     model.boneModelTransform(m_lookBones[1].c_str(), head);

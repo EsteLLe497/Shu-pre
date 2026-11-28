@@ -45,6 +45,7 @@ bool HeroineConversation::ask(const std::string& text)
         m_status = u8"送信できません。処理中、入力内容、モデル設定を確認してください。";
         return false;
     }
+    heroine->gesture().stopDialogue();
     m_subtitleSeconds = 0;
     m_cancelling = false;
     m_waitingReply = true;
@@ -68,6 +69,7 @@ void HeroineConversation::Update()
         if (!result.dialogue.empty())
         {
             m_emotion = result.emotion;
+            m_gesture = result.gesture;
             m_subtitle = result.dialogue;
             showSubtitle();
             m_lines.push_back({ true, result.dialogue });
@@ -80,6 +82,7 @@ void HeroineConversation::Update()
         const auto phase = m_waitingReply ? HeroineExpression::Phase::thinking
             : subtitleVisible() ? HeroineExpression::Phase::speaking : HeroineExpression::Phase::idle;
         heroine->expression().setConversation(phase, m_emotion);
+        if (!subtitleVisible()) heroine->gesture().stopDialogue();
     }
 }
 
@@ -99,12 +102,14 @@ void HeroineConversation::clear()
     m_waitingReply = false;
     m_lines.clear(); m_subtitle.clear(); m_subtitleSeconds = 0; m_subtitleDuration = 0;
     m_emotion = HeroineEmotion::neutral;
+    m_gesture = HeroineGestureKind::none;
     m_status = u8"会話履歴を消去しました。";
 }
 
 void HeroineConversation::showSubtitle()
 {
     m_subtitleDuration = m_subtitleSeconds = 6.0f;
+    if (auto* heroine = Manager::GetGameObj<Heroine>()) heroine->gesture().playDialogue(m_gesture);
 }
 
 void HeroineConversation::setSubtitleDuration(float seconds)

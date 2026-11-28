@@ -11,6 +11,7 @@ namespace AI
     bool localModelResponse(const std::string& response);
     bool parseDialogue(const std::string& response, std::string& dialogue);
     bool parseDialogue(const std::string& response, std::string& dialogue, HeroineEmotion& emotion);
+    bool parseDialogue(const std::string& response, std::string& dialogue, HeroineEmotion& emotion, HeroineGestureKind& gesture);
     const char* fallbackDialogue();
     const char* statusText(DialogueCode code);
 }

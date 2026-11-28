@@ -106,9 +106,35 @@ namespace
         const auto payload = JsonObject::Parse(winrt::to_hstring(AI::chatRequest(value)));
         check(!payload.GetNamedBoolean(L"think") && !payload.GetNamedBoolean(L"stream"), "thinking disabled and buffered JSON requested");
         check(!payload.GetNamedObject(L"format").GetNamedBoolean(L"additionalProperties"), "output schema rejects actions");
-        check(payload.GetNamedObject(L"format").GetNamedArray(L"required").Size() == 2
+        check(payload.GetNamedObject(L"format").GetNamedArray(L"required").Size() == 3
             && payload.GetNamedObject(L"format").GetNamedObject(L"properties").GetNamedObject(L"emotion").GetNamedArray(L"enum").Size() == 5,
-            "schema requires dialogue and one of five emotions");
+            "schema requires dialogue emotion and gesture");
+        check(payload.GetNamedObject(L"format").GetNamedObject(L"properties").GetNamedObject(L"gesture").GetNamedArray(L"enum").Size() == 3,
+            "schema limits gesture to three choices");
+        HeroineGestureKind gesture = HeroineGestureKind::tilt;
+        check(AI::parseDialogue(envelope("legacy"), dialogue, emotion, gesture) && gesture == HeroineGestureKind::none, "legacy replies have no gesture");
+        for (const auto& name : { "none", "nod", "tilt", "execute script" })
+        {
+            auto reply = JsonObject::Parse(winrt::to_hstring(envelope("gesture reply")));
+            auto body = JsonObject::Parse(reply.GetNamedObject(L"message").GetNamedString(L"content"));
+            body.SetNamedValue(L"gesture", JsonValue::CreateStringValue(winrt::to_hstring(name)));
+            body.SetNamedValue(L"emotion", JsonValue::CreateStringValue(L"happy"));
+            auto responseMessage = reply.GetNamedObject(L"message");
+            responseMessage.SetNamedValue(L"content", JsonValue::CreateStringValue(body.Stringify()));
+            HeroineGestureKind expected = HeroineGestureKind::none;
+            parseGesture(name, expected);
+            check(AI::parseDialogue(winrt::to_string(reply.Stringify()), dialogue, emotion, gesture)
+                && gesture == expected && emotion == HeroineEmotion::happy, "allowlisted gesture or safe fallback parsed with emotion");
+        }
+        {
+            auto reply = JsonObject::Parse(winrt::to_hstring(envelope("typed gesture")));
+            auto body = JsonObject::Parse(reply.GetNamedObject(L"message").GetNamedString(L"content"));
+            body.SetNamedValue(L"gesture", JsonValue::CreateNumberValue(99));
+            auto responseMessage = reply.GetNamedObject(L"message");
+            responseMessage.SetNamedValue(L"content", JsonValue::CreateStringValue(body.Stringify()));
+            check(AI::parseDialogue(winrt::to_string(reply.Stringify()), dialogue, emotion, gesture)
+                && gesture == HeroineGestureKind::none && dialogue == "typed gesture", "wrong gesture type preserves dialogue without action");
+        }
         const auto messages = payload.GetNamedArray(L"messages");
         const auto last = JsonObject::Parse(messages.GetAt(messages.Size() - 1).GetObject().GetNamedString(L"content"));
         check(winrt::to_string(last.GetNamedString(L"player_input")) == value.text && messages.Size() == 4, "question escaped and history included");
@@ -157,15 +183,15 @@ namespace
         invalid.submit("hello", {}, request().config); check(waitResult(invalid, result), "invalid generator completed");
         check(result.code == AI::DialogueCode::invalidResponse && invalid.history().empty(), "invalid replies do not enter memory");
         AI::DialogueSession expressive([](const AI::DialogueRequest&, const std::atomic_bool&) {
-            AI::DialogueResult reply{ AI::DialogueCode::success, "happy reply" }; reply.emotion = HeroineEmotion::happy; return reply;
+            AI::DialogueResult reply{ AI::DialogueCode::success, "happy reply" }; reply.emotion = HeroineEmotion::happy; reply.gesture = HeroineGestureKind::nod; return reply;
         });
         expressive.submit("hello", {}, request().config);
-        check(waitResult(expressive, result) && result.emotion == HeroineEmotion::happy, "worker preserves emotion for main-thread animation");
+        check(waitResult(expressive, result) && result.emotion == HeroineEmotion::happy && result.gesture == HeroineGestureKind::nod, "worker preserves emotion and gesture for main-thread animation");
         AI::DialogueSession failedExpression([](const AI::DialogueRequest&, const std::atomic_bool&) {
-            AI::DialogueResult reply{ AI::DialogueCode::unavailable, "" }; reply.emotion = HeroineEmotion::angry; return reply;
+            AI::DialogueResult reply{ AI::DialogueCode::unavailable, "" }; reply.emotion = HeroineEmotion::angry; reply.gesture = HeroineGestureKind::tilt; return reply;
         });
         failedExpression.submit("hello", {}, request().config);
-        check(waitResult(failedExpression, result) && result.emotion == HeroineEmotion::neutral
+        check(waitResult(failedExpression, result) && result.emotion == HeroineEmotion::neutral && result.gesture == HeroineGestureKind::none
             && result.dialogue == AI::fallbackDialogue(), "failed request always uses a neutral fallback");
         const auto stopStart = steady_clock::now();
         {
