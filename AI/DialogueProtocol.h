@@ -10,6 +10,7 @@ namespace AI
     std::string chatRequest(const DialogueRequest& request);
     bool localModelResponse(const std::string& response);
     bool parseDialogue(const std::string& response, std::string& dialogue);
+    bool parseDialogue(const std::string& response, std::string& dialogue, HeroineEmotion& emotion);
     const char* fallbackDialogue();
     const char* statusText(DialogueCode code);
 }

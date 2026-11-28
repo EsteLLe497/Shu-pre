@@ -11,7 +11,7 @@ void AI::DialoguePanel::draw(HeroineConversation& conversation)
 {
     static char input[1601]{};
     const bool busy = conversation.busy();
-    ImGui::TextWrapped(u8"ローカルOllamaへ話しかけます。返答は字幕に表示し、移動やモーションは自動実行しません。");
+    ImGui::TextWrapped(u8"ローカルOllamaへ話しかけます。返答は字幕と表情に反映します。移動やモーションは自動実行しません。");
     ImGui::BeginDisabled(busy);
     ImGui::TextUnformatted(u8"話しかける内容（400文字まで）");
     ImGui::InputTextMultiline("##Dialogue input", input, sizeof(input), { -1, 90 });
@@ -24,6 +24,7 @@ void AI::DialoguePanel::draw(HeroineConversation& conversation)
     ImGui::EndDisabled(); ImGui::SameLine();
     if (ImGui::Button(u8"会話をクリア")) conversation.clear();
     ImGui::TextWrapped("%s", conversation.status().c_str());
+    ImGui::Text(u8"返答の表情: %s", emotionName(conversation.emotion()));
     if (conversation.lastElapsedSeconds() > 0) ImGui::Text(u8"直前の応答: %.1f 秒", conversation.lastElapsedSeconds());
     if (busy) ImGui::TextDisabled(u8"推論中。F3を閉じても処理は続きます。");
     if (ImGui::CollapsingHeader(u8"Ollama設定"))

@@ -11,6 +11,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="HeroineExpressionPanel.cpp"><LanguageStandard>stdcpp17</LanguageStandard></ClCompile>
+    <ClInclude Include="HeroineExpressionPanel.h" />
+
+    <ClCompile Include="HeroineExpression.cpp"><LanguageStandard>stdcpp17</LanguageStandard></ClCompile>
+    <ClInclude Include="HeroineExpression.h" />
+
     <ClCompile Include="AI\SubtitlePanel.cpp"><LanguageStandard>stdcpp17</LanguageStandard></ClCompile>
     <ClInclude Include="AI\SubtitlePanel.h" />
 
