@@ -61,6 +61,8 @@ public:
 	void Uninit();
 	void Update();
 	void Draw();
+    // 独自シェーダーを使用する地形描画入口 担当:ozawa souma        日付:2026/11/28
+    void drawGeometry();
 
 	// 回転のない地形のワールド座標 XZ から、表面の高さを取得する。
 	// 範囲外では false を返す。

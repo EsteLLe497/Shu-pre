@@ -411,7 +411,17 @@ void  MeshField::Draw()
     context->PSGetSamplers(1, 1, previousPaintSampler.GetAddressOf());
     context->PSSetShaderResources(0, 4, layers);
     context->PSSetSamplers(1, 1, m_paintSampler.GetAddressOf());
+    drawGeometry();
+    context->PSSetShaderResources(1, 3, previousLayers);
+    for (auto* previous : previousLayers)
+        if (previous) previous->Release();
+    context->PSSetSamplers(1, 1, previousPaintSampler.GetAddressOf());
+}
 
+// 独自シェーダーを使用する地形描画入口 担当:ozawa souma        日付:2026/11/28
+void MeshField::drawGeometry()
+{
+    if (!m_VertexBuffer) return;
     UINT stride = sizeof(VERTEX_3D);
     UINT offset = 0;
     Renderer::GetDeviceContext()->IASetVertexBuffers(0, 1, &m_VertexBuffer, &stride, &offset);
@@ -422,9 +432,5 @@ void  MeshField::Draw()
 
     GameObject::Draw();
 
-    context->DrawIndexed(indexCount, 0, 0);
-    context->PSSetShaderResources(1, 3, previousLayers);
-    for (auto* previous : previousLayers)
-        if (previous) previous->Release();
-    context->PSSetSamplers(1, 1, previousPaintSampler.GetAddressOf());
+    Renderer::GetDeviceContext()->DrawIndexed(indexCount, 0, 0);
 }

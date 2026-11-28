@@ -63,11 +63,14 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     int argumentCount = 0;
     wchar_t** arguments = CommandLineToArgvW(GetCommandLineW(), &argumentCount);
     bool previewMode = false;
+    // コマンドラインで Graphics Lab を選べるように追加 担当:ozawa souma        日付:2026/11/28
+    bool graphicsLab = false;
     if (arguments)
     {
         for (int i = 1; i < argumentCount; ++i)
         {
             previewMode = previewMode || wcscmp(arguments[i], L"--preview") == 0;
+            graphicsLab = graphicsLab || wcscmp(arguments[i], L"--graphics-lab") == 0;
         }
         LocalFree(arguments);
     }
@@ -96,10 +99,10 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
         }
     }
 
-    if (!previewMode) SceneEditor::useRuralMap();
-    Manager::Init(previewMode);
+    if (!previewMode && !graphicsLab) SceneEditor::useRuralMap();
+    Manager::Init(previewMode, graphicsLab);
 
-    const char* windowTitle = previewMode ? "GM31 Asset Preview" : "Shu-pre - Summer Countryside";
+    const char* windowTitle = graphicsLab ? "GM31 Graphics Lab" : (previewMode ? "GM31 Asset Preview" : "Shu-pre - Summer Countryside");
     SetWindowTextA(g_Window, windowTitle);
 
 

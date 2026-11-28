@@ -14,6 +14,7 @@
 #include "Scenery.h"
 #include "ToonPanel.h"
 #include "PreviewScene.h"
+#include "GraphicsLab.h"
 #include "planetarium.h"
 
 #include <algorithm>
@@ -81,17 +82,20 @@ namespace
 }
 
 
-void Manager::Init(bool previewMode)
+// Graphics Lab の起動モードを追加 担当:ozawa souma        日付:2026/11/28
+void Manager::Init(bool previewMode, bool graphicsLab)
 {
-    previewWorkspace = previewMode;
-	Renderer::Init();
-    if (!previewMode)
+    previewWorkspace = previewMode || graphicsLab;
+	Renderer::Init(graphicsLab);
+    if (!previewWorkspace)
         planetarium::init();
 	Input::Init();
-	ToonPanel::init(GetWindow(), previewMode);
+	ToonPanel::init(GetWindow(), previewWorkspace);
 	Audio::InitMaster();
 
-    if (previewWorkspace)
+    if (graphicsLab)
+        ChangeScene<GraphicsLab>(0.0f);
+    else if (previewWorkspace)
         ChangeScene<PreviewScene>(0.0f);
     else
         ChangeScene<Game>(0.0f);

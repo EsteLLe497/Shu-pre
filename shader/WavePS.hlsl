@@ -1,5 +1,6 @@
 #include "common.hlsl"
 #include "WaterCommon.hlsli"
+#include "LabLighting.hlsli"
 #include "SkyColor.hlsli"
 
 Texture2D<float> PondMask : register(t1);
@@ -9,6 +10,19 @@ Texture2D<float2> BasinMask : register(t6);
 Texture2DArray<float4> WaterDetail : register(t7);
 SamplerState PondSampler : register(s1);
 SamplerState DetailSampler : register(s3);
+
+// Graphics Lab の空・フォグを水面に反映 担当:ozawa souma        日付:2026/11/28
+float3 waterSkyTint()
+{
+    return FogSettings.z > 0.5 ? 1.0.xxx : skySceneTint();
+}
+
+float3 waterSkyReflection(float3 direction)
+{
+    if (FogSettings.z > 0.5)
+        return FogSettings.w > 0.5 ? labSky(direction) : float3(0.16, 0.33, 0.58);
+    return reflectedSkyColor(direction);
+}
 
 float hash(float2 cell)
 {
@@ -168,7 +182,7 @@ bool inWaterVolume(float2 position)
 float3 throughWater(float3 source, float distance)
 {
     float3 transmission = exp2(-distance * float3(0.72, 0.29, 0.16));
-    return source * transmission + float3(0.017, 0.19, 0.23) * skySceneTint() * (1.0 - transmission);
+    return source * transmission + float3(0.017, 0.19, 0.23) * waterSkyTint() * (1.0 - transmission);
 }
 
 float causticStrength()
@@ -297,7 +311,7 @@ float4 main(PS_IN input) : SV_Target
     float3 reflection = 0.0;
     [branch]
     if (reflected > 0.001)
-        reflection = reflectedSkyColor(reflectionDirection);
+        reflection = waterSkyReflection(reflectionDirection);
     uint width = 1, height = 1;
     float contact = 0.0;
     float3 opaqueWorld = input.WorldPosition.xyz - float3(0.0, depth, 0.0);
@@ -322,7 +336,7 @@ float4 main(PS_IN input) : SV_Target
     float sunlight = Light.Enable ? (0.76 * pow(glintAngle, 136.0) + 0.16 * pow(glintAngle, 38.0)) : 0.0;
 
     float3 subsurface = lerp(float3(0.10, 0.37, 0.38), float3(0.013, 0.14, 0.23), 1.0 - exp2(-path * 0.85));
-    subsurface *= skySceneTint();
+    subsurface *= waterSkyTint();
     float foam = max(max(0.80 * shoreline, 0.86 * contact), 0.32 * bankFoam)
         * smoothstep(0.48, 0.72, foamNoise);
     float alpha = 1.0;
@@ -340,7 +354,7 @@ float4 main(PS_IN input) : SV_Target
             if (belowSurface)
             {
                 float3 inside = lerp(float3(0.07, 0.26, 0.32), float3(0.014, 0.12, 0.17), innerReflection);
-                return float4(lerp(transmitted, inside * skySceneTint(), opacity * lerp(0.035, 0.97, innerReflection)), alpha);
+                return float4(lerp(transmitted, inside * waterSkyTint(), opacity * lerp(0.035, 0.97, innerReflection)), alpha);
             }
             float backgroundDepth = clamp(Material.Specular.x - background.y, 0.0, depth + 0.20);
             float caustics = causticStrength();
@@ -352,7 +366,8 @@ float4 main(PS_IN input) : SV_Target
         else alpha *= opacity;
     }
     float3 color = lerp(subsurface, reflection, reflected);
-    color += Light.Diffuse.rgb * sunlight * ReflectionStrength * opacity;
-    color = lerp(color, float3(0.81, 0.91, 0.93) * skySceneTint(), foam * opacity);
-    return float4(saturate(color), alpha);
+    float3 sunTint = FogSettings.z > 0.5 ? SunColor.rgb * SunColor.a / 3.9 : Light.Diffuse.rgb;
+    color += sunTint * sunlight * ReflectionStrength * opacity;
+    color = lerp(color, float3(0.81, 0.91, 0.93) * waterSkyTint(), foam * opacity);
+    return float4(FogSettings.z > 0.5 ? labFog(max(color, 0.0), input.WorldPosition.xyz) : saturate(color), alpha);
 }

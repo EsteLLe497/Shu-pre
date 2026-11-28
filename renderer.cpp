@@ -32,7 +32,8 @@ ID3D11BlendState*		Renderer::m_BlendStateATC{};
 
 
 
-void Renderer::Init()
+// Graphics Lab 向けの高精度深度バッファを追加 担当:ozawa souma        日付:2026/11/28
+void Renderer::Init(bool highPrecisionDepth)
 {
 	HRESULT hr = S_OK;
 
@@ -85,7 +86,7 @@ void Renderer::Init()
 	textureDesc.Height = swapChainDesc.BufferDesc.Height;
 	textureDesc.MipLevels = 1;
 	textureDesc.ArraySize = 1;
-	textureDesc.Format = DXGI_FORMAT_R16_TYPELESS;
+	textureDesc.Format = highPrecisionDepth ? DXGI_FORMAT_R32_TYPELESS : DXGI_FORMAT_R16_TYPELESS;
 	textureDesc.SampleDesc = swapChainDesc.SampleDesc;
 	textureDesc.Usage = D3D11_USAGE_DEFAULT;
 	textureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
@@ -95,13 +96,13 @@ void Renderer::Init()
 
 	// デプスステンシルビュー作成
 	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc{};
-	depthStencilViewDesc.Format = DXGI_FORMAT_D16_UNORM;
+	depthStencilViewDesc.Format = highPrecisionDepth ? DXGI_FORMAT_D32_FLOAT : DXGI_FORMAT_D16_UNORM;
 	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	depthStencilViewDesc.Flags = 0;
 	m_Device->CreateDepthStencilView(depthStencile, &depthStencilViewDesc, &m_DepthStencilView);
 	// ドームの描画でシーンの深度を読み取れるようにする。
 	D3D11_SHADER_RESOURCE_VIEW_DESC depthResource{};
-	depthResource.Format = DXGI_FORMAT_R16_UNORM;
+	depthResource.Format = highPrecisionDepth ? DXGI_FORMAT_R32_FLOAT : DXGI_FORMAT_R16_UNORM;
 	depthResource.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 	depthResource.Texture2D.MipLevels = 1;
 	m_Device->CreateShaderResourceView(depthStencile, &depthResource, &m_sceneDepth);

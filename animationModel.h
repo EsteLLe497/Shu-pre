@@ -73,16 +73,22 @@ private:
     MorphLayer m_overlayMorph;
     std::size_t m_activeMorphLayerCount = 0;
     unsigned int m_missingTextures = 0;
+    bool m_generateTextureMipmaps = false;
+    bool m_useCharacterMaterials = false;
     XMFLOAT3 m_staticHalfExtents{};
     float m_windReach = 0.0f;
     std::vector<UINT> m_indexCounts;
 
     // マテリアルを読み込み時に解決し、不透明と透過の描画順を分ける。
+    enum class CharacterMaterial { generic, skin, hair, faceDetail, cloth, eyeIris, eyeWhite, eyeHighlight };
+
     struct DrawPart
     {
         unsigned int meshIndex;
         XMFLOAT4 diffuse;
         ID3D11ShaderResourceView* texture;
+        CharacterMaterial characterMaterial;
+        XMFLOAT4 irisUvBounds;
         XMFLOAT4 wind{};
     };
 
@@ -128,6 +134,7 @@ private:
     void loadDrawParts(bool staticMesh);
     void setMorphLayer(MorphLayer& layer, const std::string& name, float weight);
     ID3D11ShaderResourceView* loadTexture(const aiTexture* embedded);
+    void createTextureView(const DirectX::ScratchImage& image, ID3D11ShaderResourceView** view) const;
     void drawParts(const std::vector<DrawPart>& parts, bool alphaBlend, UINT instanceCount = 0);
 
 public:
@@ -138,6 +145,9 @@ public:
 	void Load( const char *FileName );
     bool LoadAnimation(const char* fileName, const char* name);
     bool tryLoad(const char* fileName, bool staticMesh = false);
+    // Graphics Lab の人物材質とミップマップの切り替え 担当:ozawa souma        日付:2026/11/28
+    void enableTextureMipmaps() { m_generateTextureMipmaps = true; }
+    void enableCharacterMaterials() { m_useCharacterMaterials = true; }
     XMFLOAT3 staticHalfExtents() const { return m_staticHalfExtents; }
     float windReach() const { return m_windReach; }
     double clipDuration(const char* name) const;

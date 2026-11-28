@@ -142,6 +142,13 @@
     <ClCompile Include="Tree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <!-- Graphics Lab のソース・ヘッダー・シェーダー分類 担当:ozawa souma        日付:2026/11/28 -->
+    <ClCompile Include="GraphicsLabGeometry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GraphicsLab.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Grass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -296,6 +303,12 @@
     <ClInclude Include="Tree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="GraphicsLabGeometry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GraphicsLab.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Grass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -346,6 +359,15 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <None Include="shader\GraphicsLab.hlsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="shader\CharacterLighting.hlsli">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="shader\LabLighting.hlsli">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="shader\planetariumLight.hlsli">
       <Filter>Shader</Filter>
     </None>

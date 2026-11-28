@@ -1,0 +1,34 @@
+// =========================================================
+// ファイルの情報[TREE-REFERENCES.txt]
+//
+// 制作者:ozawa souma        日付:2026/11/28
+// =========================================================
+
+日本の夏の樹木（樹形・枝葉の観察資料）
+対象は本州の丘陵・低地を仮定。参照写真はゲーム素材に含めていない。
+
+ケヤキ Zelkova serrata
+国土交通省 六甲山系植生電子図鑑 https://www.kkr.mlit.go.jp/rokko/rokko/vegetation/sp/042/index.html
+北海道森林管理局 https://www.rinya.maff.go.jp/hokkaido/komagatake_fc/guide/28_keyaki.html
+三鷹市の実木写真 https://www.city.mitaka.lg.jp/c_service/011/images/img_11206_1_1.jpg.html
+
+コナラ Quercus serrata
+神戸市立森林植物園の実木写真 https://www.kobe-park.or.jp/shinrin/observe/konara/
+三重県林業研究所 写真と形態 https://www.pref.mie.lg.jp/RINGI/HP/m0135700170.htm
+長居植物園 雑木林での位置づけ https://zukan.nagai-park.jp/official/20230112150828/
+
+スギ Cryptomeria japonica
+森林総合研究所 葉・樹皮・樹冠 https://www.ffpri.go.jp/kys/business/jumokuen/jumoku/zukan/sugi.html
+北海道森林管理局 https://www.rinya.maff.go.jp/hokkaido/komagatake_fc/guide/37_sugi.html
+林野庁 人工林データ https://www.rinya.maff.go.jp/j/sin_riyou/kafun/data.html
+
+葉のPNGは tools/GenerateLabTreeTextures.ps1 で生成したオリジナルの切り抜きマスク。
+樹皮の色と凹凸は tools/GenerateLabBarkTextures.ps1 で樹種別に生成。細部に SOURCES.txt の Poly Haven CC0 素材を使用。
+コナラの縦溝の比較写真 https://www.kodomonokuni.org/nature/fall/fall_donguri.html
+
+樹高・胸高直径の参照資料
+ケヤキ 三重県林業研究所 https://www.pref.mie.lg.jp/RINGI/HP/m0135700167.htm
+ケヤキの混交林の実測 林野庁 https://www.rinya.maff.go.jp/j/gyoumu/gijutu/kenkyu_happyo/attach/pdf/H29_happyo-46.pdf
+コナラ 樹高15～20m 三重県林業研究所 https://www.pref.mie.lg.jp/RINGI/HP/m0135700170.htm
+コナラの毎木調査 国立科学博物館 https://db.kahaku.go.jp/webmuseum/detail?cls=col_f1_02&pkey=D0001
+スギ人工林の樹高・胸高直径 森林総合研究所 https://www.ffpri.go.jp/fsm/research/pubs/nenpo/past/43_05.html

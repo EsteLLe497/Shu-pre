@@ -68,7 +68,7 @@ private:
 
 
 public:
-	static void Init();
+	static void Init(bool highPrecisionDepth = false);
 	static void Uninit();
 	static void Begin(const float* clearColor = nullptr);
 	static void End();
@@ -85,6 +85,9 @@ public:
 	static void SetCameraPosition(Vector3 camera);
     static void SetObjectOpacity(float opacity);
 
+    // Graphics Lab の描画先と深度バッファ取得 担当:ozawa souma        日付:2026/11/28
+    static ID3D11RenderTargetView* backBuffer() { return m_RenderTargetView; }
+    static ID3D11DepthStencilView* depthTarget() { return m_DepthStencilView; }
 	static ID3D11ShaderResourceView* sceneDepth() { return m_sceneDepth; }
 	static ID3D11Device* GetDevice( void ){ return m_Device; }
 	static ID3D11DeviceContext* GetDeviceContext( void ){ return m_DeviceContext; }
