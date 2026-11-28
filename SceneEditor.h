@@ -20,6 +20,7 @@ namespace SceneEditor
     void processPlayMode();
     void drawPlayMode();
     void drawVegetation(const Vector3& eye);
+    void drawWildlife(const Vector3& eye, float dt);
     void drawWater(const Vector3& eye, DirectX::FXMMATRIX viewProjection, float dt);
     bool cameraMatrices(Vector3& eye, DirectX::XMMATRIX& view, DirectX::XMMATRIX& projection);
     void updatePhysics(float dt);

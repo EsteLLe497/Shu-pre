@@ -7,6 +7,7 @@
 #include "SceneEditor.h"
 #include "Scenery.h"
 #include "Vegetation.h"
+#include "RuralWildlife.h"
 #include "SceneAudio.h"
 #include "MeshField.h"
 #include "Wave.h"
@@ -35,6 +36,7 @@
 namespace
 {
     namespace fs = std::filesystem;
+    constexpr char ruralLayoutPath[] = "asset/maps/rural-town/scene-layout.txt";
     const char* layoutPath = "asset/scene-layout.txt";
     const char* temporaryPath = "asset/scene-layout.txt.tmp";
     constexpr size_t maxObjects = 512;
@@ -137,6 +139,13 @@ namespace
     float plantDensity = 70.0f;
     std::optional<Vector3> previousPlantHit;
     Wave waterRenderer;
+    RuralWildlife wildlife;
+    bool wildlifeEnabled = false;
+    void invalidateWater()
+    {
+        waterRenderer.invalidate();
+        wildlife.invalidateRiver();
+    }
     Wave::Layout water;
     Wave::River riverDefaults;
     bool waterMode = false;
@@ -782,7 +791,7 @@ namespace
         plantRenderer.invalidate();
         selectedRiver = -1;
         stopWaterEdit();
-        waterRenderer.invalidate();
+        invalidateWater();
         return true;
     }
 
@@ -1045,7 +1054,7 @@ namespace
             water = *edit.water;
             if (selectedRiver >= static_cast<int>(water.rivers.size())) selectedRiver = -1;
             stopWaterEdit();
-            waterRenderer.invalidate();
+            invalidateWater();
             break;
         case UndoKind::Ambient:
             ambientZones = std::move(edit.ambient);
@@ -1714,7 +1723,7 @@ namespace
                 numericRecorded = true;
             }
             value = next;
-            if (rebuild) waterRenderer.invalidate();
+            if (rebuild) invalidateWater();
         }
         if (ImGui::IsItemDeactivated()) numericRecorded = false;
     }
@@ -1737,7 +1746,7 @@ namespace
         water.rivers.push_back(std::move(river));
         selectedRiver = static_cast<int>(water.rivers.size()) - 1;
         stopWaterEdit();
-        waterRenderer.invalidate();
+        invalidateWater();
         status = u8"川を配置しました。";
     }
 
@@ -1767,7 +1776,7 @@ namespace
                     rememberWater();
                     water.basins.clear();
                     basinMessage = nullptr;
-                    waterRenderer.invalidate();
+                    invalidateWater();
                 }
                 if (basinMessage) ImGui::TextWrapped("%s", basinMessage);
             }
@@ -1805,7 +1814,7 @@ namespace
                 rememberWater();
                 std::reverse(river.points.begin(), river.points.end());
                 if (riverPoint >= 0) riverPoint = static_cast<int>(river.points.size()) - 1 - riverPoint;
-                waterRenderer.invalidate();
+                invalidateWater();
             }
             ImGui::SameLine();
             if (ImGui::Button(u8"川を削除"))
@@ -1814,7 +1823,7 @@ namespace
                 water.rivers.erase(water.rivers.begin() + selectedRiver);
                 selectedRiver = -1;
                 stopWaterEdit();
-                waterRenderer.invalidate();
+                invalidateWater();
                 return;
             }
             ImGui::BeginDisabled(riverPoint < 0 || river.points.size() <= 2);
@@ -1827,7 +1836,7 @@ namespace
                     rememberWater();
                     river = std::move(next);
                     riverPoint = -1;
-                    waterRenderer.invalidate();
+                    invalidateWater();
                 }
             }
             ImGui::EndDisabled();
@@ -1909,6 +1918,23 @@ namespace
                     gridStep = step;
             }
             if (!status.empty()) ImGui::TextWrapped("%s", status.c_str());
+            if (auto* sky = Manager::GetGameObj<SkyDome>(); sky && ImGui::CollapsingHeader(u8"空と時間"))
+            {
+                auto& clock = sky->clock();
+                const int minutes = static_cast<int>(clock.hour * 60.0f);
+                ImGui::Text(u8"現在の時刻  %02d:%02d", minutes / 60, minutes % 60);
+                ImGui::SliderFloat(u8"時刻##sky", &clock.hour, 0.0f, 23.999f, "", ImGuiSliderFlags_AlwaysClamp);
+                if (ImGui::Button(u8"朝##sky")) clock.hour = 5.6f;
+                ImGui::SameLine();
+                if (ImGui::Button(u8"昼##sky")) clock.hour = 12.0f;
+                ImGui::SameLine();
+                if (ImGui::Button(u8"夕方##sky")) clock.hour = 18.7f;
+                ImGui::SameLine();
+                if (ImGui::Button(u8"夜##sky")) clock.hour = 23.0f;
+                ImGui::SliderFloat(u8"一日の長さ（現実の分）", &clock.dayMinutes, 1.0f, 60.0f, "%.0f",
+                    ImGuiSliderFlags_AlwaysClamp);
+                ImGui::Checkbox(u8"編集中も時間を進める", &clock.runInEditor);
+            }
             ImGui::Separator();
             if (ImGui::Checkbox(u8"地形ブラシ", &terrainMode))
             {
@@ -2254,7 +2280,7 @@ namespace
             remember(std::move(edit));
             waterUndoRecorded = true;
         }
-        waterRenderer.invalidate();
+        invalidateWater();
     }
 
     void drawRiverGuide(const Wave::River& river, FXMMATRIX vp, const ImVec2& size, ImDrawList& overlay)
@@ -2364,7 +2390,7 @@ namespace
                     edit.water = std::move(before);
                     remember(std::move(edit));
                     basinMessage = nullptr;
-                    waterRenderer.invalidate();
+                    invalidateWater();
                 }
                 else
                 {
@@ -2415,7 +2441,7 @@ namespace
                         rememberWater();
                         river = std::move(next);
                         riverPoint = static_cast<int>(river.points.size()) - 1;
-                        waterRenderer.invalidate();
+                        invalidateWater();
                     }
                 }
                 else
@@ -2440,7 +2466,7 @@ namespace
                             riverMovementRecorded = true;
                         }
                         river = std::move(next);
-                        waterRenderer.invalidate();
+                        invalidateWater();
                     }
                 }
             }
@@ -2852,7 +2878,7 @@ namespace
 
 void SceneEditor::useRuralMap()
 {
-    layoutPath = "asset/maps/rural-town/scene-layout.txt";
+    layoutPath = ruralLayoutPath;
     temporaryPath = "asset/maps/rural-town/scene-layout.txt.tmp";
 }
 
@@ -2862,7 +2888,13 @@ void SceneEditor::init(Player& scenePlayer, MeshField& sceneTerrain)
     heroine = Manager::GetGameObj<Heroine>();
     terrain = &sceneTerrain;
     const bool exists = GetFileAttributesA(layoutPath) != INVALID_FILE_ATTRIBUTES;
-    if (!loadLayout())
+    const bool loaded = loadLayout();
+    if (loaded && layoutPath == ruralLayoutPath)
+    {
+        wildlife.load();
+        wildlifeEnabled = true;
+    }
+    if (!loaded)
     {
         defaults();
         if (exists) status = u8"配置を読み込めなかったため、初期配置を使います。";
@@ -2921,6 +2953,8 @@ void SceneEditor::shutdown()
     stopPlantEdit();
     plants.clear();
     plantRenderer = {};
+    wildlife = {};
+    wildlifeEnabled = false;
     Scenery::reset();
     water = {};
     waterRenderer.reset();
@@ -2994,6 +3028,7 @@ void SceneEditor::processPlayMode()
     if (!open) return;
 
     const auto orbit = Manager::GetGameObj<Camera>()->orbitSettings();
+    const auto skyClock = Manager::GetGameObj<SkyDome>()->clock();
     stopMotionPreview();
     stopWaterEdit();
     stopPlantEdit();
@@ -3006,6 +3041,7 @@ void SceneEditor::processPlayMode()
     heroine = Manager::GetGameObj<Heroine>();
     heroine->toonSettings() = editWorld->heroine->toonSettings();
     Manager::GetGameObj<Camera>()->orbitSettings() = orbit;
+    Manager::GetGameObj<SkyDome>()->clock() = skyClock;
     terrain->setHeights(editWorld->terrain->heights());
     terrain->setMaterialPaint(editWorld->terrain->materialPaint());
     for (const auto& entry : editWorld->entries)
@@ -3105,6 +3141,11 @@ void SceneEditor::updatePhysics(float dt)
 void SceneEditor::drawVegetation(const Vector3& eye)
 {
     if (terrain) plantRenderer.draw(plants, *terrain, eye);
+}
+
+void SceneEditor::drawWildlife(const Vector3& eye, float dt)
+{
+    if (terrain && wildlifeEnabled) wildlife.draw(water, *terrain, eye, dt);
 }
 
 void SceneEditor::resolvePlayerCollision(const Vector3& previous, Vector3& position, Vector3& velocity, bool& grounded)

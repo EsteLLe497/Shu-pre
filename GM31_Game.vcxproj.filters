@@ -60,6 +60,7 @@
     <ClCompile Include="SceneEditor.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Scenery.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="Vegetation.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="RuralWildlife.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="manager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -195,6 +196,7 @@
     <ClInclude Include="SceneEditor.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Scenery.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="Vegetation.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="RuralWildlife.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="manager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -347,6 +349,12 @@
     <None Include="shader\planetariumLight.hlsli">
       <Filter>Shader</Filter>
     </None>
+    <None Include="shader\SkyFrame.hlsli"><Filter>Shader</Filter></None>
+    <None Include="shader\SkyColor.hlsli"><Filter>Shader</Filter></None>
+    <None Include="shader\SummerClouds.hlsli"><Filter>Shader</Filter></None>
+    <None Include="shader\foliageWind.hlsli">
+      <Filter>Shader</Filter>
+    </None>
     <None Include="shader\toonCommon.hlsli">
       <Filter>Shader</Filter>
     </None>
@@ -373,6 +381,10 @@
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="shader\unlitTexturePS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\SkyDomePS.hlsl"><Filter>Shader</Filter></FxCompile>
+    <FxCompile Include="shader\SkyDomeVS.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="shader\unlitTextureVS.hlsl">

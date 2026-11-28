@@ -21,7 +21,7 @@ namespace
     };
 
     constexpr Species speciesInfo[Vegetation::speciesCount]{
-        { "roadside-grasses.obj", 2.9f, 1.25f, 65.0f },
+        { "wild-meadow-grass.glb", 1.24f, 1.25f, 65.0f },
         { "shrine-ferns.obj", 1.65f, 1.50f, 65.0f },
         { "shrine-forest-understory.obj", 2.3f, 2.1f, 90.0f },
         { "summer-wildflowers.obj", 2.3f, 1.50f, 65.0f },
@@ -138,8 +138,7 @@ void Vegetation::Renderer::rebuild(const std::vector<Plant>& plants, const MeshF
         const XMMATRIX world = XMMatrixScaling(plant.scale, plant.scale, plant.scale)
             * XMMatrixRotationY(plant.angle)
             * XMMatrixTranslation(plant.x, height + plant.offset + extents.y * plant.scale, plant.z);
-        BoundingBox transformed, box({ 0, 0, 0 }, extents);
-        box.Transform(transformed, world);
+        const BoundingBox transformed = Scenery::bounds(*model, world);
         const auto cell = std::make_tuple(plant.species, static_cast<int>(std::floor(plant.x / 16.0f)),
             static_cast<int>(std::floor(plant.z / 16.0f)));
         const auto [found, inserted] = cells.try_emplace(cell, m_patches.size());

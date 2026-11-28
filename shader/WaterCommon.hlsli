@@ -9,8 +9,8 @@ cbuffer WaterFrame : register(b7)
     matrix ViewProjection;
     float ReflectionStrength;
     float HasSceneDepth;
-    float HasSky;
     float HasSceneColor;
+    float WaterFramePadding;
     float4 TerrainGrid;
     float4 WaterVolume;
     float4 WaterChannel;

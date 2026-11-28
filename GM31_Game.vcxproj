@@ -54,6 +54,9 @@
     <ClCompile Include="Vegetation.cpp">
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
+    <ClCompile Include="RuralWildlife.cpp">
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
     <ClCompile Include="ActionFile.cpp">
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(WindowsSDKVersion)cppwinrt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -87,7 +90,9 @@
     <ClCompile Include="Result.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Shadow.cpp" />
-    <ClCompile Include="SkyDome.cpp" />
+    <ClCompile Include="SkyDome.cpp">
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
     <ClCompile Include="Title.cpp" />
     <ClCompile Include="ToonPanel.cpp" />
     <ClCompile Include="ToonPreset.cpp" />
@@ -106,6 +111,7 @@
     <ClInclude Include="SceneEditor.h" />
     <ClInclude Include="Scenery.h" />
     <ClInclude Include="Vegetation.h" />
+    <ClInclude Include="RuralWildlife.h" />
     <ClInclude Include="ActionFile.h" />
     <ClInclude Include="ActionSequence.h" />
     <ClInclude Include="animationModel.h" />
@@ -159,6 +165,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="shader\planetariumLight.hlsli" />
+    <None Include="shader\SkyFrame.hlsli" />
+    <None Include="shader\SkyColor.hlsli" />
+    <None Include="shader\SummerClouds.hlsli" />
+    <None Include="shader\foliageWind.hlsli" />
     <None Include="shader\WaterCommon.hlsli" />
     <None Include="shader\toonCommon.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -236,6 +246,16 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\SkyDomePS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <ObjectFileOutput>shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\SkyDomeVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <ObjectFileOutput>shader\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
     <FxCompile Include="shader\unlitTextureVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
