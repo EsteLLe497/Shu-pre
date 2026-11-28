@@ -78,12 +78,37 @@ namespace
         auto message = root.GetNamedObject(L"message"); message.SetNamedValue(L"content", JsonValue::CreateStringValue(injected.Stringify()));
         check(!AI::parseDialogue(winrt::to_string(root.Stringify()), dialogue), "unexpected action field rejected");
         check(!AI::parseDialogue(envelope(""), dialogue), "empty response rejected");
+        HeroineEmotion emotion = HeroineEmotion::angry;
+        check(AI::parseDialogue(envelope("legacy"), dialogue, emotion) && emotion == HeroineEmotion::neutral, "old dialogue-only replies remain neutral");
+        for (int i = 0; i < static_cast<int>(HeroineEmotion::count); ++i)
+        {
+            const auto expected = static_cast<HeroineEmotion>(i);
+            auto reply = JsonObject::Parse(winrt::to_hstring(envelope("expression")));
+            auto body = JsonObject::Parse(reply.GetNamedObject(L"message").GetNamedString(L"content"));
+            body.SetNamedValue(L"emotion", JsonValue::CreateStringValue(winrt::to_hstring(emotionName(expected))));
+            auto responseMessage = reply.GetNamedObject(L"message");
+            responseMessage.SetNamedValue(L"content", JsonValue::CreateStringValue(body.Stringify()));
+            check(AI::parseDialogue(winrt::to_string(reply.Stringify()), dialogue, emotion) && emotion == expected, "allowed emotion parsed");
+        }
+        for (const auto& invalidEmotion : { JsonValue::CreateStringValue(L"execute arbitrary action"), JsonValue::CreateNumberValue(99) })
+        {
+            auto reply = JsonObject::Parse(winrt::to_hstring(envelope("keep dialogue")));
+            auto body = JsonObject::Parse(reply.GetNamedObject(L"message").GetNamedString(L"content"));
+            body.SetNamedValue(L"emotion", invalidEmotion);
+            auto responseMessage = reply.GetNamedObject(L"message");
+            responseMessage.SetNamedValue(L"content", JsonValue::CreateStringValue(body.Stringify()));
+            check(AI::parseDialogue(winrt::to_string(reply.Stringify()), dialogue, emotion)
+                && dialogue == "keep dialogue" && emotion == HeroineEmotion::neutral, "invalid emotion degrades to neutral without losing dialogue");
+        }
         check(AI::localModelResponse("{\"details\":{}}"), "local show accepted");
         check(!AI::localModelResponse("{}") && !AI::localModelResponse("{\"details\":{},\"remote_host\":\"https://ollama.com\"}"), "remote or unproven model rejected");
         auto value = request(); value.history.push_back({ u8"私の名前は田中です。", u8"よろしくね。" });
         const auto payload = JsonObject::Parse(winrt::to_hstring(AI::chatRequest(value)));
         check(!payload.GetNamedBoolean(L"think") && !payload.GetNamedBoolean(L"stream"), "thinking disabled and buffered JSON requested");
         check(!payload.GetNamedObject(L"format").GetNamedBoolean(L"additionalProperties"), "output schema rejects actions");
+        check(payload.GetNamedObject(L"format").GetNamedArray(L"required").Size() == 2
+            && payload.GetNamedObject(L"format").GetNamedObject(L"properties").GetNamedObject(L"emotion").GetNamedArray(L"enum").Size() == 5,
+            "schema requires dialogue and one of five emotions");
         const auto messages = payload.GetNamedArray(L"messages");
         const auto last = JsonObject::Parse(messages.GetAt(messages.Size() - 1).GetObject().GetNamedString(L"content"));
         check(winrt::to_string(last.GetNamedString(L"player_input")) == value.text && messages.Size() == 4, "question escaped and history included");
@@ -131,6 +156,17 @@ namespace
         AI::DialogueSession invalid([](const AI::DialogueRequest&, const std::atomic_bool&) { return AI::DialogueResult{ AI::DialogueCode::success, "" }; });
         invalid.submit("hello", {}, request().config); check(waitResult(invalid, result), "invalid generator completed");
         check(result.code == AI::DialogueCode::invalidResponse && invalid.history().empty(), "invalid replies do not enter memory");
+        AI::DialogueSession expressive([](const AI::DialogueRequest&, const std::atomic_bool&) {
+            AI::DialogueResult reply{ AI::DialogueCode::success, "happy reply" }; reply.emotion = HeroineEmotion::happy; return reply;
+        });
+        expressive.submit("hello", {}, request().config);
+        check(waitResult(expressive, result) && result.emotion == HeroineEmotion::happy, "worker preserves emotion for main-thread animation");
+        AI::DialogueSession failedExpression([](const AI::DialogueRequest&, const std::atomic_bool&) {
+            AI::DialogueResult reply{ AI::DialogueCode::unavailable, "" }; reply.emotion = HeroineEmotion::angry; return reply;
+        });
+        failedExpression.submit("hello", {}, request().config);
+        check(waitResult(failedExpression, result) && result.emotion == HeroineEmotion::neutral
+            && result.dialogue == AI::fallbackDialogue(), "failed request always uses a neutral fallback");
         const auto stopStart = steady_clock::now();
         {
             AI::DialogueSession ending([](const AI::DialogueRequest&, const std::atomic_bool& cancelled) {

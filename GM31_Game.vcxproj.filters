@@ -1,6 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="HeroineExpressionPanel.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClInclude Include="HeroineExpressionPanel.h"><Filter>Header Files</Filter></ClInclude>
+
+    <ClCompile Include="HeroineExpression.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClInclude Include="HeroineExpression.h"><Filter>Header Files</Filter></ClInclude>
+
     <ClCompile Include="AI\SubtitlePanel.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClInclude Include="AI\SubtitlePanel.h"><Filter>Header Files</Filter></ClInclude>
 

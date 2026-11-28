@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <iosfwd>
+#include "../HeroineExpression.h"
 
 namespace AI
 {
@@ -47,5 +48,6 @@ namespace AI
         std::string dialogue;
         float elapsedSeconds = 0;
         unsigned int httpStatus = 0;
+        HeroineEmotion emotion = HeroineEmotion::neutral;
     };
 }

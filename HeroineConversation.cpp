@@ -45,7 +45,9 @@ bool HeroineConversation::ask(const std::string& text)
         m_status = u8"送信できません。処理中、入力内容、モデル設定を確認してください。";
         return false;
     }
+    m_subtitleSeconds = 0;
     m_cancelling = false;
+    m_waitingReply = true;
     m_lines.push_back({ false, text });
     if (m_lines.size() > 12) m_lines.erase(m_lines.begin());
     m_status = u8"返答を考えています。ゲームの更新は続けます。";
@@ -59,11 +61,13 @@ void HeroineConversation::Update()
     AI::DialogueResult result;
     if (m_session->poll(result))
     {
+        m_waitingReply = false;
         m_status = AI::statusText(result.code);
         if (result.httpStatus && result.code != AI::DialogueCode::success) m_status += " (HTTP " + std::to_string(result.httpStatus) + ")";
         m_lastElapsed = result.elapsedSeconds;
         if (!result.dialogue.empty())
         {
+            m_emotion = result.emotion;
             m_subtitle = result.dialogue;
             showSubtitle();
             m_lines.push_back({ true, result.dialogue });
@@ -71,12 +75,20 @@ void HeroineConversation::Update()
         }
     }
     if (m_cancelling && !busy()) { m_cancelling = false; m_status = AI::statusText(AI::DialogueCode::cancelled); }
+    if (auto* heroine = Manager::GetGameObj<Heroine>())
+    {
+        const auto phase = m_waitingReply ? HeroineExpression::Phase::thinking
+            : subtitleVisible() ? HeroineExpression::Phase::speaking : HeroineExpression::Phase::idle;
+        heroine->expression().setConversation(phase, m_emotion);
+    }
 }
 
 void HeroineConversation::cancel()
 {
     if (m_session) m_session->cancel();
     m_cancelling = true;
+    m_waitingReply = false;
+    m_subtitleSeconds = 0;
     m_status = u8"通信を中止しています。";
 }
 
@@ -84,7 +96,9 @@ void HeroineConversation::clear()
 {
     if (m_session) m_session->clear();
     m_cancelling = false;
+    m_waitingReply = false;
     m_lines.clear(); m_subtitle.clear(); m_subtitleSeconds = 0; m_subtitleDuration = 0;
+    m_emotion = HeroineEmotion::neutral;
     m_status = u8"会話履歴を消去しました。";
 }
 

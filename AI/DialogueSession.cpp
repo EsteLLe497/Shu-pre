@@ -98,6 +98,8 @@ void AI::DialogueSession::run()
         catch (...) { result.code = DialogueCode::unavailable; }
         if (result.code == DialogueCode::success && !validDialogue(result.dialogue)) result.code = DialogueCode::invalidResponse;
         if (result.code != DialogueCode::success && result.code != DialogueCode::cancelled) result.dialogue = fallbackDialogue();
+        if (result.code != DialogueCode::success || result.emotion < HeroineEmotion::neutral || result.emotion >= HeroineEmotion::count)
+            result.emotion = HeroineEmotion::neutral;
         {
             std::lock_guard<std::mutex> lock(m_mutex);
             m_busy = false;

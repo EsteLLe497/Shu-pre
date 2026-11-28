@@ -25,6 +25,7 @@ public:
     bool subtitleVisible() const { return m_subtitleSeconds > 0 && !m_subtitle.empty(); }
     const std::string& status() const { return m_status; }
     const std::vector<Line>& lines() const { return m_lines; }
+    HeroineEmotion emotion() const { return m_emotion; }
     float lastElapsedSeconds() const { return m_lastElapsed; }
 
 private:
@@ -36,5 +37,7 @@ private:
     float m_subtitleSeconds = 0;
     float m_subtitleDuration = 0;
     float m_lastElapsed = 0;
+    HeroineEmotion m_emotion = HeroineEmotion::neutral;
     bool m_cancelling = false;
+    bool m_waitingReply = false;
 };

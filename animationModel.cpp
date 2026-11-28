@@ -652,6 +652,15 @@ void AnimationModel::setOverlayMorph(const std::string& name, float weight)
     setMorphLayer(m_overlayMorph, name, weight);
 }
 
+void AnimationModel::setExpressionMorphs(const std::vector<std::pair<std::string, float>>& morphs, float blend)
+{
+    const auto count = std::min(morphs.size(), MorphTarget::maxExtraTargets);
+    m_expressionLayers.resize(count);
+    m_expressionBlend = fmaxf(0.0f, fminf(1.0f, blend));
+    for (size_t i = 0; i < count; ++i)
+        setMorphLayer(m_expressionLayers[i], morphs[i].first, morphs[i].second);
+}
+
 void AnimationModel::setMorphBlend(const std::string& base, const std::string& target, float blend,
     const std::vector<MorphTarget>& extraMorphs, float time)
 {
@@ -769,6 +778,8 @@ void AnimationModel::CreateBone(aiNode* node)
         m_morphNames.clear();
         m_morphLayers.clear();
         m_overlayMorph = MorphLayer{};
+        m_expressionLayers.clear();
+        m_expressionBlend = 0;
         m_activeMorphLayerCount = 0;
         m_missingTextures = 0;
         m_VertexBuffer = nullptr;
@@ -934,14 +945,17 @@ void AnimationModel::uploadPose()
             float weight;
         };
 
-        ActiveMorph morphs[MorphTarget::maxExtraTargets + 2];
+        ActiveMorph morphs[MorphTarget::maxExtraTargets * 2 + 2];
         std::size_t morphCount = 0;
         for (std::size_t i = 0; i < m_activeMorphLayerCount; ++i)
         {
             const auto& layer = m_morphLayers[i];
             if (layer.weight > 0.0f && !layer.name.empty() && layer.meshes[meshIndex])
-                morphs[morphCount++] = { layer.meshes[meshIndex], layer.weight };
+                morphs[morphCount++] = { layer.meshes[meshIndex], layer.weight * (1.0f - m_expressionBlend) };
         }
+        for (const auto& layer : m_expressionLayers)
+            if (layer.weight > 0.0f && !layer.name.empty() && layer.meshes[meshIndex])
+                morphs[morphCount++] = { layer.meshes[meshIndex], layer.weight };
         const auto* overlay = m_overlayMorph.weight > 0 && meshIndex < m_overlayMorph.meshes.size()
             ? m_overlayMorph.meshes[meshIndex] : nullptr;
         VERTEX_3D* vertex = static_cast<VERTEX_3D*>(mapped.pData);

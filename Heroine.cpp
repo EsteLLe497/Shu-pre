@@ -59,6 +59,10 @@ void Heroine::Init()
         slot.motionReady = slot.sequence.motionEnabled && loadMotion(*m_AnimationModel, slot.sequence.clip);
         slot.faceReady = slot.sequence.faceEnabled && hasExpressionMorphs(slot.sequence, m_AnimationModel->morphNames());
     }
+    m_expression.bind(m_AnimationModel->morphNames());
+    std::ifstream expressions("asset/ai/heroine-expressions.cfg");
+    expressions.imbue(std::locale::classic());
+    m_expression.read(expressions);
     initLookAt();
     playAction(HeroineActionKind::idle);
     samplePose(0, 0, true);
@@ -112,11 +116,28 @@ void Heroine::samplePose(float time, float dt, bool loop)
 {
     if (!m_ready) return;
     m_poseDeltaSeconds = dt;
+    m_AnimationModel->setExpressionMorphs(m_expression.weights(), m_expression.blendWeight());
+    m_actionEyeClosure = 0;
     if (m_action.faceEnabled)
     {
         const float weight = sampleExpression(time, m_action.faceStart, m_action.facePeak,
             m_action.faceEnd, m_action.faceStrength, m_action.smoothFaceBlend);
-        m_AnimationModel->setMorphBlend(m_action.baseMorph, m_action.targetMorph, weight, m_action.extraMorphs, time);
+        // Keep animation blinks absolute, after the conversation expression blend.
+        auto base = m_action.baseMorph, target = m_action.targetMorph;
+        auto extra = m_action.extraMorphs;
+        if (!m_closeEyeMorph.empty())
+        {
+            if (base == m_closeEyeMorph) { m_actionEyeClosure += 1.0f - weight; base.clear(); }
+            if (target == m_closeEyeMorph) { m_actionEyeClosure += weight; target.clear(); }
+            for (auto& morph : extra)
+                if (morph.name == m_closeEyeMorph)
+                {
+                    m_actionEyeClosure += sampleExpression(time, morph.start, morph.peak, morph.end, morph.weight, morph.smooth);
+                    morph.name.clear();
+                }
+        }
+        m_actionEyeClosure = std::min(1.0f, m_actionEyeClosure);
+        m_AnimationModel->setMorphBlend(base, target, weight, extra, time);
     }
     else m_AnimationModel->setMorph("", 0);
     if (m_action.motionEnabled)
@@ -135,6 +156,7 @@ void Heroine::Update()
         if (terrain->tryGetHeight(m_Position.x, m_Position.z, height)) m_Position.y = height;
     }
     const float dt = Manager::animationDeltaSeconds();
+    m_expression.update(dt);
     updateMovement(dt);
     const float duration = m_action.duration;
     const float next = m_time + dt * m_action.speed;
@@ -295,7 +317,7 @@ bool Heroine::setLookTarget(const Vector3& target)
 
 void Heroine::updateLookAt(AnimationModel& model)
 {
-    model.setOverlayMorph(m_closeEyeMorph, 0);
+    model.setOverlayMorph(m_closeEyeMorph, m_actionEyeClosure);
     if (m_lookBones[1].empty() || SceneEditor::isOpen() || m_poseDeltaSeconds <= 0)
     {
         m_lookAt.reset();
@@ -340,7 +362,7 @@ void Heroine::updateLookAt(AnimationModel& model)
     // not prevent closure at contact. Fixed debug targets use true 3D distance.
     const float proximity = m_fixedLookTarget ? distance : hypotf(m_lookTarget.x - m_Position.x, m_lookTarget.z - m_Position.z);
     m_lookAt.update(atan2f(x, z), atan2f(y, hypotf(x, z)), distance, available, m_poseDeltaSeconds, proximity);
-    if (eyelidsReady()) model.setOverlayMorph(m_closeEyeMorph, m_lookAt.eyeClosure());
+    if (eyelidsReady()) model.setOverlayMorph(m_closeEyeMorph, std::max(m_actionEyeClosure, m_lookAt.eyeClosure()));
 
     const float neck = m_lookBones[0].empty() ? 0 : m_lookAt.settings.neckWeight;
     if (neck > 0) model.rotateBoneModelSpace(m_lookBones[0].c_str(),

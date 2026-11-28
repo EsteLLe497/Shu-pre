@@ -7,6 +7,7 @@
 #include "SceneAudio.h"
 #include "HeroineMovement.h"
 #include "HeroineLookAt.h"
+#include "HeroineExpression.h"
 
 class Heroine : public GameObject
 {
@@ -24,6 +25,8 @@ private:
     bool m_ready = false;
     HeroineMovement m_movement;
     HeroineLookAt m_lookAt;
+    HeroineExpression m_expression;
+    float m_actionEyeClosure = 0;
     std::array<std::string, 4> m_lookBones;
     std::string m_closeEyeMorph;
     bool m_fixedLookTarget = false;
@@ -56,6 +59,7 @@ public:
     void pauseMovement(bool paused);
     bool movementReady() const;
     const HeroineMovement& movement() const { return m_movement; }
+    HeroineExpression& expression() { return m_expression; }
     HeroineLookAt& lookAt() { return m_lookAt; }
     const std::array<std::string, 4>& lookBones() const { return m_lookBones; }
     bool eyesReady() const { return !m_lookBones[2].empty() && !m_lookBones[3].empty(); }
