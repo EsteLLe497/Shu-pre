@@ -1,4 +1,5 @@
 #include "common.hlsl"
+#include "foliageWind.hlsli"
 
 PS_IN main(VS_IN input, float4 row0 : INSTANCEWORLD0, float4 row1 : INSTANCEWORLD1,
     float4 row2 : INSTANCEWORLD2, float4 row3 : INSTANCEWORLD3)
@@ -6,6 +7,7 @@ PS_IN main(VS_IN input, float4 row0 : INSTANCEWORLD0, float4 row1 : INSTANCEWORL
     PS_IN output = (PS_IN)0;
     float4x4 model = float4x4(row0, row1, row2, row3);
     float4 position = mul(input.Position, model);
+    applyFoliageWind(input.Position.xyz, model, position.xyz);
     output.Position = mul(mul(position, View), Projection);
     output.TexCoord = input.TexCoord;
     output.Diffuse = input.Diffuse * Material.Diffuse;

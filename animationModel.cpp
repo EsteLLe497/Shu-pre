@@ -11,12 +11,36 @@
 #include "assimp/config.h"
 #include "BonePoseRotation.h"
 #include "MorphOverlay.h"
+#include <cstring>
+#include <string>
 
 // =========================================================
 // キー時刻の前後を二分探索し、途中の姿勢を補間
 // =========================================================
 namespace
 {
+    XMFLOAT4 foliageWind(const std::string& file, const std::string& material, float halfHeight)
+    {
+        // Bend and flutter amplitudes are fractions of the model height.
+        if (halfHeight <= 0.0f) return {};
+        const float height = 2.0f * halfHeight;
+        if (material == "RuralCanopy") return { .018f, .010f, .24f, height };
+        if (material.compare(0, 10, "bambooLeaf") == 0) return { .024f, .013f, .42f, height };
+        if (material == "RuralGrass") return { .15f, .021f, .02f, height };
+        if ((file == "oak.glb" || file == "beech.glb" || file == "shrine-grove-oak.glb"
+            || file == "shrine-grove-beech.glb") && (material == "Oak_Leaves" || material == "Beech_Leaves"))
+            return { .018f, .011f, .18f, height };
+        if (file == "riverbank-reeds.obj" && material.substr(0, 4) == "reed")
+            return { .19f, .035f, .02f, height };
+        if (file == "roadside-grasses.obj" || file == "young-rice-rows.obj")
+            return { .16f, .034f, .02f, height };
+        if (file == "shrine-ferns.obj" || file == "summer-wildflowers.obj")
+            return { .10f, .024f, .02f, height };
+        if (file == "shrine-forest-understory.obj")
+            return { .070f, .020f, .10f, height };
+        return {};
+    }
+
     template<class Key>
     unsigned int findKeyBefore(const Key* keys, unsigned int count, double time)
     {
@@ -132,6 +156,7 @@ void AnimationModel::drawParts(const std::vector<DrawPart>& parts, bool alphaBle
         material.Diffuse = part.diffuse;
         material.Ambient = part.diffuse;
         material.TextureEnable = part.texture != nullptr;
+        material.Specular = part.wind;
         Renderer::SetMaterial(material);
         context->PSSetShaderResources(0, 1, &part.texture);
 
@@ -146,8 +171,9 @@ void AnimationModel::drawParts(const std::vector<DrawPart>& parts, bool alphaBle
 // =========================================================
 // FBX の透過指定で描画順を分け、各パーツのテクスチャを解決する
 // =========================================================
-void AnimationModel::loadDrawParts()
+void AnimationModel::loadDrawParts(bool staticMesh)
 {
+    const auto file = m_ModelPath.substr(m_ModelPath.find_last_of("/\\") + 1);
     for (unsigned int meshIndex = 0; meshIndex < m_AiScene->mNumMeshes; ++meshIndex)
     {
         const aiMesh* mesh = m_AiScene->mMeshes[meshIndex];
@@ -189,7 +215,11 @@ void AnimationModel::loadDrawParts()
 
         const bool transparent = material->GetTextureCount(aiTextureType_OPACITY) > 0 || opacity < 1.0f;
         auto& parts = transparent ? m_transparentParts : m_opaqueParts;
-        parts.push_back({ meshIndex, { diffuse.r, diffuse.g, diffuse.b, opacity }, texture });
+        aiString name;
+        if (staticMesh) material->Get(AI_MATKEY_NAME, name);
+        const auto wind = staticMesh ? foliageWind(file, name.C_Str(), m_staticHalfExtents.y) : XMFLOAT4{};
+        m_windReach = std::max(m_windReach, (wind.x + wind.y) * wind.w);
+        parts.push_back({ meshIndex, { diffuse.r, diffuse.g, diffuse.b, opacity }, texture, wind });
     }
 }
 
@@ -309,14 +339,20 @@ bool AnimationModel::tryLoad(const char* fileName, bool staticMesh)
             return false;
         }
 
+        aiString materialName;
+        if (staticMesh && mesh->HasVertexColors(0))
+            m_AiScene->mMaterials[mesh->mMaterialIndex]->Get(AI_MATKEY_NAME, materialName);
+        // The rural foliage vertex colors add color variation. Opacity comes from the texture.
+        const bool useVertexColors = std::strncmp(materialName.C_Str(), "Rural", 5) == 0;
         std::vector<VERTEX_3D> vertices(mesh->mNumVertices);
         if (m_DeformVertex) m_DeformVertex[m].resize(mesh->mNumVertices);
         for (unsigned int v = 0; v < mesh->mNumVertices; ++v)
         {
             const auto position = (mesh->mVertices[v] - center) / unit;
             const auto& normal = mesh->mNormals[v];
+            const auto color = useVertexColors ? mesh->mColors[0][v] : aiColor4D(1, 1, 1, 1);
             vertices[v] = { { position.x, position.y, position.z }, { normal.x, normal.y, normal.z },
-                { 1.0f, 1.0f, 1.0f, 1.0f }, mesh->HasTextureCoords(0)
+                { color.r, color.g, color.b, 1.0f }, mesh->HasTextureCoords(0)
                     ? XMFLOAT2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y)
                     : XMFLOAT2(0.0f, 0.0f) };
         }
@@ -399,7 +435,7 @@ bool AnimationModel::tryLoad(const char* fileName, bool staticMesh)
         }
     }
 
-    loadDrawParts();
+    loadDrawParts(staticMesh);
     if (staticMesh)
     {
         aiReleaseImport(m_AiScene);
@@ -692,6 +728,7 @@ void AnimationModel::CreateBone(aiNode* node)
         m_IndexBuffer = nullptr;
         m_DeformVertex = nullptr;
         m_indexCounts.clear();
+        m_windReach = 0.0f;
         if (m_AiScene) aiReleaseImport(m_AiScene);
         m_AiScene = nullptr;
 

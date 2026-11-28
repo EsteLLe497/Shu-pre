@@ -74,6 +74,7 @@ private:
     std::size_t m_activeMorphLayerCount = 0;
     unsigned int m_missingTextures = 0;
     XMFLOAT3 m_staticHalfExtents{};
+    float m_windReach = 0.0f;
     std::vector<UINT> m_indexCounts;
 
     // マテリアルを読み込み時に解決し、不透明と透過の描画順を分ける。
@@ -82,6 +83,7 @@ private:
         unsigned int meshIndex;
         XMFLOAT4 diffuse;
         ID3D11ShaderResourceView* texture;
+        XMFLOAT4 wind{};
     };
 
     std::unordered_map<const aiTexture*, ID3D11ShaderResourceView*> m_textures;
@@ -123,7 +125,7 @@ private:
     void anchorLandingFeet();
     void sampleBones(const aiAnimation& animation, double tick, RootTravel rootTravel);
     void applyPose(const aiAnimation& animation, double tick, RootTravel rootTravel, float weight);
-    void loadDrawParts();
+    void loadDrawParts(bool staticMesh);
     void setMorphLayer(MorphLayer& layer, const std::string& name, float weight);
     ID3D11ShaderResourceView* loadTexture(const aiTexture* embedded);
     void drawParts(const std::vector<DrawPart>& parts, bool alphaBlend, UINT instanceCount = 0);
@@ -137,6 +139,7 @@ public:
     bool LoadAnimation(const char* fileName, const char* name);
     bool tryLoad(const char* fileName, bool staticMesh = false);
     XMFLOAT3 staticHalfExtents() const { return m_staticHalfExtents; }
+    float windReach() const { return m_windReach; }
     double clipDuration(const char* name) const;
     bool sampleClip(const char* name, double seconds, RootTravel rootTravel = RootTravel::authored);
     bool sampleBlendedClip(const char* name, double seconds, float dt, RootTravel rootTravel, bool restart = false, bool loop = true);

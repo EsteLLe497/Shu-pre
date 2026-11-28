@@ -1,17 +1,14 @@
 #include "common.hlsl"
 #include "WaterCommon.hlsli"
+#include "SkyColor.hlsli"
 
 Texture2D<float> PondMask : register(t1);
 Texture2D<float> SceneDepth : register(t2);
-Texture2D<float4> SkyPanorama : register(t3);
 Texture2D<float4> SceneColor : register(t4);
 Texture2D<float2> BasinMask : register(t6);
 Texture2DArray<float4> WaterDetail : register(t7);
 SamplerState PondSampler : register(s1);
-SamplerState SkySampler : register(s2);
 SamplerState DetailSampler : register(s3);
-
-static const float pi = 3.14159265;
 
 float hash(float2 cell)
 {
@@ -80,20 +77,6 @@ float causticLight(float2 world, float time, float depth)
     float b = sin(dot(xy, float2(0.63, 0.58)) + warp.y - time * 0.72);
     return pow(saturate(1.0 - abs(a + b * 0.62)), 4.0)
         * (0.32 + 0.68 * noise(world * 0.85 + time * 0.10));
-}
-
-float3 reflectedSky(float3 direction)
-{
-    float3 fallback = lerp(float3(0.41, 0.48, 0.51), float3(0.10, 0.26, 0.49),
-        saturate(direction.y));
-    float3 reflection = fallback;
-    if (HasSky != 0.0)
-    {
-        float2 uv = float2(atan2(direction.z, direction.x) / (2 * pi) + 0.5,
-            acos(clamp(direction.y, -1.0, 1.0)) / pi);
-        reflection = lerp(fallback, SkyPanorama.SampleLevel(SkySampler, uv, 0).rgb, 0.84);
-    }
-    return reflection;
 }
 
 float3 refractedBackground(PS_IN input, float2 offset, bool underwater, float3 originalWorld, out float3 background)
@@ -185,7 +168,12 @@ bool inWaterVolume(float2 position)
 float3 throughWater(float3 source, float distance)
 {
     float3 transmission = exp2(-distance * float3(0.72, 0.29, 0.16));
-    return source * transmission + float3(0.017, 0.19, 0.23) * (1.0 - transmission);
+    return source * transmission + float3(0.017, 0.19, 0.23) * skySceneTint() * (1.0 - transmission);
+}
+
+float causticStrength()
+{
+    return Light.Enable ? lerp(1.0, SkySun.w, SkyCycle.w) : 0.0;
 }
 
 float4 underwaterView(float2 pixel)
@@ -226,10 +214,11 @@ float4 underwaterView(float2 pixel)
     float3 original = SceneColor.Load(int3(int2(pixel), 0)).rgb;
     float3 color = original;
     float depth = WaterVolume.x - scene.y;
-    if (Light.Enable && sceneDepth < 1.0 && depth > 0.0 && lengthInWater >= sceneDistance - 0.08)
+    float caustics = causticStrength();
+    if (caustics > 0.0 && sceneDepth < 1.0 && depth > 0.0 && lengthInWater >= sceneDistance - 0.08)
     {
         float light = causticLight(scene.xz, Material.Emission.x, depth) * exp2(-depth * 0.68);
-        color += light * 0.53 * float3(0.56, 0.91, 0.96);
+        color += light * caustics * 0.53 * float3(0.56, 0.91, 0.96);
     }
     float fade = smoothstep(0.0, 0.24, WaterVolume.x - eye.y) * Material.Diffuse.a;
     return float4(saturate(lerp(original, throughWater(color, lengthInWater), fade)), 1.0);
@@ -305,7 +294,10 @@ float4 main(PS_IN input) : SV_Target
     float3 reflectionDirection = reflect(-toEye, normal);
     float opacity = Material.AlphaBlend ? Material.Diffuse.a : 1.0;
     float reflected = saturate(ReflectionStrength * fresnel) * opacity * (2.0 - opacity);
-    float3 reflection = reflectedSky(reflectionDirection);
+    float3 reflection = 0.0;
+    [branch]
+    if (reflected > 0.001)
+        reflection = reflectedSkyColor(reflectionDirection);
     uint width = 1, height = 1;
     float contact = 0.0;
     float3 opaqueWorld = input.WorldPosition.xyz - float3(0.0, depth, 0.0);
@@ -330,6 +322,7 @@ float4 main(PS_IN input) : SV_Target
     float sunlight = Light.Enable ? (0.76 * pow(glintAngle, 136.0) + 0.16 * pow(glintAngle, 38.0)) : 0.0;
 
     float3 subsurface = lerp(float3(0.10, 0.37, 0.38), float3(0.013, 0.14, 0.23), 1.0 - exp2(-path * 0.85));
+    subsurface *= skySceneTint();
     float foam = max(max(0.80 * shoreline, 0.86 * contact), 0.32 * bankFoam)
         * smoothstep(0.48, 0.72, foamNoise);
     float alpha = 1.0;
@@ -347,10 +340,11 @@ float4 main(PS_IN input) : SV_Target
             if (belowSurface)
             {
                 float3 inside = lerp(float3(0.07, 0.26, 0.32), float3(0.014, 0.12, 0.17), innerReflection);
-                return float4(lerp(transmitted, inside, opacity * lerp(0.035, 0.97, innerReflection)), alpha);
+                return float4(lerp(transmitted, inside * skySceneTint(), opacity * lerp(0.035, 0.97, innerReflection)), alpha);
             }
             float backgroundDepth = clamp(Material.Specular.x - background.y, 0.0, depth + 0.20);
-            float light = Light.Enable ? causticLight(background.xz, elapsed, backgroundDepth) : 0.0;
+            float caustics = causticStrength();
+            float light = caustics > 0.0 ? causticLight(background.xz, elapsed, backgroundDepth) * caustics : 0.0;
             light *= smoothstep(0.02, 0.20, backgroundDepth) * exp2(-backgroundDepth * 0.55);
             subsurface = throughWater(transmitted + light * 0.22 * float3(0.48, 0.89, 0.94),
                 min(path, length(input.WorldPosition.xyz - background)) * opacity);
@@ -358,7 +352,7 @@ float4 main(PS_IN input) : SV_Target
         else alpha *= opacity;
     }
     float3 color = lerp(subsurface, reflection, reflected);
-    color += float3(1.0, 0.89, 0.69) * sunlight * ReflectionStrength * opacity;
-    color = lerp(color, float3(0.81, 0.91, 0.93), foam * opacity);
+    color += Light.Diffuse.rgb * sunlight * ReflectionStrength * opacity;
+    color = lerp(color, float3(0.81, 0.91, 0.93) * skySceneTint(), foam * opacity);
     return float4(saturate(color), alpha);
 }

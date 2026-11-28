@@ -6,6 +6,7 @@
 #include "common.hlsl"
 #include "toonCommon.hlsli"
 #include "planetariumLight.hlsli"
+#include "SkyFrame.hlsli"
 
 Texture2D baseTexture : register(t0);
 SamplerState baseSampler : register(s0);
@@ -59,7 +60,7 @@ float4 main(PS_IN pixel) : SV_Target
             float rim = pow(1.0f - saturate(dot(normal, viewDirection)), rimPower);
             color.rgb += rimColor.rgb * (rim * rimStrength);
         }
-        color.rgb = lerp(color.rgb, albedo * planetariumIrradiance(normal), night);
+        color.rgb = lerp(color.rgb * skySceneTint(), albedo * planetariumIrradiance(normal), night);
     }
 
     return float4(color.rgb * exposure, color.a);

@@ -1,0 +1,118 @@
+newmtl bambooGreen
+Kd .28 .38 .14
+
+newmtl bambooOlive
+Kd .36 .44 .18
+
+newmtl bambooNode
+Kd .47 .47 .26
+
+newmtl bambooBranch
+Kd .28 .32 .13
+
+newmtl bambooLeafA
+Kd .20 .32 .10
+
+newmtl bambooLeafB
+Kd .26 .39 .13
+
+newmtl bambooLeafC
+Kd .32 .44 .17
+
+newmtl riverRockA
+Kd .60 .59 .53
+map_Kd valley-weathered-stone.png
+
+newmtl riverRockB
+Kd .65 .64 .60
+map_Kd valley-weathered-stone.png
+
+newmtl riverRockC
+Kd .49 .52 .52
+map_Kd valley-weathered-stone.png
+
+newmtl riverMoss
+Kd .40 .46 .31
+map_Kd valley-weathered-stone.png
+
+newmtl dullSteel
+Kd .38 .40 .39
+
+newmtl guardWhite
+Kd .59 .58 .50
+
+newmtl woodPost
+Kd .30 .25 .19
+map_Kd wood.jpg
+
+newmtl glassBlue
+Kd .37 .49 .48
+
+newmtl slate
+Kd .24 .28 .29
+
+newmtl mirrorSilver
+Kd .63 .66 .59
+
+newmtl orangePost
+Kd .69 .37 .11
+
+newmtl fadedRed
+Kd .64 .18 .14
+
+newmtl lanternIvory
+Kd .75 .72 .57
+
+newmtl stonePatina
+Kd .43 .45 .41
+map_Kd valley-weathered-stone.png
+
+newmtl jizoBib
+Kd .59 .14 .12
+
+newmtl oldWhite
+Kd .66 .66 .59
+
+newmtl vendingBlue
+Kd .40 .54 .59
+
+newmtl glassDark
+Kd .22 .29 .29
+
+newmtl gravelGrey
+Kd .36 .39 .37
+map_Kd valley-weathered-stone.png
+
+newmtl notice
+Kd .88 .85 .72
+map_Kd valley-sign.png
+
+newmtl noticeInk
+Kd .26 .29 .23
+
+newmtl creamCan
+Kd .68 .59 .30
+
+newmtl blueCan
+Kd .33 .52 .65
+
+newmtl hillFirDark
+Kd .133 .259 .134
+
+newmtl hillFirMid
+Kd .176 .303 .151
+
+newmtl hillFirLight
+Kd .208 .335 .164
+
+newmtl hillBroadDark
+Kd .172 .284 .143
+
+newmtl hillBroadMid
+Kd .211 .326 .161
+
+newmtl hillBroadLight
+Kd .246 .362 .172
+
+newmtl hillBark
+Kd .25 .24 .18

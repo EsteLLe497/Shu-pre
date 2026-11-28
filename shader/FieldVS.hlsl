@@ -21,7 +21,7 @@ void main(in VS_IN In, out PS_IN Out)
     float3 lightDir = Light.Direction.xyz;
     lightDir = normalize(lightDir);
 	
-    float light = -dot(normal.xyz, Light.Direction.xyz);
+    float light = -dot(normal.xyz, lightDir);
     light = saturate(light);
 	
     Out.Normal = float4(normal.xyz, light); // w ÇÕí∏ì_Ç≈åvéZÇµÇΩíãÇÃñæÇÈÇ≥ÅB

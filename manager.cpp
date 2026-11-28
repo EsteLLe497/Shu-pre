@@ -2,6 +2,7 @@
 #include "manager.h"
 #include "renderer.h"
 #include "Camera.h"
+#include "SkyDome.h"
 #include "input.h"
 #include "Game.h"
 #include "audio.h"
@@ -144,6 +145,7 @@ void Manager::Update(float frameSeconds)
     if (ToonPanel::isPauseMenuOpen()) return;
 
     const bool editing = SceneEditor::isOpen();
+    if (auto* sky = GetGameObj<SkyDome>()) sky->advance(frameSeconds, editing);
     const bool updateWorld = !editing && planetarium::updateWorld();
     const auto* player = updateWorld ? nullptr : GetGameObj<Player>();
     const auto* camera = GetGameObj<Camera>();
@@ -198,6 +200,8 @@ void Manager::Draw()
     }
 
 	Renderer::Begin();
+    auto* sky = GetGameObj<SkyDome>();
+    if (sky) sky->bindFrame();
     const auto* lightPlayer = GetGameObj<Player>();
     planetarium::bindLighting(lightPlayer ? lightPlayer->GetPosition() : Vector3(0.0f, 0.0f, 0.0f));
 	Camera* camera = GetGameObj<Camera>();
@@ -231,14 +235,22 @@ void Manager::Draw()
 	for (int layer = 0; layer < 5; layer++)
 	{
         // UIはドームの色や遮蔽の影響を受けない。
-        if (layer == 1 && camera) Scenery::begin(camera->GetViewMatrix(), camera->projectionMatrix());
+        if (layer == 1 && camera)
+            Scenery::begin(camera->GetViewMatrix(), camera->projectionMatrix(),
+                ToonPanel::isPauseMenuOpen() ? 0.0f : m_animationDeltaSeconds);
         if (layer == 2)
         {
-            if (camera) SceneEditor::drawVegetation(camera->renderPosition());
+            if (camera)
+            {
+                SceneEditor::drawVegetation(camera->renderPosition());
+                SceneEditor::drawWildlife(camera->renderPosition(),
+                    ToonPanel::isPauseMenuOpen() ? 0.0f : m_animationDeltaSeconds);
+            }
             Scenery::flush();
         }
         if (layer == 4)
         {
+            if (camera && sky) sky->Draw();
             drawAlphaObjects(alphaObjects, camera);
             if (camera) SceneEditor::drawWater(camera->renderPosition(),
                 camera->GetViewMatrix() * camera->projectionMatrix(),
