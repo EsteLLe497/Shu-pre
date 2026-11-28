@@ -18,6 +18,9 @@ struct PreviewControls
 {
     std::string clipName = "Walk";
     std::vector<std::string> motionNames;
+    bool bindPose = false;
+    std::vector<std::string> characterPaths;
+    std::string loadedCharacterPath;
     const char* motionStatus = nullptr;
     int morphIndex = 0;
     int baseMorphIndex = -1;

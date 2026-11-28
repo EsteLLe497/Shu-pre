@@ -75,6 +75,7 @@ namespace
 // =========================================================
 void PreviewScene::Init()
 {
+    m_controls.characterPaths = HeroineAnimationAssets::listCharacters();
     m_controls.motionNames = HeroineAnimationAssets::listMotions();
     m_toonShader.init();
 
@@ -116,7 +117,7 @@ bool PreviewScene::loadModel(const char* path)
 {
     auto candidate = std::make_unique<AnimationModel>(&m_modelAnchor);
     using HeroineAnimationAssets::LoadResult;
-    const auto result = HeroineAnimationAssets::loadCharacter(*candidate, path);
+    const auto result = HeroineAnimationAssets::loadCharacter(*candidate, path, false);
     if (result != LoadResult::loaded)
     {
         if (result == LoadResult::motionMismatch)
@@ -129,8 +130,15 @@ bool PreviewScene::loadModel(const char* path)
         return false;
     }
 
-    if (!HeroineAnimationAssets::loadMotion(*candidate, m_controls.clipName))
-        m_controls.clipName = "Walk";
+    std::string selectedClip = m_controls.clipName;
+    if (!HeroineAnimationAssets::loadMotion(*candidate, selectedClip, path))
+    {
+        selectedClip.clear();
+        for (const auto& clip : HeroineAnimationAssets::clips)
+            if (candidate->hasAnimation(clip.name)) { selectedClip = clip.name; break; }
+    }
+    m_controls.clipName = selectedClip;
+    m_controls.bindPose = selectedClip.empty();
 
     // FBX の再読込後も、同じ名前のシェイプキーがあれば選択を引き継ぐ。
     const auto& names = candidate->morphNames();
@@ -141,7 +149,7 @@ bool PreviewScene::loadModel(const char* path)
         const auto found = std::find(names.begin(), names.end(), m_model->morphNames()[index]);
         return found == names.end() ? fallback : static_cast<int>(found - names.begin());
     };
-    m_controls.morphIndex = findName(m_controls.morphIndex, 0);
+    m_controls.morphIndex = findName(m_controls.morphIndex, names.empty() ? -1 : 0);
     m_controls.baseMorphIndex = findName(m_controls.baseMorphIndex, -1);
     auto& extras = m_controls.extraMorphs;
     extras.erase(std::remove_if(extras.begin(), extras.end(), [&](const MorphTarget& morph) {
@@ -152,11 +160,13 @@ bool PreviewScene::loadModel(const char* path)
     if (m_model)
         m_model->Uninit();
     m_model = std::move(candidate);
-    m_controls.motionNames = HeroineAnimationAssets::listMotions();
-    m_controls.motionStatus = nullptr;
+    m_controls.motionNames = HeroineAnimationAssets::listMotions(path);
+    m_controls.motionStatus = m_controls.bindPose ? "No compatible motion. Showing bind pose." : nullptr;
     m_sampledClip.clear();
+    m_sampledTime = m_sampledWeight = m_sampledExtraTime = -1.0f;
     const std::string loadedPath = path;
     strcpy_s(m_controls.characterPath, loadedPath.c_str());
+    m_controls.loadedCharacterPath = loadedPath;
     m_controls.assetStatus = "Loaded: " + loadedPath;
     return true;
 }
@@ -166,7 +176,7 @@ bool PreviewScene::loadModel(const char* path)
 // =========================================================
 bool PreviewScene::selectMotion(const std::string& name)
 {
-    if (!m_model || !HeroineAnimationAssets::loadMotion(*m_model, name))
+    if (!m_model || !HeroineAnimationAssets::loadMotion(*m_model, name, m_controls.loadedCharacterPath))
         return false;
 
     const auto canonical = HeroineAnimationAssets::canonicalMotionName(name);
@@ -174,6 +184,7 @@ bool PreviewScene::selectMotion(const std::string& name)
         m_model->unloadAnimation(m_controls.clipName.c_str());
 
     m_controls.clipName = canonical;
+    m_controls.bindPose = false;
     return true;
 }
 
@@ -183,7 +194,7 @@ bool PreviewScene::selectMotion(const std::string& name)
 void PreviewScene::sampleModel()
 {
     const float motionTime = m_timeline.trackEnabled(0) ? m_timeline.time : 0.0f;
-    const std::string clip = m_controls.clipName;
+    const std::string clip = m_controls.bindPose ? std::string{} : m_controls.clipName;
     const float weight = m_timeline.faceWeight();
     const auto& morphs = m_model->morphNames();
     const bool faceEnabled = m_timeline.trackEnabled(1) && !morphs.empty();
@@ -203,7 +214,8 @@ void PreviewScene::sampleModel()
     else
         m_model->setMorph(neutral, 0.0f);
 
-    m_model->sampleBlendedClip(clip.c_str(), motionTime, 0.0f,
+    if (clip.empty()) m_model->applyBindPose();
+    else m_model->sampleBlendedClip(clip.c_str(), motionTime, 0.0f,
         AnimationModel::RootTravel::authored, false, true);
     m_sampledClip = clip;
     m_sampledMorph = morph;
@@ -226,7 +238,7 @@ void PreviewScene::Draw()
         if (PreviewPanel::draw(m_timeline, m_controls, m_camera, m_toonShader.settings(),
             m_model ? m_model->morphNames() : emptyMorphs,
             [this](const std::string& name) { return selectMotion(name); },
-            [this]() { return m_model ? m_model->clipDuration(m_controls.clipName.c_str()) : 0.0; }))
+            [this]() { return m_model && !m_controls.bindPose ? m_model->clipDuration(m_controls.clipName.c_str()) : 0.0; }))
         {
             loadModel(m_controls.characterPath);
         }

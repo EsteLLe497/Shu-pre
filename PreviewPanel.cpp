@@ -436,7 +436,10 @@ namespace
             ImGui::PushItemWidth(-102.0f);
             if (ImGui::CollapsingHeader("Motion", ImGuiTreeNodeFlags_DefaultOpen))
             {
-                if (ImGui::BeginCombo("Clip", controls.clipName.c_str()))
+                ImGui::BeginDisabled(controls.clipName.empty());
+                ImGui::Checkbox("Bind pose (no motion)", &controls.bindPose);
+                ImGui::EndDisabled();
+                if (ImGui::BeginCombo("Clip", controls.clipName.empty() ? "No compatible motion" : controls.clipName.c_str()))
                 {
                     for (const auto& name : controls.motionNames)
                     {
@@ -450,7 +453,7 @@ namespace
                 }
                 if (ImGui::Button("Refresh motions"))
                 {
-                    controls.motionNames = HeroineAnimationAssets::listMotions();
+                    controls.motionNames = HeroineAnimationAssets::listMotions(controls.loadedCharacterPath);
                     controls.motionStatus = "Motion list refreshed.";
                 }
                 if (ImGui::Button("Use clip duration") && clipDuration() > 0.0)
@@ -534,14 +537,31 @@ bool PreviewPanel::draw(PreviewTimeline& timeline, PreviewControls& controls, Pr
 {
     bool reload = false;
     ImGui::SetNextWindowPos({ 16, 16 }, ImGuiCond_Always);
-    ImGui::SetNextWindowSize({ 300, 230 }, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize({ 340, 350 }, ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Heroine preview"))
     {
         ImGui::Checkbox("Show XYZ axes", &controls.showWorldAxes);
+        const auto fileName = [](const std::string& path) {
+            const auto slash = path.find_last_of("/\\");
+            return path.substr(slash == std::string::npos ? 0 : slash + 1);
+        };
+        const auto current = fileName(controls.loadedCharacterPath);
+        ImGui::SetNextItemWidth(-1);
+        if (ImGui::BeginCombo("##Character models", current.empty() ? "Select character" : current.c_str()))
+        {
+            for (const auto& path : controls.characterPaths)
+                if (ImGui::Selectable(fileName(path).c_str(), path == controls.loadedCharacterPath))
+                {
+                    strcpy_s(controls.characterPath, path.c_str());
+                    reload = true;
+                }
+            ImGui::EndCombo();
+        }
+        if (ImGui::Button("Refresh models")) controls.characterPaths = HeroineAnimationAssets::listCharacters();
         ImGui::TextUnformatted("Character FBX");
         ImGui::SetNextItemWidth(-1);
         ImGui::InputText("##CharacterFBX", controls.characterPath, sizeof(controls.characterPath));
-        reload = ImGui::Button("Load character");
+        if (ImGui::Button("Load character")) reload = true;
         ImGui::SameLine();
         if (ImGui::Button("Reload Blender export"))
         {
@@ -550,6 +570,7 @@ bool PreviewPanel::draw(PreviewTimeline& timeline, PreviewControls& controls, Pr
         }
         ImGui::TextWrapped("%s", controls.assetStatus.c_str());
         ImGui::Text("%zu morph targets", morphs.size());
+        if (morphs.empty()) ImGui::TextWrapped("This FBX has no facial morphs. Export shape keys to preview expressions.");
         ImGui::TextDisabled("RMB: orbit | MMB: pan");
         ImGui::TextDisabled("Wheel / Alt + RMB: zoom | F: frame");
     }

@@ -3,6 +3,7 @@
 #include "DebugPanel.h"
 #include "Heroine.h"
 #include "HeroineExpressionPanel.h"
+#include "HeroineModelPanel.h"
 #include "HeroineConversation.h"
 #include "AI/DialoguePanel.h"
 #include "Player.h"
@@ -338,6 +339,12 @@ void DebugPanel::draw()
             if (ImGui::BeginTabItem(u8"視線・Look At"))
             {
                 if (auto* heroine = Manager::GetGameObj<Heroine>()) drawLookAt(*heroine);
+                else ImGui::TextUnformatted(u8"ヒロインがいません。");
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem(u8"モデル"))
+            {
+                if (auto* heroine = Manager::GetGameObj<Heroine>()) HeroineModelPanel::draw(*heroine);
                 else ImGui::TextUnformatted(u8"ヒロインがいません。");
                 ImGui::EndTabItem();
             }

@@ -23,6 +23,8 @@ private:
     bool m_singleAction = false;
     bool m_restart = true;
     bool m_ready = false;
+    std::string m_modelPath;
+    std::string m_modelStatus;
     HeroineMovement m_movement;
     HeroineLookAt m_lookAt;
     HeroineExpression m_expression;
@@ -47,6 +49,9 @@ public:
     void Uninit() override;
     void Update() override;
     void Draw() override;
+    bool setModel(const std::string& path);
+    const std::string& modelPath() const { return m_modelPath; }
+    const std::string& modelStatus() const { return m_modelStatus; }
     bool playAction(HeroineActionKind kind);
     bool playAction(const ActionSequence& action);
     void setMotionSounds(HeroineActionKind kind, const SceneAudio::Timeline& markers);
