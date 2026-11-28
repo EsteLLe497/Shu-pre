@@ -100,6 +100,8 @@ void AI::DialogueSession::run()
         if (result.code != DialogueCode::success && result.code != DialogueCode::cancelled) result.dialogue = fallbackDialogue();
         if (result.code != DialogueCode::success || result.emotion < HeroineEmotion::neutral || result.emotion >= HeroineEmotion::count)
             result.emotion = HeroineEmotion::neutral;
+        if (result.code != DialogueCode::success || result.gesture < HeroineGestureKind::none || result.gesture >= HeroineGestureKind::count)
+            result.gesture = HeroineGestureKind::none;
         {
             std::lock_guard<std::mutex> lock(m_mutex);
             m_busy = false;

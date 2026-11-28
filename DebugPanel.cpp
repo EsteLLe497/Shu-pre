@@ -4,6 +4,7 @@
 #include "Heroine.h"
 #include "HeroineExpressionPanel.h"
 #include "HeroineModelPanel.h"
+#include "HeroineGesturePanel.h"
 #include "HeroineConversation.h"
 #include "AI/DialoguePanel.h"
 #include "Player.h"
@@ -351,6 +352,12 @@ void DebugPanel::draw()
             if (ImGui::BeginTabItem(u8"表情"))
             {
                 if (auto* heroine = Manager::GetGameObj<Heroine>()) HeroineExpressionPanel::draw(*heroine);
+                else ImGui::TextUnformatted(u8"ヒロインがいません。");
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem(u8"仕草"))
+            {
+                if (auto* heroine = Manager::GetGameObj<Heroine>()) HeroineGesturePanel::draw(*heroine);
                 else ImGui::TextUnformatted(u8"ヒロインがいません。");
                 ImGui::EndTabItem();
             }

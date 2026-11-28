@@ -8,6 +8,7 @@
 #include "HeroineMovement.h"
 #include "HeroineLookAt.h"
 #include "HeroineExpression.h"
+#include "HeroineGesture.h"
 
 class Heroine : public GameObject
 {
@@ -28,6 +29,7 @@ private:
     HeroineMovement m_movement;
     HeroineLookAt m_lookAt;
     HeroineExpression m_expression;
+    HeroineGesture m_gesture;
     float m_actionEyeClosure = 0;
     std::array<std::string, 4> m_lookBones;
     std::string m_closeEyeMorph;
@@ -65,6 +67,8 @@ public:
     bool movementReady() const;
     const HeroineMovement& movement() const { return m_movement; }
     HeroineExpression& expression() { return m_expression; }
+    HeroineGesture& gesture() { return m_gesture; }
+    bool gesturesReady() const { return !m_lookBones[1].empty(); }
     HeroineLookAt& lookAt() { return m_lookAt; }
     const std::array<std::string, 4>& lookBones() const { return m_lookBones; }
     bool eyesReady() const { return !m_lookBones[2].empty() && !m_lookBones[3].empty(); }

@@ -104,7 +104,7 @@ AI::DialogueResult AI::OllamaClient::generate(const DialogueRequest& request, co
                 {
                     const auto chat = m_transport(request.config.port, "/api/chat", chatRequest(request), cancelled, deadline);
                     result.code = chat.code; result.httpStatus = chat.status;
-                    if (chat.code == DialogueCode::success && !parseDialogue(chat.body, result.dialogue, result.emotion)) result.code = DialogueCode::invalidResponse;
+                    if (chat.code == DialogueCode::success && !parseDialogue(chat.body, result.dialogue, result.emotion, result.gesture)) result.code = DialogueCode::invalidResponse;
                 }
             }
         }
@@ -113,6 +113,7 @@ AI::DialogueResult AI::OllamaClient::generate(const DialogueRequest& request, co
     if (cancelled) result.code = DialogueCode::cancelled;
     if (result.code != DialogueCode::success) result.dialogue = result.code == DialogueCode::cancelled ? "" : fallbackDialogue();
     if (result.code != DialogueCode::success) result.emotion = HeroineEmotion::neutral;
+    if (result.code != DialogueCode::success) result.gesture = HeroineGestureKind::none;
     result.elapsedSeconds = std::chrono::duration<float>(std::chrono::steady_clock::now() - start).count();
     return result;
 }
